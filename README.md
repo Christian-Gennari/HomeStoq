@@ -14,7 +14,7 @@
 
 -   **Stock Tracking**: Real-time view of your pantry items with manual override.
 -   **Receipt OCR**: Snap a photo of your grocery receipt or upload a PDF/Image, and HomeStoq (powered by Gemini 2.5 Flash) will automatically extract items, quantities, and prices to update your inventory.
--   **Voice Sync**: Integrate with Google Tasks. Simply say "used the last milk" or "bought eggs" to your voice assistant (mapped to a Google Task list named "HomeStoq"), and the background worker will process the change.
+-   **Voice Sync**: Integrate with Google Tasks. Simply say "used the last milk" or "bought eggs" to your voice assistant, and the background worker will process the change. Uses your default task list by default, with optional custom list name via configuration.
 -   **Smart Shopping List**: Predictive analysis based on your 30-day consumption history and current stock levels to suggest what you need to buy next.
 -   **Privacy-First**: Runs locally in Docker with a SQLite database.
 
@@ -65,6 +65,7 @@ HomeStoq requires two main integrations from Google: **Gemini API** for intellig
 | `GEMINI_API_KEY` | Your AI Studio Key | `AIzaSy...` |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Path to your JSON key | `/app/creds/key.json` |
 | `DATABASE_PATH` | Path for SQLite DB | `/app/data/homestoq.db` |
+| `GOOGLE_TASKS_LIST_NAME` | (Optional) Task list name | `@default` (default) or `HomeStoq` |
 
 #### Step D: How to set these variables
 -   **For Docker**: Create a file named `.env` in the project root (see Step 2 below).
@@ -81,6 +82,8 @@ Docker Compose automatically handles relative paths for your database and creden
 1.  **Create a `.env` file** in the project root and add your Gemini key:
     ```env
     GEMINI_API_KEY=your_actual_api_key_here
+    # Optional: Specify a custom task list name (uses default if not set)
+    # GOOGLE_TASKS_LIST_NAME=HomeStoq
     ```
 2.  **Ensure your `creds/key.json` is present** (from Step 1B).
 3.  **Start the application**:
@@ -101,7 +104,7 @@ For a detailed, day-to-day guide on how to use HomeStoq effectively, check out o
 
 1.  **Inventory**: Use the "Stock" tab to see what you have. Use the `+` and `-` buttons for manual adjustments.
 2.  **Scan Receipts**: Go to the "Scan" tab. You can either take a photo directly or upload a file (PDF/Image). Tap **Scan & Analyze**, and Gemini will process the receipt and update your inventory.
-3.  **Voice Commands**: Create a list named **"HomeStoq"** in Google Tasks. Add tasks like "used 2 milk" or "bought 5 apples". The server polls this list every 10 seconds, parses the text via AI, updates the stock, and deletes the task.
+3.  **Voice Commands**: Add tasks to your default Google Tasks list like "used 2 milk" or "bought 5 apples". The server polls every 10 seconds, parses the text via AI, updates the stock, and deletes the task. To use a custom list, set `GOOGLE_TASKS_LIST_NAME` in your `.env` file.
 4.  **Shopping List**: Click "Analyze Patterns" in the "Smart List" tab to see AI-generated suggestions based on your history.
 
 ## 📝 License

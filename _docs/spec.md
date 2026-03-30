@@ -12,7 +12,7 @@ The application is built as a lightweight ASP.NET Core 10 application using Mini
 
 ### 1.1. Background Services (No user interaction required)
 
-**VoiceSyncWorker:** Runs in a loop (e.g. every 10 seconds) as a `BackgroundService`. Fetches new tasks from the "HomeStoq" list in Google Tasks, sends the text to `GeminiService` for parsing (Item + Action), updates the database, then deletes the task.
+**VoiceSyncWorker:** Runs in a loop (e.g. every 10 seconds) as a `BackgroundService`. Fetches new tasks from Google Tasks (uses `@default` list by default, configurable via `GOOGLE_TASKS_LIST_NAME` environment variable), sends the text to `GeminiService` for parsing (Item + Action), updates the database, then deletes the task.
 
 ### 1.2. Core Services (Business Logic)
 

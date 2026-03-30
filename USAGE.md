@@ -32,8 +32,9 @@ When you come home from the store, don't manually enter your items. Use the **Sc
 When you finish a carton of milk or use the last of the eggs, just tell your voice assistant.
 
 ### How to set it up:
-- Ensure you have a list named **"HomeStoq"** in your Google Tasks (integrated with Google Assistant).
-- Say: *"Hey Google, add 'used the last milk' to my HomeStoq list."*
+- Tasks are read from your **default Google Tasks list** (no setup required).
+- Say: *"Hey Google, add 'used the last milk' to my tasks."*
+- **Optional**: To use a custom list, set `GOOGLE_TASKS_LIST_NAME=YourListName` in your `.env` file and say: *"Hey Google, add 'used the last milk' to my [YourListName] list."*
 
 ### Practical Examples:
 - **"Used 1 milk"** → Decreases Milk by 1.
@@ -86,5 +87,6 @@ Before you head to the store, check the **Smart List** tab.
 
 ## ❓ Troubleshooting
 - **Items not updating?** Check the logs in your Docker container or console.
-- **Voice sync slow?** Ensure your `key.json` is correctly placed and the "HomeStoq" list exists in Google Tasks.
+- **Voice sync slow?** Ensure your `key.json` is correctly placed and Google Tasks API is enabled.
+- **Voice sync not working?** Verify the `GOOGLE_TASKS_LIST_NAME` in your `.env` matches your list name (or leave it unset to use the default list).
 - **OCR failing?** Ensure your Gemini API key is valid and has not reached its quota.

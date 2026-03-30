@@ -10,13 +10,16 @@ public class VoiceSyncWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<VoiceSyncWorker> _logger;
+    private readonly string _listName;
     private TasksService? _tasksService;
     private string? _listId;
 
-    public VoiceSyncWorker(IServiceProvider serviceProvider, ILogger<VoiceSyncWorker> logger)
+    public VoiceSyncWorker(IServiceProvider serviceProvider, ILogger<VoiceSyncWorker> logger, IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        // Read from environment variable or fallback to "@default" (Google's default list identifier)
+        _listName = configuration["GOOGLE_TASKS_LIST_NAME"] ?? "@default";
     }
 
     protected override async System.Threading.Tasks.Task ExecuteAsync(CancellationToken stoppingToken)
@@ -64,13 +67,23 @@ public class VoiceSyncWorker : BackgroundService
 
         if (string.IsNullOrEmpty(_listId))
         {
-            var lists = await _tasksService.Tasklists.List().ExecuteAsync(stoppingToken);
-            _listId = lists.Items?.FirstOrDefault(l => l.Title.Equals("HomeStoq", StringComparison.OrdinalIgnoreCase))?.Id;
-            
-            if (string.IsNullOrEmpty(_listId))
+            if (_listName == "@default")
             {
-                _logger.LogWarning("Google Tasks list 'HomeStoq' not found.");
-                return;
+                _listId = "@default";
+                _logger.LogInformation("Using default Google Tasks list.");
+            }
+            else
+            {
+                var lists = await _tasksService.Tasklists.List().ExecuteAsync(stoppingToken);
+                _listId = lists.Items?.FirstOrDefault(l => l.Title.Equals(_listName, StringComparison.OrdinalIgnoreCase))?.Id;
+                
+                if (string.IsNullOrEmpty(_listId))
+                {
+                    _logger.LogWarning("Google Tasks list '{ListName}' not found. Voice sync disabled.", _listName);
+                    return;
+                }
+                
+                _logger.LogInformation("Using Google Tasks list: {ListName}", _listName);
             }
         }
 
