@@ -13,7 +13,7 @@
 ## 🚀 Features
 
 -   **Stock Tracking**: Real-time view of your pantry items with manual override.
--   **Receipt OCR**: Snap a photo of your grocery receipt or upload a PDF/Image, and HomeStoq (powered by Gemini 2.5 Flash) will automatically extract items, quantities, and prices to update your inventory.
+-   **Receipt OCR**: Snap a photo of your grocery receipt or upload a PDF/Image, and HomeStoq (powered by Gemini 3.1 Flash) will automatically extract items, quantities, and prices to update your inventory.
 -   **Voice Sync**: Integrate with Google Tasks. Simply say "used the last milk" or "bought eggs" to your voice assistant, and the background worker will process the change. Uses your default task list by default, with optional custom list name via configuration.
 -   **Smart Shopping List**: Predictive analysis based on your 30-day consumption history and current stock levels to suggest what you need to buy next.
 -   **Privacy-First**: Runs locally in Docker with a SQLite database.
@@ -22,7 +22,7 @@
 
 -   **Backend**: ASP.NET Core 10 (Minimal APIs)
 -   **Database**: SQLite (Dapper)
--   **AI Engine**: Google Gemini 2.5 Flash (OCR, Parsing, Prediction)
+-   **AI Engine**: Google Gemini 3.1 Flash (OCR, Parsing, Prediction)
 -   **Frontend**: Vanilla HTML5, CSS3, and JavaScript (No heavy frameworks)
 -   **Voice Queue**: Google Tasks API
 -   **Containerization**: Docker (Alpine Linux)

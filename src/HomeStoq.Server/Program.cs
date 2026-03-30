@@ -19,23 +19,34 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Endpoints
-app.MapGet("/api/inventory", async (InventoryRepository repository) => 
-    Results.Ok(await repository.GetInventoryAsync()));
-
-app.MapPost("/api/inventory/update", async (ManualUpdateRequest request, InventoryRepository repository) =>
+app.MapGet("/api/inventory", async (InventoryRepository repository, ILogger<Program> logger) => 
 {
+    logger.LogInformation("GET /api/inventory requested.");
+    var inventory = await repository.GetInventoryAsync();
+    return Results.Ok(inventory);
+});
+
+app.MapPost("/api/inventory/update", async (ManualUpdateRequest request, InventoryRepository repository, ILogger<Program> logger) =>
+{
+    logger.LogInformation("POST /api/inventory/update for {ItemName} ({Change})", request.ItemName, request.QuantityChange);
     await repository.UpdateInventoryItemAsync(request.ItemName, request.QuantityChange, request.Price, request.Currency, "Manual");
     return Results.Ok();
 });
 
-app.MapPost("/api/receipts/scan", async (IFormFile receiptImage, GeminiService gemini, InventoryRepository repository) =>
+app.MapPost("/api/receipts/scan", async (IFormFile receiptImage, GeminiService gemini, InventoryRepository repository, ILogger<Program> logger) =>
 {
+    logger.LogInformation("POST /api/receipts/scan: Received file {FileName} ({ContentType})", receiptImage.FileName, receiptImage.ContentType);
     using var stream = new MemoryStream();
     await receiptImage.CopyToAsync(stream);
     var items = await gemini.ProcessReceiptImageAsync(stream.ToArray(), receiptImage.ContentType);
     
-    if (items == null) return Results.Problem("Gemini failed to process the image.");
+    if (items == null) 
+    {
+        logger.LogWarning("Gemini failed to process the receipt image.");
+        return Results.Problem("Gemini failed to process the image.");
+    }
 
+    logger.LogInformation("Gemini identified {Count} items from receipt.", items.Count);
     foreach (var item in items)
     {
         await repository.UpdateInventoryItemAsync(item.ItemName, item.Quantity, item.Price, source: "Receipt");
@@ -44,8 +55,9 @@ app.MapPost("/api/receipts/scan", async (IFormFile receiptImage, GeminiService g
     return Results.Ok(items);
 }).DisableAntiforgery();
 
-app.MapGet("/api/insights/shopping-list", async (InventoryRepository repository, GeminiService gemini) =>
+app.MapGet("/api/insights/shopping-list", async (InventoryRepository repository, GeminiService gemini, ILogger<Program> logger) =>
 {
+    logger.LogInformation("GET /api/insights/shopping-list requested.");
     var history = await repository.GetHistoryAsync(30);
     var inventory = await repository.GetInventoryAsync();
 
@@ -57,9 +69,11 @@ app.MapGet("/api/insights/shopping-list", async (InventoryRepository repository,
 
     if (cachedResponse != null)
     {
+        logger.LogInformation("Returning cached shopping list suggestions.");
         return Results.Ok(JsonSerializer.Deserialize<JsonElement>(cachedResponse));
     }
 
+    logger.LogInformation("Generating new shopping list suggestions via Gemini...");
     var result = await gemini.GenerateShoppingListAsync(historyJson, inventoryJson);
     if (result != null)
     {
@@ -67,6 +81,7 @@ app.MapGet("/api/insights/shopping-list", async (InventoryRepository repository,
         return Results.Ok(JsonSerializer.Deserialize<JsonElement>(result));
     }
 
+    logger.LogWarning("Gemini failed to generate shopping list suggestions.");
     return Results.Problem("Gemini failed to generate shopping list.");
 });
 

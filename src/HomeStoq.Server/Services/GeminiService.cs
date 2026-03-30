@@ -9,16 +9,20 @@ public class GeminiService
 {
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
-    private const string GeminiEndpoint =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    private readonly string _model;
+    private readonly ILogger<GeminiService> _logger;
 
-    public GeminiService(HttpClient httpClient, IConfiguration configuration)
+    public GeminiService(HttpClient httpClient, IConfiguration configuration, ILogger<GeminiService> logger)
     {
         _httpClient = httpClient;
+        _logger = logger;
         _apiKey =
             configuration["GEMINI_API_KEY"]
             ?? throw new ArgumentNullException("GEMINI_API_KEY not configured");
+        _model = configuration["GEMINI_MODEL"] ?? "gemini-3.1-flash-lite-preview";
     }
+
+    private string GeminiEndpoint => $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent";
 
     public async Task<ParsedVoiceAction?> ParseVoiceCommandAsync(string text)
     {
@@ -31,7 +35,21 @@ public class GeminiService
             If you cannot determine the action or item, return null.";
 
         var response = await CallGeminiAsync(prompt);
-        return response != null ? JsonSerializer.Deserialize<ParsedVoiceAction>(response) : null;
+        if (string.IsNullOrEmpty(response) || response.Equals("null", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<ParsedVoiceAction>(
+                response,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize Gemini response for voice command: {Response}", response);
+            return null;
+        }
     }
 
     public async Task<List<PantryItem>?> ProcessReceiptImageAsync(
@@ -68,8 +86,13 @@ public class GeminiService
             $"{GeminiEndpoint}?key={_apiKey}",
             requestBody
         );
+        
         if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Gemini API error (Receipt): {StatusCode} - {Error}", response.StatusCode, error);
             return null;
+        }
 
         var json = await response.Content.ReadFromJsonAsync<GeminiResponse>();
         var textResponse = json?.Candidates?[0]?.Content?.Parts?[0]?.Text;
@@ -84,10 +107,18 @@ public class GeminiService
         if (cleaned.EndsWith("```"))
             cleaned = cleaned.Substring(0, cleaned.Length - 3);
 
-        return JsonSerializer.Deserialize<List<PantryItem>>(
-            cleaned,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-        );
+        try
+        {
+            return JsonSerializer.Deserialize<List<PantryItem>>(
+                cleaned,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize Gemini response for receipt scan: {Response}", cleaned);
+            return null;
+        }
     }
 
     public async Task<string?> GenerateShoppingListAsync(string historyJson, string inventoryJson)
@@ -115,8 +146,13 @@ public class GeminiService
             $"{GeminiEndpoint}?key={_apiKey}",
             requestBody
         );
+        
         if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Gemini API error: {StatusCode} - {Error}", response.StatusCode, error);
             return null;
+        }
 
         var json = await response.Content.ReadFromJsonAsync<GeminiResponse>();
         var textResponse = json?.Candidates?[0]?.Content?.Parts?[0]?.Text;

@@ -2,7 +2,7 @@
 
 ## Version 3.2
 
-**Tech Stack:** ASP.NET Core 10 (Minimal APIs), Vanilla JS/HTML/CSS (Frontend), Docker (Alpine), SQLite (Database), Google Tasks (Voice Queue), Gemini 1.5 Flash (AI/OCR).
+**Tech Stack:** ASP.NET Core 10 (Minimal APIs), Vanilla JS/HTML/CSS (Frontend), Docker (Alpine), SQLite (Database), Google Tasks (Voice Queue), Gemini 3.1 Flash (AI/OCR).
 
 ---
 
@@ -90,7 +90,7 @@ public async Task<List<PantryItem>> ProcessReceiptImageAsync(byte[] imageBytes, 
         }
     };
 
-    // Send to https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent
+    // Send to https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent
     // Deserialize response to List<PantryItem> and pass to InventoryRepository.
 }
 ```

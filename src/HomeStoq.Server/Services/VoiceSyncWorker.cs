@@ -26,8 +26,34 @@ public class VoiceSyncWorker : BackgroundService
     {
         _logger.LogInformation("VoiceSyncWorker starting.");
 
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                if (_tasksService == null)
+                {
+                    await InitializeTasksServiceAsync(stoppingToken);
+                }
+
+                if (_tasksService != null)
+                {
+                    await SyncTasksAsync(stoppingToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during voice sync loop.");
+            }
+
+            await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+        }
+    }
+
+    private async System.Threading.Tasks.Task InitializeTasksServiceAsync(CancellationToken stoppingToken)
+    {
         try
         {
+            _logger.LogInformation("Initializing Google Tasks API...");
             var credential = await GoogleCredential.GetApplicationDefaultAsync();
             if (credential.IsCreateScopedRequired)
             {
@@ -39,25 +65,12 @@ public class VoiceSyncWorker : BackgroundService
                 HttpClientInitializer = credential,
                 ApplicationName = "HomeStoq"
             });
+            _logger.LogInformation("Google Tasks API initialized successfully.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize Google Tasks API. Voice sync will be disabled.");
-            return;
-        }
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await SyncTasksAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during voice sync loop.");
-            }
-
-            await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            _logger.LogWarning("Failed to initialize Google Tasks API: {Message}. Will retry in next iteration.", ex.Message);
+            _tasksService = null;
         }
     }
 
@@ -79,15 +92,29 @@ public class VoiceSyncWorker : BackgroundService
                 
                 if (string.IsNullOrEmpty(_listId))
                 {
-                    _logger.LogWarning("Google Tasks list '{ListName}' not found. Voice sync disabled.", _listName);
+                    _logger.LogWarning("Google Tasks list '{ListName}' not found. Voice sync waiting...", _listName);
                     return;
                 }
                 
-                _logger.LogInformation("Using Google Tasks list: {ListName}", _listName);
+                _logger.LogInformation("Using Google Tasks list: {ListName} (ID: {ListId})", _listName, _listId);
             }
         }
 
-        var tasks = await _tasksService.Tasks.List(_listId).ExecuteAsync(stoppingToken);
+        Tasks tasks;
+        try
+        {
+            tasks = await _tasksService.Tasks.List(_listId).ExecuteAsync(stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch tasks from Google Tasks API.");
+            if (ex.Message.Contains("unauthenticated", StringComparison.OrdinalIgnoreCase))
+            {
+                _tasksService = null; // Force re-initialization
+            }
+            return;
+        }
+
         if (tasks.Items == null || tasks.Items.Count == 0) return;
 
         using var scope = _serviceProvider.CreateScope();
@@ -99,21 +126,32 @@ public class VoiceSyncWorker : BackgroundService
             if (string.IsNullOrWhiteSpace(task.Title)) continue;
 
             _logger.LogInformation("Processing voice task: {Title}", task.Title);
-            var parsed = await gemini.ParseVoiceCommandAsync(task.Title);
-
-            if (parsed != null)
+            
+            try
             {
-                var quantityChange = parsed.Action.Equals("Remove", StringComparison.OrdinalIgnoreCase) 
-                    ? -parsed.Quantity 
-                    : parsed.Quantity;
+                var parsed = await gemini.ParseVoiceCommandAsync(task.Title);
 
-                await repository.UpdateInventoryItemAsync(parsed.ItemName, quantityChange, source: "Voice");
-                await _tasksService.Tasks.Delete(_listId, task.Id).ExecuteAsync(stoppingToken);
-                _logger.LogInformation("Successfully processed and deleted task: {Title}", task.Title);
+                if (parsed != null && !string.IsNullOrWhiteSpace(parsed.ItemName))
+                {
+                    var isRemove = string.Equals(parsed.Action, "Remove", StringComparison.OrdinalIgnoreCase);
+                    var quantityChange = isRemove ? -parsed.Quantity : parsed.Quantity;
+
+                    _logger.LogInformation("Applying voice action: {Action} {Quantity} {Item}", isRemove ? "Remove" : "Add", parsed.Quantity, parsed.ItemName);
+                    await repository.UpdateInventoryItemAsync(parsed.ItemName, quantityChange, source: "Voice");
+                    
+                    await _tasksService.Tasks.Delete(_listId, task.Id).ExecuteAsync(stoppingToken);
+                    _logger.LogInformation("Successfully processed and deleted task: {Title}", task.Title);
+                }
+                else
+                {
+                    _logger.LogWarning("Gemini could not parse task as an inventory command: {Title}. Skipping for now.", task.Title);
+                    // We don't delete it yet to allow for potential retry if it was a transient AI failure,
+                    // but in a production app we might want to move it to a 'failed' list or delete after X retries.
+                }
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogWarning("Gemini failed to parse voice task: {Title}", task.Title);
+                _logger.LogError(ex, "Failed to process task: {Title}", task.Title);
             }
         }
     }
