@@ -87,7 +87,9 @@ dotnet run --project src/HomeStoq.Server/HomeStoq.Server.csproj
 ```
 Access the UI at `http://localhost:8080`.
 
-## 📱 Usage
+## 📖 Usage
+
+For a detailed, day-to-day guide on how to use HomeStoq effectively, check out our **[Practical Usage Guide (USAGE.md)](USAGE.md)**.
 
 1.  **Inventory**: Use the "Stock" tab to see what you have. Use the `+` and `-` buttons for manual adjustments.
 2.  **Scan Receipts**: Go to the "Scan" tab, upload an image of a grocery receipt, and wait for Gemini to parse the items. The inventory will update automatically.
