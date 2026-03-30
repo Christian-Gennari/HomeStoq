@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using HomeStoq.Server.Repositories;
 using HomeStoq.Server.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +43,38 @@ app.MapPost("/api/receipts/scan", async (IFormFile receiptImage, GeminiService g
 
     return Results.Ok(items);
 }).DisableAntiforgery();
+
+app.MapGet("/api/insights/shopping-list", async (InventoryRepository repository, GeminiService gemini) =>
+{
+    var history = await repository.GetHistoryAsync(30);
+    var inventory = await repository.GetInventoryAsync();
+
+    var historyJson = JsonSerializer.Serialize(history);
+    var inventoryJson = JsonSerializer.Serialize(inventory);
+
+    var cacheKey = ComputeHash($"{historyJson}|{inventoryJson}");
+    var cachedResponse = await repository.GetAiCacheAsync(cacheKey);
+
+    if (cachedResponse != null)
+    {
+        return Results.Ok(JsonSerializer.Deserialize<JsonElement>(cachedResponse));
+    }
+
+    var result = await gemini.GenerateShoppingListAsync(historyJson, inventoryJson);
+    if (result != null)
+    {
+        await repository.SetAiCacheAsync(cacheKey, result, TimeSpan.FromHours(12));
+        return Results.Ok(JsonSerializer.Deserialize<JsonElement>(result));
+    }
+
+    return Results.Problem("Gemini failed to generate shopping list.");
+});
+
+static string ComputeHash(string input)
+{
+    var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+    return Convert.ToHexString(bytes);
+}
 
 app.Run();
 
