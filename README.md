@@ -13,7 +13,7 @@
 ## 🚀 Features
 
 -   **Stock Tracking**: Real-time view of your pantry items with manual override.
--   **Receipt OCR**: Snap a photo of your grocery receipt, and HomeStoq (powered by Gemini 2.5 Flash) will automatically extract items, quantities, and prices to update your inventory.
+-   **Receipt OCR**: Snap a photo of your grocery receipt or upload a PDF/Image, and HomeStoq (powered by Gemini 2.5 Flash) will automatically extract items, quantities, and prices to update your inventory.
 -   **Voice Sync**: Integrate with Google Tasks. Simply say "used the last milk" or "bought eggs" to your voice assistant (mapped to a Google Task list named "HomeStoq"), and the background worker will process the change.
 -   **Smart Shopping List**: Predictive analysis based on your 30-day consumption history and current stock levels to suggest what you need to buy next.
 -   **Privacy-First**: Runs locally in Docker with a SQLite database.
@@ -100,7 +100,7 @@ Access the UI at `http://localhost:8080`.
 For a detailed, day-to-day guide on how to use HomeStoq effectively, check out our **[Practical Usage Guide (USAGE.md)](USAGE.md)**.
 
 1.  **Inventory**: Use the "Stock" tab to see what you have. Use the `+` and `-` buttons for manual adjustments.
-2.  **Scan Receipts**: Go to the "Scan" tab, upload an image of a grocery receipt, and wait for Gemini to parse the items. The inventory will update automatically.
+2.  **Scan Receipts**: Go to the "Scan" tab. You can either take a photo directly or upload a file (PDF/Image). Tap **Scan & Analyze**, and Gemini will process the receipt and update your inventory.
 3.  **Voice Commands**: Create a list named **"HomeStoq"** in Google Tasks. Add tasks like "used 2 milk" or "bought 5 apples". The server polls this list every 10 seconds, parses the text via AI, updates the stock, and deletes the task.
 4.  **Shopping List**: Click "Analyze Patterns" in the "Smart List" tab to see AI-generated suggestions based on your history.
 

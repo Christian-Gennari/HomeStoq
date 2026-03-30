@@ -15,12 +15,13 @@ When you come home from the store, don't manually enter your items. Use the **Sc
 ### How to use it:
 1. Open HomeStoq on your phone (e.g., `http://192.168.1.50:8080`).
 2. Go to the **Scan** tab.
-3. Tap **"Upload Receipt"** (on mobile, this will open your camera).
-4. Take a clear, top-down photo of your grocery receipt.
-5. Tap **Scan**.
+3. Choose your method:
+    - **📷 Take Photo**: Best for physical receipts. This opens your phone's camera directly.
+    - **📁 Upload File**: Best for digital receipts (PDFs) or photos you've already taken (JPG/PNG).
+4. Tap **Scan & Analyze**.
 
 ### What happens:
-- **Gemini AI** reads the receipt, extracts item names, quantities, and prices.
+- **Gemini AI** reads the receipt or document, extracting item names, quantities, and prices.
 - It **normalizes** names (e.g., *"Organic 2.5L Whole Milk"* becomes just *"Milk"*).
 - Your inventory is updated instantly.
 - A history entry is created so the AI can learn your consumption patterns.
