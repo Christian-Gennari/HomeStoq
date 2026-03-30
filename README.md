@@ -2,6 +2,14 @@
 
 **HomeStoq** is a lightweight, AI-powered pantry management system designed to run on a local network. It helps you track inventory effortlessly using receipt scanning, voice commands via Google Tasks, and predictive analysis to generate smart shopping lists.
 
+---
+
+### 📖 Quick Links
+- **[Practical Usage Guide (USAGE.md)](USAGE.md)** — *Start here for daily workflows!*
+- **[Technical Specification (_docs/spec.md)](_docs/spec.md)** — *Deep dive into the architecture.*
+
+---
+
 ## 🚀 Features
 
 -   **Stock Tracking**: Real-time view of your pantry items with manual override.
