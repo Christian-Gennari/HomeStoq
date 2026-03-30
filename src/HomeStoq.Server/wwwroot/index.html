@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeStoq - Pantry Intelligence</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>HomeStoq</h1>
+        <nav>
+            <button onclick="showView('inventory')">Stock</button>
+            <button onclick="showView('receipt')">Scan</button>
+            <button onclick="showView('shopping')">Smart List</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- View 1: Inventory -->
+        <section id="inventory-view" class="view">
+            <h2>Current Stock</h2>
+            <div class="controls">
+                <input type="text" id="manual-item" placeholder="New Item Name">
+                <button onclick="manualAdd()">Quick Add</button>
+            </div>
+            <ul id="inventory-list"></ul>
+        </section>
+
+        <!-- View 2: Receipt Scan -->
+        <section id="receipt-view" class="view hidden">
+            <h2>Scan Receipt</h2>
+            <form id="receipt-form">
+                <input type="file" id="receipt-image" accept="image/*" capture="environment">
+                <button type="submit">Upload & Analyze</button>
+            </form>
+            <div id="scan-status"></div>
+        </section>
+
+        <!-- View 3: Smart Shopping List -->
+        <section id="shopping-view" class="view hidden">
+            <h2>Predictive Shopping List</h2>
+            <button onclick="refreshShoppingList()">Analyze Patterns</button>
+            <ul id="shopping-list"></ul>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
