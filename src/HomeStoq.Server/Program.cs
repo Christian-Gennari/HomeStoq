@@ -14,6 +14,8 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.MapGet("/", () => "Hello World!");
+// Endpoints
+app.MapGet("/api/inventory", async (InventoryRepository repository) => 
+    Results.Ok(await repository.GetInventoryAsync()));
 
 app.Run();
