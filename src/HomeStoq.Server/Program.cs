@@ -10,6 +10,10 @@ builder.Services.AddHostedService<VoiceSyncWorker>();
 
 var app = builder.Build();
 
+// Static files
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapGet("/", () => "Hello World!");
 
 app.Run();
