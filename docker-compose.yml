@@ -1,0 +1,14 @@
+services:
+  homestoq:
+    build: .
+    container_name: homestoq
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./creds:/app/creds
+      - ./data:/app/data
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/creds/key.json
+      - DATABASE_PATH=/app/data/homestoq.db
+    restart: unless-stopped
