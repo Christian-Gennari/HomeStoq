@@ -31,8 +31,17 @@
         <section id="receipt-view" class="view hidden">
             <h2>Scan Receipt</h2>
             <form id="receipt-form">
-                <input type="file" id="receipt-image" accept="image/*" capture="environment">
-                <button type="submit">Upload & Analyze</button>
+                <div class="upload-options">
+                    <label class="upload-btn">
+                        📷 Take Photo
+                        <input type="file" id="receipt-camera" accept="image/*" capture="environment">
+                    </label>
+                    <label class="upload-btn secondary">
+                        📁 Upload File (PDF/Image)
+                        <input type="file" id="receipt-file" accept="image/*,application/pdf">
+                    </label>
+                </div>
+                <button type="submit" id="scan-btn" disabled>Scan & Analyze</button>
             </form>
             <div id="scan-status"></div>
         </section>

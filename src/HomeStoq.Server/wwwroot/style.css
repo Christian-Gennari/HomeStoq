@@ -124,3 +124,47 @@ button[onclick^="manualAdd"], button[type="submit"], button[onclick^="refresh"] 
     color: #666;
     display: block;
 }
+
+/* Receipt Scanning */
+.upload-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.upload-btn {
+    display: block;
+    padding: 1rem;
+    background: var(--primary);
+    color: white;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.upload-btn.secondary {
+    background: var(--dark);
+}
+
+.upload-btn:hover {
+    opacity: 0.9;
+}
+
+.upload-btn input[type="file"] {
+    display: none;
+}
+
+#scan-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.selected-file-info {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--primary);
+    text-align: center;
+}

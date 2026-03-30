@@ -42,7 +42,7 @@ public class GeminiService
         var base64Image = Convert.ToBase64String(imageBytes);
         var prompt =
             @"You are a system that reads grocery receipts.
-            Analyze the image and list all relevant food items with their prices.
+            Analyze the provided image or document and list all relevant food items with their prices.
             Ignore deposits, plastic bags, discounts, and totals.
             Map items to generic names (e.g. 'Organic Free Range Eggs 12pk' -> 'Eggs').
             Extract the price for each item if available (e.g. '2.99').

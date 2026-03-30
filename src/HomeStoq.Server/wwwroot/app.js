@@ -40,16 +40,36 @@ async function manualAdd() {
 }
 
 // Receipt Scanning Logic
+const cameraInput = document.getElementById('receipt-camera');
+const fileInput = document.getElementById('receipt-file');
+const scanBtn = document.getElementById('scan-btn');
+const scanStatus = document.getElementById('scan-status');
+
+function handleFileSelection(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Clear the other input
+    if (e.target === cameraInput) fileInput.value = '';
+    else cameraInput.value = '';
+
+    scanBtn.disabled = false;
+    scanStatus.innerHTML = `<div class="selected-file-info">Selected: ${file.name}</div>`;
+}
+
+cameraInput.onchange = handleFileSelection;
+fileInput.onchange = handleFileSelection;
+
 document.getElementById('receipt-form').onsubmit = async (e) => {
     e.preventDefault();
-    const fileInput = document.getElementById('receipt-image');
-    if (!fileInput.files[0]) return;
+    const file = cameraInput.files[0] || fileInput.files[0];
+    if (!file) return;
 
-    const status = document.getElementById('scan-status');
-    status.innerText = 'Analyzing receipt with Gemini...';
+    scanBtn.disabled = true;
+    scanStatus.innerText = 'Analyzing receipt with Gemini...';
 
     const formData = new FormData();
-    formData.append('receiptImage', fileInput.files[0]);
+    formData.append('receiptImage', file);
 
     try {
         const response = await fetch('/api/receipts/scan', {
@@ -57,10 +77,15 @@ document.getElementById('receipt-form').onsubmit = async (e) => {
             body: formData
         });
         const items = await response.json();
-        status.innerHTML = `<h3>Scanned Items:</h3><ul>${items.map(i => `<li>${i.itemName} (${i.quantity}) - ${i.price || '?'}</li>`).join('')}</ul>`;
+        scanStatus.innerHTML = `<h3>Scanned Items:</h3><ul>${items.map(i => `<li>${i.itemName} (${i.quantity}) - ${i.price || '?'}</li>`).join('')}</ul>`;
+        
+        // Reset state
+        cameraInput.value = '';
         fileInput.value = '';
+        scanBtn.disabled = true;
     } catch (err) {
-        status.innerText = 'Error processing receipt.';
+        scanStatus.innerText = 'Error processing receipt.';
+        scanBtn.disabled = false;
     }
 };
 
