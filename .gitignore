@@ -3,3 +3,4 @@ creds
 .env
 bin/
 obj/
+data/homestoq.db
