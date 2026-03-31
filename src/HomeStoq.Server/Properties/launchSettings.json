@@ -4,20 +4,12 @@
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "applicationUrl": "http://localhost:5188",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      "launchBrowser": true
     },
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "applicationUrl": "https://localhost:7058;http://localhost:5188",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      "launchBrowser": true
     }
   }
 }

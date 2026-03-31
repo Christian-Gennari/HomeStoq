@@ -5,9 +5,20 @@ using HomeStoq.Server.Repositories;
 using HomeStoq.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 
+// Load environment variables from .env if present
+DotNetEnv.Env.Load();
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddIniFile("config.ini", optional: true);
+// Add config.ini as a configuration source
+builder.Configuration.AddIniFile("config.ini", optional: true, reloadOnChange: true);
+
+// Get the host URL from config.ini [API] HostUrl
+var hostUrl = builder.Configuration["API:HostUrl"];
+if (!string.IsNullOrEmpty(hostUrl))
+{
+    builder.WebHost.UseUrls(hostUrl);
+}
 
 builder.Services.AddSingleton<InventoryRepository>();
 builder.Services.AddHttpClient<GeminiService>();
