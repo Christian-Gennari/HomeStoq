@@ -12,7 +12,7 @@ public class InventoryRepository
     public InventoryRepository(IConfiguration configuration, ILogger<InventoryRepository> logger)
     {
         _logger = logger;
-        var dbPath = configuration["DATABASE_PATH"] ?? "homestoq.db";
+        var dbPath = configuration["Database:Path"] ?? configuration["DATABASE_PATH"] ?? "homestoq.db";
         _connectionString = $"Data Source={dbPath}";
         InitializeDatabase();
     }
@@ -89,8 +89,9 @@ public class InventoryRepository
 
         try
         {
+            // Try exact match first, then case-insensitive
             var existingItem = await connection.QueryFirstOrDefaultAsync<InventoryItem>(
-                "SELECT * FROM Inventory WHERE ItemName = @ItemName", new { ItemName = itemName }, transaction);
+                "SELECT * FROM Inventory WHERE ItemName = @ItemName COLLATE NOCASE", new { ItemName = itemName }, transaction);
 
             var now = DateTime.UtcNow.ToString("O");
             var action = quantityChange >= 0 ? "Add" : "Remove";
