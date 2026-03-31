@@ -3,56 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStoq - Pantry Intelligence</title>
+    <title>HomeStoq</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="bg-texture"></div>
+
     <header>
-        <h1>HomeStoq</h1>
+        <div class="header-inner">
+            <h1>HomeStoq</h1>
+            <p class="tagline">Your pantry, intelligently managed</p>
+        </div>
         <nav>
-            <button onclick="showView('inventory')">Stock</button>
-            <button onclick="showView('receipt')">Scan</button>
-            <button onclick="showView('shopping')">Smart List</button>
+            <button class="nav-btn active" data-view="inventory" onclick="showView('inventory')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+                Stock
+            </button>
+            <button class="nav-btn" data-view="receipt" onclick="showView('receipt')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/></svg>
+                Scan
+            </button>
+            <button class="nav-btn" data-view="shopping" onclick="showView('shopping')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                Smart List
+            </button>
         </nav>
     </header>
 
     <main>
         <!-- View 1: Inventory -->
-        <section id="inventory-view" class="view">
-            <h2>Current Stock</h2>
-            <div class="controls">
-                <input type="text" id="manual-item" placeholder="New Item Name">
-                <button onclick="manualAdd()">Quick Add</button>
+        <section id="inventory-view" class="view active">
+            <div class="view-header">
+                <h2>Current Stock</h2>
+                <span class="item-count" id="item-count"></span>
             </div>
-            <ul id="inventory-list"></ul>
+
+            <div class="controls">
+                <div class="search-wrapper">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="text" id="search-input" placeholder="Search items..." oninput="filterInventory()">
+                </div>
+                <div class="add-wrapper">
+                    <input type="text" id="manual-item" placeholder="New item name" onkeydown="if(event.key==='Enter')manualAdd()">
+                    <button class="btn-primary" onclick="manualAdd()">Add</button>
+                </div>
+            </div>
+
+            <div class="inventory-container">
+                <ul id="inventory-list"></ul>
+
+                <div class="empty-state" id="inventory-empty">
+                    <div class="empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+                    </div>
+                    <h3>Your pantry is empty</h3>
+                    <p>Start by adding items manually or scanning a receipt</p>
+                </div>
+
+                <div class="loading-state" id="inventory-loading">
+                    <div class="spinner"></div>
+                    <span>Loading inventory...</span>
+                </div>
+            </div>
         </section>
 
         <!-- View 2: Receipt Scan -->
-        <section id="receipt-view" class="view hidden">
+        <section id="receipt-view" class="view">
             <h2>Scan Receipt</h2>
+            <p class="view-description">Photograph or upload a grocery receipt. Gemini will extract items and prices automatically.</p>
+
             <form id="receipt-form">
                 <div class="upload-options">
-                    <label class="upload-btn">
-                        📷 Take Photo
+                    <label class="upload-card">
                         <input type="file" id="receipt-camera" accept="image/*" capture="environment">
+                        <div class="upload-card-inner">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                            <span>Take Photo</span>
+                        </div>
                     </label>
-                    <label class="upload-btn secondary">
-                        📁 Upload File (PDF/Image)
+                    <label class="upload-card secondary">
                         <input type="file" id="receipt-file" accept="image/*,application/pdf">
+                        <div class="upload-card-inner">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <span>Upload File</span>
+                        </div>
                     </label>
                 </div>
-                <button type="submit" id="scan-btn" disabled>Scan & Analyze</button>
+
+                <div id="file-preview" class="file-preview hidden"></div>
+
+                <button type="submit" id="scan-btn" class="btn-primary btn-large" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5"/><path d="M17 12h5"/><path d="M7 12a5 5 0 0 1 5-5 5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 0 5 5 5 5 0 0 0 5-5"/></svg>
+                    Scan & Analyze
+                </button>
             </form>
-            <div id="scan-status"></div>
+
+            <div id="scan-status" class="scan-status"></div>
+
+            <div class="scan-progress hidden" id="scan-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <span class="progress-text">Analyzing with Gemini...</span>
+            </div>
         </section>
 
         <!-- View 3: Smart Shopping List -->
-        <section id="shopping-view" class="view hidden">
+        <section id="shopping-view" class="view">
             <h2>Predictive Shopping List</h2>
-            <button onclick="refreshShoppingList()">Analyze Patterns</button>
+            <p class="view-description">AI analyzes your 30-day consumption history to predict what you'll need next.</p>
+
+            <button class="btn-primary btn-large" onclick="refreshShoppingList()" id="analyze-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
+                Analyze Patterns
+            </button>
+
             <ul id="shopping-list"></ul>
+
+            <div class="empty-state" id="shopping-empty">
+                <div class="empty-icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                </div>
+                <h3>No suggestions yet</h3>
+                <p>Scan some receipts or track usage to get personalized recommendations</p>
+            </div>
+
+            <div class="loading-state" id="shopping-loading">
+                <div class="spinner"></div>
+                <span>Analyzing your patterns...</span>
+            </div>
         </section>
     </main>
+
+    <div class="toast-container" id="toast-container"></div>
 
     <script src="app.js"></script>
 </body>
