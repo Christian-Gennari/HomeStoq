@@ -1,0 +1,24 @@
+{
+  "name": "homestoq",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names \"API,SCRAPER\" --prefix-colors \"blue,green\" \"npm run api\" \"npm run scraper\"",
+    "dev:docker": "concurrently --names \"API,SCRAPER\" --prefix-colors \"blue,green\" \"npm run api:docker\" \"npm run scraper\"",
+    "api": "dotnet run --project src/HomeStoq.Server",
+    "api:docker": "docker compose up",
+    "scraper": "dotnet run --project src/KeepScraper",
+    "stop": "docker compose down",
+    "clean": "node scripts/clean.js",
+    "setup": "node scripts/setup.js",
+    "playwright:install": "dotnet exec --project src/KeepScraper Microsoft.Playwright.dll install",
+    "help": "node scripts/help.js"
+  },
+  "devDependencies": {
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+    "concurrently": "^9.2.0",
+    "cross-env": "^7.0.3",
+    "dotenv-cli": "^7.4.2",
+    "gradient-string": "^2.0.2"
+  }
+}
