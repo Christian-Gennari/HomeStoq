@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
+builder.Configuration.AddIniFile("config.ini", optional: true);
+
 builder.Services.AddSingleton<InventoryRepository>();
 builder.Services.AddHttpClient<GeminiService>();
-builder.Services.AddHostedService<VoiceSyncWorker>();
 
 var app = builder.Build();
 
@@ -38,9 +38,13 @@ app.MapPost("/api/receipts/scan", async (IFormFile receiptImage, GeminiService g
     logger.LogInformation("POST /api/receipts/scan: Received file {FileName} ({ContentType})", receiptImage.FileName, receiptImage.ContentType);
     using var stream = new MemoryStream();
     await receiptImage.CopyToAsync(stream);
-    var items = await gemini.ProcessReceiptImageAsync(stream.ToArray(), receiptImage.ContentType);
-    
-    if (items == null) 
+
+    var inventory = await repository.GetInventoryAsync();
+    var itemNames = inventory.Select(i => i.ItemName).ToList();
+
+    var items = await gemini.ProcessReceiptImageAsync(stream.ToArray(), receiptImage.ContentType, itemNames);
+
+    if (items == null)
     {
         logger.LogWarning("Gemini failed to process the receipt image.");
         return Results.Problem("Gemini failed to process the image.");
@@ -85,6 +89,44 @@ app.MapGet("/api/insights/shopping-list", async (InventoryRepository repository,
     return Results.Problem("Gemini failed to generate shopping list.");
 });
 
+app.MapPost("/api/voice/command", async ([FromBody] VoiceCommandRequest? request, GeminiService gemini, InventoryRepository repository, ILogger<Program> logger) =>
+{
+    if (request == null || string.IsNullOrWhiteSpace(request.Text))
+    {
+        logger.LogWarning("POST /api/voice/command: Empty or missing text");
+        return Results.BadRequest("Text is required");
+    }
+    
+    logger.LogInformation("POST /api/voice/command: {Text}", request.Text);
+    
+    var inventory = await repository.GetInventoryAsync();
+    var itemNames = inventory.Select(i => i.ItemName).ToList();
+    
+    var parsed = await gemini.ParseVoiceCommandAsync(request.Text, itemNames);
+    
+    if (parsed == null || string.IsNullOrWhiteSpace(parsed.ItemName))
+    {
+        logger.LogWarning("Could not parse voice command: {Text}", request.Text);
+        return Results.BadRequest("Could not parse voice command");
+    }
+    
+    if (!string.Equals(parsed.Action, "Add", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(parsed.Action, "Remove", StringComparison.OrdinalIgnoreCase))
+    {
+        logger.LogWarning("Unknown action: {Action} for command: {Text}", parsed.Action, request.Text);
+        return Results.BadRequest("Unknown action");
+    }
+    
+    var isRemove = string.Equals(parsed.Action, "Remove", StringComparison.OrdinalIgnoreCase);
+    var quantityChange = isRemove ? -parsed.Quantity : parsed.Quantity;
+    
+    logger.LogInformation("Applying voice action: {Action} {Quantity} {Item}", parsed.Action, parsed.Quantity, parsed.ItemName);
+    
+    await repository.UpdateInventoryItemAsync(parsed.ItemName, quantityChange, source: "Voice");
+    
+    return Results.Ok();
+});
+
 static string ComputeHash(string input)
 {
     var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
@@ -94,3 +136,4 @@ static string ComputeHash(string input)
 app.Run();
 
 public record ManualUpdateRequest(string ItemName, double QuantityChange, double? Price, string? Currency);
+public record VoiceCommandRequest(string Text);
