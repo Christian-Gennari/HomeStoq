@@ -20,6 +20,5 @@ RUN mkdir /app/data && chown -R 1000:1000 /app/data
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
-ENV DATABASE_PATH=/app/data/homestoq.db
 
 ENTRYPOINT ["dotnet", "HomeStoq.Server.dll"]
