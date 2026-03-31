@@ -1,6 +1,5 @@
-creds/key.json
-creds
 .env
 bin/
 obj/
 data/homestoq.db
+browser-profile/
