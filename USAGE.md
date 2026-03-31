@@ -13,7 +13,7 @@ HomeStoq is designed to be **unobtrusive**. You shouldn't have to manually type 
 When you come home from the store, don't manually enter your items. Use the **Scan** tab.
 
 ### How to use it:
-1. Open HomeStoq on your phone (e.g., `http://192.168.1.50:8080`).
+1. Open HomeStoq on your phone (e.g., `http://192.168.1.50`).
 2. Go to the **Scan** tab.
 3. Choose your method:
     - **📷 Take Photo**: Best for physical receipts. This opens your phone's camera directly.
@@ -22,7 +22,7 @@ When you come home from the store, don't manually enter your items. Use the **Sc
 
 ### What happens:
 - **Gemini AI** reads the receipt or document, extracting item names, quantities, and prices.
-- It **normalizes** names (e.g., *"Organic 2.5L Whole Milk"* becomes just *"Milk"*).
+- It **normalizes** names (e.g., *"Organic 2.5L Whole Milk"* becomes just *"Mjölk"*).
 - Your inventory is updated instantly.
 - A history entry is created so the AI can learn your consumption patterns.
 
@@ -32,18 +32,18 @@ When you come home from the store, don't manually enter your items. Use the **Sc
 When you finish a carton of milk or use the last of the eggs, just tell your voice assistant.
 
 ### How to set it up:
-- Tasks are read from your **default Google Tasks list** (no setup required).
-- Say: *"Hey Google, add 'used the last milk' to my tasks."*
-- **Optional**: To use a custom list, set `GOOGLE_TASKS_LIST_NAME=YourListName` in your `.env` file and say: *"Hey Google, add 'used the last milk' to my [YourListName] list."*
+- Items are read from your **Google Keep** list named **"inköpslistan"** (default).
+- Say: *"Hey Google, add 'slut på ägg' to my inköpslistan."*
+- **Optional**: To use a custom list, edit `KeepListName` in `config.ini` and say: *"Hey Google, add 'slut på ägg' to my [YourListName] list."*
 
-### Practical Examples:
-- **"Used 1 milk"** → Decreases Milk by 1.
-- **"Bought 5 apples"** → Increases Apples by 5.
-- **"Finished the eggs"** → Sets Eggs to 0.
-- **"Need more coffee"** → Adds Coffee to your shopping list (AI will prioritize this).
+### Practical Examples (Swedish):
+- **"Slut på mjölk"** → Decreases Mjölk by 1.
+- **"Köpte 5 ägg"** → Increases Ägg by 5.
+- **"Använt allt kaffe"** → Sets Kaffe to 0.
+- **"Lägg till bröd"** → Adds Bröd to your inventory.
 
 ### Timing:
-The HomeStoq server polls your Google Tasks every **10 seconds**. Once processed, the task will be automatically deleted from your list.
+The keep-scraper microservice polls your Google Keep every **10 seconds**. Once processed, the item will be automatically checked off in your list.
 
 ---
 
@@ -81,12 +81,12 @@ Before you head to the store, check the **Smart List** tab.
 - Gemini is smart, but "we are totally out of those delicious red apples" might be less reliable than "used all apples."
 
 ### Item Naming
-- Don't worry about brand names. HomeStoq tries to keep things simple (e.g., "Bread" instead of "Sunbeam Toaster Bread"). This makes historical tracking much more accurate.
+- Don't worry about brand names. HomeStoq tries to keep things simple (e.g., "Bröd" instead of "Sunbeam Toaster Bread"). This makes historical tracking much more accurate.
 
 ---
 
 ## ❓ Troubleshooting
 - **Items not updating?** Check the logs in your Docker container or console.
-- **Voice sync slow?** Ensure your `key.json` is correctly placed and Google Tasks API is enabled.
-- **Voice sync not working?** Verify the `GOOGLE_TASKS_LIST_NAME` in your `.env` matches your list name (or leave it unset to use the default list).
+- **Voice sync not starting?** Make sure the scraper is running (`dotnet run --project src/KeepScraper`). If Google requires re-login, log in again in the browser window.
+- **Voice sync not working?** Verify the `KeepListName` in `config.ini` matches your Google Keep list name (default: "inköpslistan").
 - **OCR failing?** Ensure your Gemini API key is valid and has not reached its quota.

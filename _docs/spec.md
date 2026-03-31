@@ -1,36 +1,66 @@
 # Technical Specification: HomeStoq
 
-## Version 3.2
+## Version 7.0
 
-**Tech Stack:** ASP.NET Core 10 (Minimal APIs), Vanilla JS/HTML/CSS (Frontend), Docker (Alpine), SQLite (Database), Google Tasks (Voice Queue), Gemini 3.1 Flash (AI/OCR).
+**Tech Stack:** ASP.NET Core 10 (Minimal APIs), Vanilla JS/HTML/CSS (Frontend), Docker (Alpine), SQLite (Database), Google Keep (Voice Queue), C# Playwright Scraper (Local Browser Automation), Gemini 3.1 Flash (AI/OCR).
 
 ---
 
 ## 1. Core Components
 
-The application is built as a lightweight ASP.NET Core 10 application using Minimal APIs (`dotnet new web`), running in a Docker container on the local network.
+The application is built as a lightweight ASP.NET Core 10 application using Minimal APIs (`dotnet new web`), running in a Docker container on the local network. Voice commands are handled by a local C# Playwright scraper that automates Google Keep in a visible browser.
 
-### 1.1. Background Services (No user interaction required)
+### 1.1. Local Scraper (No user interaction required after first login)
 
-**VoiceSyncWorker:** Runs in a loop (e.g. every 10 seconds) as a `BackgroundService`. Fetches new tasks from Google Tasks (uses `@default` list by default, configurable via `GOOGLE_TASKS_LIST_NAME` environment variable), sends the text to `GeminiService` for parsing (Item + Action), updates the database, then deletes the task.
+**keep-scraper (C# Playwright):** A .NET Worker that runs locally via `dotnet run --project src/KeepScraper`. Launches a visible Chromium browser, persists the session in `browser-profile/`. On first run, the user logs into Google Keep manually. Subsequent runs reuse the saved session. Polls every 10 seconds for unchecked items in a list named `KeepListName` (from `config.ini`, default: `"inköpslistan"`). For each unchecked item, it POSTs `{"Text": "item text"}` to the C# backend at `/api/voice/command`. On HTTP 200, it clicks the checkbox to mark the item done.
 
-### 1.2. Core Services (Business Logic)
+### 1.2. Configuration
 
-**InventoryRepository:** Abstraction layer over SQLite. Handles all reads and writes to the three tables: `Inventory`, `History`, and `AiCache`.
+**`.env`** — Secrets only:
+- `GEMINI_API_KEY`
 
-**GeminiService:** Handles all communication with Google AI Studio. Has three distinct responsibilities (prompts):
+**`config.ini`** — Non-secret settings:
+```ini
+[App]
+Language=Swedish
 
-- **Voice Parsing:** Text → JSON Action (e.g. "used the last milk" → Remove Milk)
-- **Receipt OCR:** Image (Base64) → JSON Array (extracts items from a receipt, maps them to standardized names, parses price if available)
-- **Predictive Analysis:** History JSON → Purchase suggestions based on consumption patterns
+[Database]
+Path=/app/data/homestoq.db
 
-### 1.3. Frontend / Dashboard (User Interface)
+[Voice]
+KeepListName=inköpslistan
 
-The web UI is intentionally minimal and served statically from `wwwroot`. Built entirely in Vanilla JavaScript, HTML5, and CSS3 — no heavy frameworks (React/Angular) to keep complexity low. Accessible via local IP (e.g. `http://192.168.1.x:8080`).
+[API]
+BaseUrl=http://homestoq:8080/api/voice/command
+```
 
-- **View 1: Inventory & Manual Control.** Displays current stock with simple DOM manipulation. Allows manual quantity adjustments. Price is optional when updating manually.
-- **View 2: Receipt Upload.** A standard HTML form (`<input type="file" accept="image/*" capture="environment">`) to photograph or upload receipts. Sends the image asynchronously via `fetch()` to the Minimal API endpoint.
-- **View 3: Smart Shopping List.** Displays AI suggestions based on what is low and historical consumption patterns. Shows estimated total cost based on historical prices.
+| Setting | Description | Values |
+| :--- | :--- | :--- |
+| `Language` | Language for all AI parsing (voice, receipt, shopping list) | `Swedish` or `English` (default) |
+| `Path` | SQLite database path inside container | `/app/data/homestoq.db` |
+| `KeepListName` | Google Keep list name to monitor | `inköpslistan` |
+| `BaseUrl` | API endpoint for keep-scraper (Docker internal) | `http://homestoq:8080/api/voice/command` |
+| `HostUrl` | Browser access URL (for reference) | `http://localhost:80` |
+
+The .NET backend reads `config.ini` via `AddIniFile()` and `.env` via default environment variable configuration. The Playwright scraper reads env vars passed by docker-compose.
+
+### 1.3. Core Services (Business Logic)
+
+**InventoryRepository:** Abstraction layer over SQLite. Reads `Database:Path` from `config.ini` (falls back to `DATABASE_PATH` env var, then `homestoq.db`). Handles all reads and writes to the three tables: `Inventory`, `History`, and `AiCache`.
+
+**GeminiService:** Handles all communication with Google AI Studio. All prompts are language-aware based on the `Language` setting:
+
+- **Voice Parsing:** Text → JSON Action. Swedish mode outputs Swedish item names; English mode outputs English.
+- **Receipt OCR:** Image (Base64) → JSON Array. Swedish mode returns Swedish names, preserves brand names, maps English categories to Swedish. Passes existing inventory for name matching.
+- **Predictive Analysis:** History JSON → Purchase suggestions. Swedish mode returns Swedish item names and reasons.
+
+### 1.4. Frontend / Dashboard (User Interface)
+
+The web UI is served statically from `wwwroot`. Built entirely in Vanilla JavaScript, HTML5, and CSS3. Accessible via `HostUrl` (default: `http://localhost:80`).
+
+- **View 1: Inventory & Manual Control.** Displays current stock with search/filter. Allows manual quantity adjustments with optimistic UI updates. Animated item transitions and toast notifications.
+- **View 2: Receipt Upload.** File input for camera or upload. Sends image asynchronously via `fetch()` to the Minimal API endpoint. Shows progress bar during processing.
+- **View 3: Smart Shopping List.** Displays AI suggestions based on 30-day history and current stock. Shows reason per suggestion.
 
 ---
 
@@ -42,57 +72,30 @@ Endpoints are defined directly in `Program.cs` for maximum performance and minim
 | ------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`  | `/api/inventory`              | Returns current stock                                                                                                             |
 | `POST` | `/api/inventory/update`       | Manual adjustment of an item (+/-). Price optional.                                                                               |
-| `POST` | `/api/receipts/scan`          | Accepts an image file (multipart/form-data), sends to Gemini for OCR (incl. price extraction), mass-updates inventory and history |
+| `POST` | `/api/receipts/scan`          | Accepts an image file (multipart/form-data), sends to Gemini for OCR (incl. price extraction), passes existing inventory for name matching, mass-updates inventory and history |
 | `GET`  | `/api/insights/shopping-list` | Returns an AI-generated shopping list based on the last 30 days of history                                                        |
+| `POST` | `/api/voice/command`          | Accepts `{"Text": "..."}` from keep-scraper, parses via Gemini (language-aware), updates inventory. Returns 200 OK or 400 Bad Request.             |
 
 ---
 
 ## 3. Receipt Scanning Code Structure (Example)
 
-Integrating Gemini with images in C# requires converting the image to Base64 and sending it with the correct mime type in the JSON payload.
+Integrating Gemini with images in C# requires converting the image to Base64 and sending it with the correct mime type in the JSON payload. The receipt scanner passes existing inventory names for matching.
 
 ```csharp
 // Program.cs (Minimal API endpoint)
-app.MapPost("/api/receipts/scan", async (IFormFile receiptImage, GeminiService gemini) =>
+app.MapPost("/api/receipts/scan", async (IFormFile receiptImage, GeminiService gemini, InventoryRepository repository) =>
 {
     using var stream = new MemoryStream();
     await receiptImage.CopyToAsync(stream);
-    var items = await gemini.ProcessReceiptImageAsync(stream.ToArray(), receiptImage.ContentType);
+
+    var inventory = await repository.GetInventoryAsync();
+    var itemNames = inventory.Select(i => i.ItemName).ToList();
+
+    var items = await gemini.ProcessReceiptImageAsync(stream.ToArray(), receiptImage.ContentType, itemNames);
     // Add items to SQLite via InventoryRepository here...
     return Results.Ok(items);
-}).DisableAntiforgery(); // Simple local API
-
-
-// GeminiService.cs
-public async Task<List<PantryItem>> ProcessReceiptImageAsync(byte[] imageBytes, string mimeType = "image/jpeg")
-{
-    var base64Image = Convert.ToBase64String(imageBytes);
-    var prompt = @"You are a system that reads grocery receipts.
-    Analyze the image and list all relevant food items with their prices.
-    Ignore deposits, plastic bags, discounts, and totals.
-    Map items to generic names (e.g. 'Organic Free Range Eggs 12pk' -> 'Eggs').
-    Extract the price for each item if available (e.g. '2.99').
-    Respond ONLY with a JSON array in this format:
-    [ { ""ItemName"": ""Eggs"", ""Quantity"": 1, ""Price"": 2.99 }, { ""ItemName"": ""Milk"", ""Quantity"": 2, ""Price"": null } ]";
-
-    var requestBody = new
-    {
-        contents = new[]
-        {
-            new
-            {
-                parts = new object[]
-                {
-                    new { text = prompt },
-                    new { inlineData = new { mimeType = mimeType, data = base64Image } }
-                }
-            }
-        }
-    };
-
-    // Send to https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent
-    // Deserialize response to List<PantryItem> and pass to InventoryRepository.
-}
+}).DisableAntiforgery();
 ```
 
 ---
@@ -128,18 +131,9 @@ Every receipt scan, voice command, or manual update appends a row here. The AI u
 | `Currency`   | TEXT       | nullable                     |
 | `Source`     | TEXT       | `Receipt`, `Voice`, `Manual` |
 
-**Example rows:**
-
-| Timestamp        | ItemName | Action | Quantity | Price | TotalPrice | Currency | Source  |
-| ---------------- | -------- | ------ | -------- | ----- | ---------- | -------- | ------- |
-| 2026-03-29 18:30 | Milk     | Add    | 2        | 24.90 | 49.80      | SEK      | Receipt |
-| 2026-03-29 18:30 | Rigatoni | Add    | 1        | 19.90 | 19.90      | SEK      | Receipt |
-| 2026-03-31 08:15 | Milk     | Remove | 1        |       |            |          | Voice   |
-| 2026-04-02 19:00 | Rigatoni | Remove | 1        |       |            |          | Manual  |
-
 ### AiCache
 
-Caches AI responses to avoid redundant Gemini calls for identical inputs (e.g. repeated shopping list requests within the same day).
+Caches AI responses to avoid redundant Gemini calls for identical inputs.
 
 | Column      | Type       | Notes                                       |
 | ----------- | ---------- | ------------------------------------------- |
@@ -151,7 +145,7 @@ Caches AI responses to avoid redundant Gemini calls for identical inputs (e.g. r
 
 ---
 
-## 5. Deployment via Docker (Old Laptop)
+## 5. Deployment via Docker
 
 **OS:** Any Linux distro or Windows with Docker Desktop.
 
@@ -159,16 +153,17 @@ Caches AI responses to avoid redundant Gemini calls for identical inputs (e.g. r
 
 The SQLite database file is persisted via a mounted volume so data survives container restarts.
 
+**Services:**
+- **homestoq:** The ASP.NET Core backend serving the web UI and API on port 8080 internally, mapped to port 80 externally.
+- **keep-scraper:** Runs locally via `dotnet run --project src/KeepScraper`. Uses a visible Chromium browser with persistent session.
+
+Secrets are passed via `.env`.
+
 ```bash
-docker run -d \
-  -p 8080:8080 \
-  -v /path/to/creds:/app/creds \
-  -v /path/to/data:/app/data \
-  -e GOOGLE_APPLICATION_CREDENTIALS=/app/creds/key.json \
-  -e GEMINI_API_KEY=your_key \
-  -e DATABASE_PATH=/app/data/homestoq.db \
-  homestoq
+docker compose up -d --build
 ```
+
+Access the UI at `http://localhost`.
 
 ---
 
@@ -177,21 +172,30 @@ docker run -d \
 ```
 HomeStoq/
 ├── src/
-│   └── HomeStoq.Server/
+│   ├── HomeStoq.Server/
+│   │   ├── Program.cs
+│   │   ├── Services/
+│   │   │   └── GeminiService.cs
+│   │   ├── Repositories/
+│   │   │   └── InventoryRepository.cs
+│   │   ├── Models/
+│   │   │   ├── InventoryItem.cs
+│   │   │   ├── HistoryEntry.cs
+│   │   │   └── AiCacheEntry.cs
+│   │   └── wwwroot/
+│   │       ├── index.html
+│   │       ├── app.js
+│   │       └── style.css
+│   └── KeepScraper/
 │       ├── Program.cs
-│       ├── Services/
-│       │   ├── GeminiService.cs
-│       │   └── VoiceSyncWorker.cs
-│       ├── Repositories/
-│       │   └── InventoryRepository.cs
-│       ├── Models/
-│       │   └── PantryItem.cs
-│       └── wwwroot/
-│           ├── index.html
-│           ├── app.js
-│           └── style.css
+│       ├── KeepScraperWorker.cs
+│       └── HomeStoq.KeepScraper.csproj
+├── browser-profile/
 ├── _docs/
+├── config.ini
+├── docker-compose.yml
 ├── Dockerfile
+├── .env-example
 ├── .gitignore
 └── README.md
 ```
