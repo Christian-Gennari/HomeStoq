@@ -51,7 +51,10 @@
             <template x-if="view === 'inventory'">
                 <section>
                     <div class="view-controls">
-                        <input type="text" class="search-input" :placeholder="t('inv.search')" x-model="search">
+                        <div class="search-wrapper">
+                            <input type="text" class="search-input" :placeholder="t('inv.search')" x-model="search">
+                            <button x-show="search.length > 0" class="search-clear" @click="search = ''" aria-label="Clear search">×</button>
+                        </div>
                         <button class="btn-primary" @click="manualAdd()" x-text="t('inv.add')" aria-label="Add new item"></button>
                     </div>
 
@@ -71,10 +74,10 @@
                                 <h2 class="category-title" x-text="category"></h2>
                                 <ul class="item-list">
                                     <template x-for="item in group" :key="item.itemName">
-                                        <li class="item-row">
+                                        <li class="item-row" :class="item.quantity <= 1 && 'low-stock'">
                                             <div class="item-info">
+                                                <span x-show="item.quantity <= 1" class="low-stock-dot"></span>
                                                 <span class="item-name" x-text="item.itemName"></span>
-                                                <span class="item-meta" x-text="t('inv.updated') + ' ' + formatDate(item.updatedAt)"></span>
                                             </div>
                                             <div class="qty-pill">
                                                 <button class="qty-act" @click="updateQty(item.itemName, -1)">−</button>
