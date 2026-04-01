@@ -461,8 +461,54 @@ public class KeepScraperWorker : BackgroundService
             _logger.LogInformation("Processed {Count} unchecked item(s) in '{ListName}'", uncheckedCount, listName);
         }
 
-        // 5. Close the expanded note
+        // 5. Delete ticked items to keep the list clean
+        await DeleteTickedItemsAsync(container);
+
+        // 6. Close the expanded note
         await CloseExpandedNoteAsync();
+    }
+
+    private async Task DeleteTickedItemsAsync(ILocator container)
+    {
+        if (_page == null) return;
+
+        // 1. Find the "More" (3-dot) menu button inside the dialog
+        // We check for both English ("More") and Swedish ("Mer") aria-labels
+        var moreButton = container.GetByRole(AriaRole.Button, new() { Name = "More" })
+            .Or(container.GetByRole(AriaRole.Button, new() { Name = "Mer" }))
+            .First;
+        
+        if (await moreButton.IsVisibleAsync())
+        {
+            _logger.LogDebug("Clicking 'More' menu to clean up items...");
+            await MoveMouseToElementAsync(moreButton);
+            await moreButton.ClickAsync();
+            await HumanDelayAsync(600, 200);
+
+            // 2. Find the "Delete ticked items" option in the global menu
+            // Google Keep menus are usually appended to the body.
+            var deleteOption = _page.GetByRole(AriaRole.Menuitem, new() { Name = "Delete ticked items" })
+                .Or(_page.GetByRole(AriaRole.Menuitem, new() { Name = "Ta bort markerade objekt" }))
+                .First;
+
+            if (await deleteOption.IsVisibleAsync())
+            {
+                await deleteOption.ClickAsync();
+                _logger.LogInformation("  Cleaned up completed items from the list.");
+                await HumanDelayAsync(1200, 400); // Wait for deletion animation
+            }
+            else
+            {
+                _logger.LogDebug("  'Delete ticked items' option not found in menu.");
+                // Close the menu if we opened it but didn't find the option
+                await _page.Keyboard.PressAsync("Escape");
+                await HumanDelayAsync(300, 100);
+            }
+        }
+        else
+        {
+            _logger.LogWarning("  'More' menu button not found in note container.");
+        }
     }
 
     private async Task CloseExpandedNoteAsync()
