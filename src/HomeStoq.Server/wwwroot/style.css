@@ -331,27 +331,132 @@ nav {
     color: var(--charcoal-light);
 }
 
+/* Section View Header */
+.view-header {
+    margin-bottom: 2rem;
+}
+
+.view-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    margin-bottom: 0.5rem;
+}
+
+.view-description {
+    font-size: 0.95rem;
+    color: var(--warm-gray);
+}
+
 /* Receipt View */
 .scan-area {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .dropzone {
-    aspect-ratio: 1;
+    background: var(--white);
     border: 2px dashed var(--oat-dark);
+    border-radius: var(--radius);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
     cursor: pointer;
-    transition: var(--transition);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dropzone:hover {
     border-color: var(--sage);
+    box-shadow: var(--shadow-soft);
+}
+
+.dropzone svg {
+    color: var(--sage);
+}
+
+.dropzone span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--charcoal);
+}
+
+.dropzone:hover span {
+    color: var(--sage-dark);
+}
+
+/* Scan Actions */
+.scan-actions {
+    margin-bottom: 2rem;
+}
+
+.scan-ready {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
     background: var(--white);
+    border: 1px solid var(--oat-dark);
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+}
+
+.scan-ready p {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--charcoal);
+}
+
+/* Smart List View */
+.list-actions {
+    margin-bottom: 2rem;
+}
+
+/* Suggestions List */
+.suggestions-header {
+    margin-bottom: 1rem;
+}
+
+.suggestion-reason {
+    font-size: 0.75rem;
+    color: var(--warm-gray);
+    font-style: italic;
+}
+
+.suggestion-qty {
+    font-family: 'Fraunces', serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    min-width: 2rem;
+    text-align: right;
+}
+
+/* Scan Results */
+.scan-results {
+    margin-bottom: 2rem;
+}
+
+.scan-results .category-title {
+    margin-bottom: 1rem;
+}
+
+.scan-result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    border-radius: var(--radius);
+}
+
+.scan-result-row:hover {
+    background: rgba(255,255,255,0.6);
 }
 
 .btn-primary {
@@ -458,6 +563,22 @@ nav {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.25rem;
+    }
+    
+    .scan-area {
+        grid-template-columns: 1fr;
+    }
+    
+    .dropzone {
+        flex-direction: row;
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .scan-ready {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
     }
 }
 

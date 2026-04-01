@@ -104,17 +104,17 @@
                     <div class="scan-area">
                         <label class="dropzone">
                             <input type="file" @change="handleFile" accept="image/*" capture="environment" hidden>
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
                             <span x-text="t('scan.photo')"></span>
                         </label>
                         <label class="dropzone">
                             <input type="file" @change="handleFile" accept="image/*,application/pdf" hidden>
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
                             <span x-text="t('scan.doc')"></span>
                         </label>
                     </div>
 
-                    <div x-show="selectedFile" class="state-box">
+                    <div x-show="selectedFile" class="scan-ready">
                         <p x-text="t('scan.ready') + ' ' + selectedFile?.name"></p>
                         <button class="btn-primary" @click="uploadReceipt" :disabled="scanning">
                             <span x-show="!scanning" x-text="t('scan.btn')"></span>
@@ -126,7 +126,7 @@
                         <h3 class="category-title" x-text="t('scan.results')"></h3>
                         <ul class="item-list">
                             <template x-for="res in scanResults" :key="res.itemName">
-                                <li class="item-row">
+                                <li class="scan-result-row">
                                     <span class="item-name" x-text="res.itemName + ' (x' + res.quantity + ')'"></span>
                                     <span class="item-meta" x-text="res.price ? formatCurrency(res.price) : 'No price'"></span>
                                 </li>
@@ -144,26 +144,31 @@
                         <p class="view-description" x-text="t('list.desc')"></p>
                     </div>
 
-                    <button class="btn-primary" @click="fetchSuggestions" :disabled="loadingSuggestions">
-                        <span x-show="!loadingSuggestions" x-text="t('list.btn')"></span>
-                        <span x-show="loadingSuggestions" x-text="t('list.btn.active')"></span>
-                    </button>
+                    <div class="list-actions">
+                        <button class="btn-primary" @click="fetchSuggestions" :disabled="loadingSuggestions">
+                            <span x-show="!loadingSuggestions" x-text="t('list.btn')"></span>
+                            <span x-show="loadingSuggestions" x-text="t('list.btn.active')"></span>
+                        </button>
+                    </div>
 
                     <div x-show="!loadingSuggestions && suggestions.length === 0" class="state-box">
                         <p x-text="t('list.empty')"></p>
                     </div>
 
-                    <ul class="item-list" x-show="suggestions.length > 0" style="margin-top: 2rem;">
-                        <template x-for="sug in suggestions" :key="sug.ItemName">
-                            <li class="item-row">
-                                <div class="item-info">
-                                    <span class="item-name" x-text="sug.ItemName"></span>
-                                    <p class="item-meta item-meta-reason" x-text="sug.Reason"></p>
-                                </div>
-                                <span class="qty-pill" x-text="t('list.qty') + ' ' + sug.Quantity"></span>
-                            </li>
-                        </template>
-                    </ul>
+                    <div x-show="suggestions.length > 0">
+                        <h3 class="category-title suggestions-header" x-text="t('scan.results')"></h3>
+                        <ul class="item-list">
+                            <template x-for="sug in suggestions" :key="sug.ItemName">
+                                <li class="item-row">
+                                    <div class="item-info">
+                                        <span class="item-name" x-text="sug.ItemName"></span>
+                                        <p class="suggestion-reason" x-text="sug.Reason"></p>
+                                    </div>
+                                    <span class="suggestion-qty" x-text="sug.Quantity"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
                 </section>
             </template>
         </main>
