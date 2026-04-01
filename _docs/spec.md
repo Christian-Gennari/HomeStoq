@@ -12,7 +12,25 @@ The application is built as a lightweight ASP.NET Core 10 application using Mini
 
 ### 1.1. Local Scraper (No user interaction required after first login)
 
-**keep-scraper (C# Playwright):** A .NET Worker that runs locally via `dotnet run --project src/KeepScraper`. Launches a visible Chromium browser, persists the session in `browser-profile/`. On first run, the user logs into Google Keep manually. Subsequent runs reuse the saved session. Polls every 10 seconds for unchecked items in a list named `KeepListName` (from `config.ini`, default: `"inköpslistan"`). For each unchecked item, it POSTs `{"Text": "item text"}` to the C# backend at `/api/voice/command`. On HTTP 200, it clicks the checkbox to mark the item done.
+**keep-scraper (C# Playwright):** A .NET Worker that runs locally via `dotnet run --project src/KeepScraper`. Launches a visible Chromium browser, persists the session in `browser-profile/`. On first run, the user logs into Google Keep manually. Subsequent runs reuse the saved session.
+
+**Polling Behavior:**
+- Polls every ~45 seconds (with ±15s random jitter to avoid pattern detection)
+- Only runs during configurable **Active Hours** (default: `07-23`)
+- Outside active hours, the scraper sleeps for 30-minute intervals before re-checking
+
+**Processing Flow (per unchecked item):**
+1. Extracts the item text from the checklist
+2. POSTs `{"Text": "item text"}` to the C# backend at `/api/voice/command`
+3. On HTTP 200: clicks the checkbox, then opens the "More" menu and selects **"Delete ticked items"** to permanently remove completed items
+4. Supports both English and Swedish Google Keep UI
+
+**Anti-Detection Measures:**
+- WebGL vendor/renderer spoofing (mocks Intel GPU)
+- Full `window.chrome` object mock (including `loadTimes`, `csi`, `runtime`)
+- Navigator property overrides (`plugins`, `languages`, `hardwareConcurrency`, `deviceMemory`, `connection`)
+- Random behavioral "noise" actions (10% chance per cycle): tab switching, scrolling, hovering over notes
+- Persistent browser context with human-like timing
 
 ### 1.2. Configuration
 
@@ -25,18 +43,27 @@ The application is built as a lightweight ASP.NET Core 10 application using Mini
 Language=Swedish
 
 [Voice]
-KeepListName=inköpslistan
+KeepListName=inköpslistan, inköpslista
 
 [API]
 BaseUrl=http://localhost:5000/api/voice/command
+
+[Scraper]
+ActiveHours=07-23
+PollIntervalSeconds=45
+PollIntervalJitterSeconds=15
+
 HostUrl=http://*:5000
 ```
 
 | Setting | Description | Values |
 | :--- | :--- | :--- |
 | `Language` | Language for all AI parsing (voice, receipt, shopping list) | `Swedish` or `English` (default) |
-| `KeepListName` | Google Keep list name to monitor | `inköpslistan` |
+| `KeepListName` | Google Keep list name(s) to monitor (comma-separated) | String (default: `inköpslistan`) |
 | `BaseUrl` | API endpoint for keep-scraper | `http://localhost:5000/api/voice/command` |
+| `ActiveHours` | Scraper active hours (24h format) | `HH-HH` (default: `07-23`) |
+| `PollIntervalSeconds` | Base polling interval | Seconds (default: `45`) |
+| `PollIntervalJitterSeconds` | Random jitter added to interval | Seconds (default: `15`) |
 | `HostUrl` | Browser access URL and Server Bind URL | `http://*:5000` |
 
 ### 1.2.1. Advanced Overrides (Environment Variables)
@@ -62,6 +89,38 @@ The web UI is served statically from `wwwroot`. Built entirely in Vanilla JavaSc
 - **View 1: Inventory & Manual Control.** Displays current stock with search/filter. Allows manual quantity adjustments with optimistic UI updates. Animated item transitions and toast notifications.
 - **View 2: Receipt Upload.** File input for camera or upload. Sends image asynchronously via `fetch()` to the Minimal API endpoint. Shows progress bar during processing.
 - **View 3: Smart Shopping List.** Displays AI suggestions based on 30-day history and current stock. Shows reason per suggestion.
+
+### 1.5. Stealth & Anti-Detection
+
+The keep-scraper implements multiple layers to avoid being flagged as a bot by Google:
+
+#### Browser Fingerprint Spoofing
+The scraper injects a JavaScript initialization script that patches the browser's runtime environment to appear as a genuine Chrome installation:
+
+| Property | What it does | Why it matters |
+| :--- | :--- | :--- |
+| `navigator.webdriver` | Returns `undefined` instead of `true` | Selenium/Playwright set this to `true` automatically |
+| WebGL `getParameter(37445/37446)` | Returns real Intel GPU vendor/renderer strings | Bot detectors check for "SwiftShader" or "llvmpipe" |
+| `window.chrome` object | Full mock including `loadTimes()`, `csi()`, `runtime` | Chrome-only API that real browsers expose |
+| `navigator.plugins` | Returns standard 3-plugin array with `item()`/`namedItem()` methods | Bot detectors check plugin count and methods |
+| `navigator.languages` | Returns `['en-US', 'en']` | Consistent Accept-Language header |
+| `navigator.hardwareConcurrency` | Returns `8` | Real machines report actual core counts |
+| `navigator.deviceMemory` | Returns `8` | Real machines report actual memory |
+
+#### Behavioral Noise
+To break predictable 24/7 polling patterns, the scraper introduces human-like randomness:
+
+- **Active Hours**: Only polls between configured hours (default `07-23`). Outside these hours, it sleeps for 30-minute intervals.
+- **Random Delay Jitter**: Each poll cycle adds ±15 seconds of random delay to the base 45-second interval.
+- **Random Actions**: 10% chance per cycle to perform one of:
+  - Navigating to "Reminders" tab and back to "Notes"
+  - Scrolling up and down the page
+  - Hovering over random note cards
+
+#### Session Management
+- Persistent browser context (`browser-profile/`) saves cookies and localStorage
+- First run requires manual login; subsequent runs reuse the session
+- If session expires, the scraper detects it and waits for manual re-login
 
 ---
 

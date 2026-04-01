@@ -79,7 +79,7 @@ For a detailed, day-to-day guide on how to use HomeStoq effectively, check out o
 
 1.  **Inventory**: Use the "Stock" tab to see what you have. Use the `+` and `-` buttons for manual adjustments.
 2.  **Scan Receipts**: Go to the "Scan" tab. You can either take a photo directly or upload a file (PDF/Image). Tap **Scan & Analyze**, and Gemini will process the receipt and update your inventory.
-3.  **Voice Commands**: Add items to your Google Keep list (default: "inköpslistan") like "slut på mjölk" or "köpte 5 äpplen". The keep-scraper polls every 10 seconds, sends the text to the API for parsing, updates the stock, and checks off the item.
+3.  **Voice Commands**: Add items to your Google Keep list (default: "inköpslistan") like "slut på mjölk" or "köpte 5 äpplen". The keep-scraper polls every ~45 seconds (with jitter), parses the text via the API, updates the stock, and deletes the processed item from your list.
 4.  **Shopping List**: Click "Analyze Patterns" in the "Smart List" tab to see AI-generated suggestions based on your history.
 
 ## 📝 License

@@ -46,7 +46,7 @@ When you finish a carton of milk or use the last of the eggs, just tell your voi
 - **"Lägg till bröd"** → Adds Bröd to your inventory.
 
 ### Timing:
-The keep-scraper microservice polls your Google Keep every **10 seconds**. Once processed, the item will be automatically checked off in your list.
+The keep-scraper microservice polls your Google Keep every **~45 seconds** (with ±15s random jitter). It only runs during active hours (default: 07-23) to avoid 24/7 bot patterns. Once processed, the item is automatically checked off **and deleted** from your list to keep it clean.
 
 ---
 
@@ -93,3 +93,4 @@ Before you head to the store, check the **Smart List** tab.
 - **Voice sync not starting?** Make sure the scraper is running (`dotnet run --project src/KeepScraper`). If Google requires re-login, log in again in the browser window.
 - **Voice sync not working?** Verify the `KeepListName` in `config.ini` matches your Google Keep list name (default: "inköpslistan").
 - **OCR failing?** Ensure your Gemini API key is valid and has not reached its quota.
+- **Scraper not polling during expected hours?** Check the `ActiveHours` setting in `config.ini`. The scraper only operates between the configured start and end hours (default: 07-23).
