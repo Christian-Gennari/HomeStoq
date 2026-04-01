@@ -18,6 +18,8 @@ public class KeepScraperWorker : BackgroundService
     private readonly string _profileDir;
     private readonly int _pollIntervalSeconds;
     private readonly int _pollIntervalJitterSeconds;
+    private readonly int _activeHoursStart;
+    private readonly int _activeHoursEnd;
 
     private bool _isOnKeepPage;
 
@@ -33,8 +35,21 @@ public class KeepScraperWorker : BackgroundService
         
         _apiUrl = config["API:BaseUrl"] ?? config["HOMESTOQ_API_URL"] ?? "http://localhost:5000/api/voice/command";
         _profileDir = Path.GetFullPath(config["BROWSER_PROFILE_DIR"] ?? "browser-profile");
-        _pollIntervalSeconds = int.Parse(config["POLL_INTERVAL_SECONDS"] ?? "45");
-        _pollIntervalJitterSeconds = int.Parse(config["POLL_INTERVAL_JITTER_SECONDS"] ?? "15");
+        _pollIntervalSeconds = int.Parse(config["Scraper:PollIntervalSeconds"] ?? config["POLL_INTERVAL_SECONDS"] ?? "45");
+        _pollIntervalJitterSeconds = int.Parse(config["Scraper:PollIntervalJitterSeconds"] ?? config["POLL_INTERVAL_JITTER_SECONDS"] ?? "15");
+
+        var activeHours = config["Scraper:ActiveHours"] ?? "07-23";
+        var parts = activeHours.Split('-', StringSplitOptions.TrimEntries);
+        if (parts.Length == 2 && int.TryParse(parts[0], out var start) && int.TryParse(parts[1], out var end))
+        {
+            _activeHoursStart = start;
+            _activeHoursEnd = end;
+        }
+        else
+        {
+            _activeHoursStart = 0;
+            _activeHoursEnd = 24;
+        }
     }
 
     public override async Task StartAsync(CancellationToken cancellationToken)
@@ -78,19 +93,49 @@ public class KeepScraperWorker : BackgroundService
             // Override navigator.webdriver
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
 
+            // WebGL Stealth
+            const getParameter = WebGLRenderingContext.prototype.getParameter;
+            WebGLRenderingContext.prototype.getParameter = function(parameter) {
+                // UNMASKED_VENDOR_WEBGL
+                if (parameter === 37445) return 'Google Inc. (Intel)';
+                // UNMASKED_RENDERER_WEBGL
+                if (parameter === 37446) return 'ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00003E92) Direct3D11 vs_5_0 ps_5_0, D3D11-27.20.100.8681)';
+                return getParameter.apply(this, arguments);
+            };
+
             // Mock plugins to look like a real Chrome installation
             Object.defineProperty(navigator, 'plugins', {
-                get: () => [
-                    { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
-                    { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
-                    { name: 'Native Client', filename: 'internal-nacl-plugin' },
-                ]
+                get: () => {
+                    const p = [
+                        { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+                        { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+                        { name: 'Native Client', filename: 'internal-nacl-plugin' },
+                    ];
+                    p.item = (i) => p[i];
+                    p.namedItem = (n) => p.find(x => x.name === n);
+                    return p;
+                }
             });
 
-            // Mock languages
-            Object.defineProperty(navigator, 'languages', {
-                get: () => ['en-US', 'en']
-            });
+            // Mock chrome object
+            window.chrome = {
+                app: { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' }, getDetails: () => null, getIsInstalled: () => false },
+                loadTimes: () => ({
+                    requestTime: Date.now() / 1000 - 0.5,
+                    startLoadTime: Date.now() / 1000 - 0.5,
+                    commitLoadTime: Date.now() / 1000 - 0.4,
+                    finishDocumentLoadTime: Date.now() / 1000 - 0.3,
+                    finishLoadTime: Date.now() / 1000 - 0.2,
+                    firstPaintTime: Date.now() / 1000 - 0.35,
+                    firstPaintAfterLoadTime: 0,
+                    navigationType: 'Other',
+                    wasFetchedFromCache: false,
+                    wasAlternateProtocolAvailable: false,
+                    wasConnectionKeepAlive: true
+                }),
+                csi: () => ({ startE: Date.now(), onloadT: Date.now() + 200, pageT: 500, tran: 15 }),
+                runtime: { OnInstalledReason: { CHROME_UPDATE: 'chrome_update', INSTALL: 'install', SHARED_MODULE_UPDATE: 'shared_module_update', UPDATE: 'update' }, OnRestartRequiredReason: { APP_UPDATE: 'app_update', OS_UPDATE: 'os_update', PERIODIC: 'periodic' }, PlatformArch: { ARM: 'arm', ARM64: 'arm64', MIPS: 'mips', MIPS64: 'mips64', X86_32: 'x86-32', X86_64: 'x86-64' }, PlatformNaclArch: { ARM: 'arm', MIPS: 'mips', MIPS64: 'mips64', X86_32: 'x86-32', X86_64: 'x86-64' }, PlatformOs: { ANDROID: 'android', CROS: 'cros', LINUX: 'linux', MAC: 'mac', OPENBSD: 'openbsd', WIN: 'win' }, RequestUpdateCheckStatus: { NO_UPDATE: 'no_update', THROTTLED: 'throttled', UPDATE_AVAILABLE: 'update_available' } }
+            };
 
             // Override permissions query
             const originalQuery = window.navigator.permissions.query;
@@ -99,29 +144,12 @@ public class KeepScraperWorker : BackgroundService
                     ? Promise.resolve({ state: Notification.permission })
                     : originalQuery(parameters);
 
-            // Override chrome runtime
-            window.chrome = window.chrome || {};
-            window.chrome.runtime = window.chrome.runtime || {};
-
-            // Override connection information
-            Object.defineProperty(navigator, 'connection', {
-                get: () => ({ effectiveType: '4g', rtt: 50, downlink: 10, saveData: false })
-            });
-
-            // Override hardware concurrency
-            Object.defineProperty(navigator, 'hardwareConcurrency', {
-                get: () => 8
-            });
-
-            // Override device memory
-            Object.defineProperty(navigator, 'deviceMemory', {
-                get: () => 8
-            });
-
-            // Override maxTouchPoints
-            Object.defineProperty(navigator, 'maxTouchPoints', {
-                get: () => 0
-            });
+            // Consistency fixes
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+            Object.defineProperty(navigator, 'connection', { get: () => ({ effectiveType: '4g', rtt: 50, downlink: 10, saveData: false }) });
+            Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+            Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+            Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
 
             // Patch iframe contentWindow
             const originalContentWindow = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
@@ -248,6 +276,66 @@ public class KeepScraperWorker : BackgroundService
         await Task.Delay(_random.Next(100, 400));
     }
 
+    private bool IsWithinActiveHours()
+    {
+        var now = DateTime.Now.Hour;
+        if (_activeHoursStart == _activeHoursEnd) return true;
+        if (_activeHoursStart < _activeHoursEnd)
+        {
+            return now >= _activeHoursStart && now < _activeHoursEnd;
+        }
+        else
+        {
+            // Handles cases like 23-07
+            return now >= _activeHoursStart || now < _activeHoursEnd;
+        }
+    }
+
+    private async Task PerformRandomActivityAsync()
+    {
+        if (_page == null) return;
+
+        // 10% chance to do something random
+        if (_random.Next(0, 100) > 10) return;
+
+        _logger.LogInformation("Performing random behavioral activity...");
+        var choice = _random.Next(0, 3);
+
+        switch (choice)
+        {
+            case 0:
+                // Navigate to Reminders and back
+                _logger.LogDebug("  Navigating to Reminders tab...");
+                var reminders = _page.GetByText("Reminders").Or(_page.GetByText("Påminnelser")).First;
+                if (await reminders.IsVisibleAsync()) await reminders.ClickAsync();
+                await HumanDelayAsync(2000, 1000);
+                var notes = _page.GetByText("Notes").Or(_page.GetByText("Anteckningar")).First;
+                if (await notes.IsVisibleAsync()) await notes.ClickAsync();
+                break;
+            case 1:
+                // Just scroll a bit
+                _logger.LogDebug("  Scrolling page...");
+                await _page.Mouse.WheelAsync(0, _random.Next(100, 500));
+                await HumanDelayAsync(1500, 500);
+                await _page.Mouse.WheelAsync(0, -_random.Next(100, 500));
+                break;
+            case 2:
+                // Hover over random notes
+                _logger.LogDebug("  Hovering over random notes...");
+                var noteCards = _page.Locator("[role='button'][aria-label]");
+                var count = await noteCards.CountAsync();
+                if (count > 0)
+                {
+                    var index = _random.Next(0, Math.Min(count, 5));
+                    await MoveMouseToElementAsync(noteCards.Nth(index));
+                    await HumanDelayAsync(800, 300);
+                }
+                break;
+        }
+        
+        await HumanDelayAsync(1000, 500);
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var sessionReady = false;
@@ -256,6 +344,13 @@ public class KeepScraperWorker : BackgroundService
         {
             try
             {
+                if (!IsWithinActiveHours())
+                {
+                    _logger.LogInformation("Outside active hours ({Start}-{End}). Sleeping for 30 minutes...", _activeHoursStart, _activeHoursEnd);
+                    await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
+                    continue;
+                }
+
                 sessionReady = await EnsureSessionAsync();
                 if (!sessionReady)
                 {
@@ -276,6 +371,14 @@ public class KeepScraperWorker : BackgroundService
         {
             try
             {
+                if (!IsWithinActiveHours())
+                {
+                    _logger.LogInformation("Entering sleep period until active hours ({Start}-{End})...", _activeHoursStart, _activeHoursEnd);
+                    await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
+                    continue;
+                }
+
+                await PerformRandomActivityAsync();
                 await ProcessListsAsync();
             }
             catch (Exception ex)
