@@ -31,6 +31,9 @@ When you come home from the store, don't manually enter your items. Use the **Sc
 ## 🗣️ 2. The "Used It" (Voice Sync)
 When you finish a carton of milk or use the last of the eggs, just tell your voice assistant.
 
+> [!CAUTION]
+> **Use a dedicated Google account:** To avoid any risk of your primary Google account being flagged for automated activity, it is **highly recommended** to create a new, dedicated Google account specifically for HomeStoq. You can then share your "inköpslistan" list with this new account to maintain sync with your phone/Nest device.
+
 ### How to set it up:
 - Items are read from your **Google Keep** list named **"inköpslistan"** (default).
 - Say: *"Hey Google, add 'slut på ägg' to my inköpslistan."*

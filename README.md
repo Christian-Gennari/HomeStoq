@@ -54,6 +54,9 @@ When you first run the scraper, a browser window opens. Log into Google Keep man
 npm run playwright:install
 ```
 
+> [!CAUTION]
+> **Use a dedicated Google account:** To avoid any risk of your primary Google account being flagged for automated activity (crawling), it is **highly recommended** to create a new, dedicated Google account specifically for HomeStoq. You can then share your "inköpslistan" list with this new account.
+
 ### 3. Other Commands
 - `npm run stop`: Stop all Docker containers.
 - `npm run clean`: Remove all build artifacts (`bin`, `obj`, `out`).
