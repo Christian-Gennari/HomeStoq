@@ -7,6 +7,7 @@
     --sage-dark: #5c6b58;
     --charcoal: #2d2a28;
     --charcoal-light: #4a4642;
+    --warm-gray: #6b6560;
     --zest: #d46a4e; /* Tomato/Radish accent for alerts */
     --white: #ffffff;
 
@@ -287,7 +288,7 @@ nav {
 
 .state-box h3 {
     font-size: 1.5rem;
-    color: var(--oat-dark);
+    color: var(--charcoal-light);
 }
 
 /* Receipt View */
@@ -342,6 +343,22 @@ nav {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     z-index: 2000;
+    cursor: pointer;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+/* Scan Results */
+.scan-results {
+    margin-top: 3rem;
+}
+
+.item-meta-reason {
+    font-style: italic;
 }
 
 @media (max-width: 768px) {
@@ -360,4 +377,90 @@ nav {
     .search-input {
         width: 100%;
     }
+}
+
+/* Focus States */
+:focus-visible {
+    outline: 2px solid var(--sage);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible {
+    outline: 2px solid var(--sage);
+    outline-offset: 2px;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(45, 42, 40, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.modal-content {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: var(--radius);
+    width: 90%;
+    max-width: 400px;
+    box-shadow: var(--shadow-soft);
+}
+
+.modal-content h3 {
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+}
+
+.modal-content input[type="text"] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--oat-dark);
+    border-radius: var(--radius);
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.2s ease;
+}
+
+.modal-content input[type="text"]:focus {
+    border-color: var(--sage);
+    outline: none;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.modal-actions button {
+    background: none;
+    border: 1px solid var(--oat-dark);
+    padding: 0.75rem 1.5rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.modal-actions button:hover {
+    background: var(--oat-dark);
+}
+
+.modal-actions .btn-primary {
+    background: var(--charcoal);
+    color: var(--white);
+    border: none;
+}
+
+.modal-actions .btn-primary:hover {
+    background: var(--charcoal-light);
 }

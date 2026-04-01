@@ -52,7 +52,7 @@
                 <section>
                     <div class="view-controls">
                         <input type="text" class="search-input" :placeholder="t('inv.search')" x-model="search">
-                        <button class="btn-primary" @click="manualAdd()" x-text="t('inv.add')"></button>
+                        <button class="btn-primary" @click="manualAdd()" x-text="t('inv.add')" aria-label="Add new item"></button>
                     </div>
 
                     <div x-show="loading" class="state-box">
@@ -119,7 +119,7 @@
                         </button>
                     </div>
 
-                    <div x-show="scanResults.length > 0" style="margin-top: 3rem;">
+                    <div x-show="scanResults.length > 0" class="scan-results">
                         <h3 class="category-title" x-text="t('scan.results')"></h3>
                         <ul class="item-list">
                             <template x-for="res in scanResults" :key="res.itemName">
@@ -150,12 +150,12 @@
                         <p x-text="t('list.empty')"></p>
                     </div>
 
-                    <ul class="item-list" style="margin-top: 2rem;">
+                    <ul class="item-list" x-show="suggestions.length > 0" style="margin-top: 2rem;">
                         <template x-for="sug in suggestions" :key="sug.ItemName">
                             <li class="item-row">
                                 <div class="item-info">
                                     <span class="item-name" x-text="sug.ItemName"></span>
-                                    <p class="item-meta" x-text="sug.Reason" style="font-style: italic;"></p>
+                                    <p class="item-meta item-meta-reason" x-text="sug.Reason"></p>
                                 </div>
                                 <span class="qty-pill" x-text="t('list.qty') + ' ' + sug.Quantity"></span>
                             </li>
@@ -170,6 +170,18 @@
     <template x-for="toast in toasts" :key="toast.id">
         <div class="toast" :class="toast.type" x-text="toast.message" @click="removeToast(toast.id)"></div>
     </template>
+
+    <!-- Add Item Modal -->
+    <div x-show="showAddModal" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="modal-overlay" @click.self="showAddModal = false" @keydown.escape.window="showAddModal = false">
+        <div class="modal-content" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
+            <h3 x-text="t('inv.add')"></h3>
+            <input type="text" x-model="newItemName" :placeholder="t('prompt.add')" @keyup.enter="submitAddItem">
+            <div class="modal-actions">
+                <button @click="showAddModal = false" x-text="t('modal.cancel')"></button>
+                <button class="btn-primary" @click="submitAddItem" x-text="t('modal.confirm')"></button>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>

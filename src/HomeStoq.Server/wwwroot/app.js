@@ -28,6 +28,8 @@ const i18n = {
     "list.empty": "No suggestions yet. Scan more receipts to train the AI.",
     "list.qty": "Qty:",
     "prompt.add": "Enter item name:",
+    "modal.cancel": "Cancel",
+    "modal.confirm": "Add",
     "toast.err.stock": "Error loading stock",
     "toast.err.update": "Failed to update quantity",
     "toast.err.scan": "AI analysis failed",
@@ -66,6 +68,8 @@ const i18n = {
     "list.empty": "Inga förslag ännu. Skanna fler kvitton för att träna AI:n.",
     "list.qty": "Antal:",
     "prompt.add": "Ange varans namn:",
+    "modal.cancel": "Avbryt",
+    "modal.confirm": "Lägg till",
     "toast.err.stock": "Kunde inte hämta skafferiet",
     "toast.err.update": "Kunde inte uppdatera antal",
     "toast.err.scan": "AI-analysen misslyckades",
@@ -97,6 +101,10 @@ function pantryApp() {
     // UI State
     toasts: [],
 
+    // Modal State
+    showAddModal: false,
+    newItemName: "",
+
     async init() {
       await this.fetchSettings();
       this.refreshInventory();
@@ -119,6 +127,14 @@ function pantryApp() {
       } catch (e) {
         console.error("Failed to load settings", e);
       }
+    },
+
+    getLocale() {
+      return this.language === "Swedish" ? "sv-SE" : "en-US";
+    },
+
+    getCurrency() {
+      return this.language === "Swedish" ? "SEK" : "USD";
     },
 
     t(key, ...args) {
@@ -202,9 +218,15 @@ function pantryApp() {
     },
 
     async manualAdd() {
-      const name = prompt(this.t("prompt.add"));
-      if (!name) return;
-      await this.updateQty(name.trim(), 1);
+      this.newItemName = "";
+      this.showAddModal = true;
+    },
+
+    async submitAddItem() {
+      if (!this.newItemName.trim()) return;
+      await this.updateQty(this.newItemName.trim(), 1);
+      this.showAddModal = false;
+      this.newItemName = "";
     },
 
     handleFile(e) {
@@ -258,19 +280,16 @@ function pantryApp() {
     formatDate(dateStr) {
       if (!dateStr) return "Never";
       const date = new Date(dateStr);
-      const locale = this.language === "Swedish" ? "sv-SE" : "en-US";
-      return date.toLocaleDateString(locale, {
+      return date.toLocaleDateString(this.getLocale(), {
         month: "short",
         day: "numeric",
       });
     },
 
     formatCurrency(val) {
-      const locale = this.language === "Swedish" ? "sv-SE" : "en-US";
-      const currency = this.language === "Swedish" ? "SEK" : "USD"; // Assuming USD fallback
-      return new Intl.NumberFormat(locale, {
+      return new Intl.NumberFormat(this.getLocale(), {
         style: "currency",
-        currency: currency,
+        currency: this.getCurrency(),
       }).format(val);
     },
 
