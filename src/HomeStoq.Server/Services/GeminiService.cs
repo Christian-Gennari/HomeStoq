@@ -40,20 +40,20 @@ public class GeminiService
     private string GeminiEndpoint =>
         $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent";
 
-    public async Task<ParsedVoiceAction?> ParseVoiceCommandAsync(
+    public async Task<List<ParsedVoiceAction>?> ParseVoiceCommandAsync(
         string text,
         IEnumerable<string>? existingItems = null
     )
     {
         var inventoryContext =
             existingItems != null && existingItems.Any()
-                ? $"Current Inventory Items: {string.Join(", ", existingItems)}"
+                ? $"Current Inventory Items (PREFER THESE NAMES): {string.Join(", ", existingItems)}"
                 : "";
 
         var prompt = _language switch
         {
             "Swedish" =>
-                $@"You are a food inventory assistant. The following voice command is in Swedish. Interpret the intent.
+                $@"You are a food inventory assistant. ALL communication, reasoning, and output MUST be in Swedish. The following voice command is in Swedish. Interpret the intent.
 
 Command: ""{text}""
 
@@ -61,19 +61,17 @@ Command: ""{text}""
 
 Guidelines:
 1. The command is in Swedish. Return the ItemName in Swedish.
-2. Use the inventory list above to match existing item names. If the user says something close to an existing item, use that exact name.
-3. Identify ItemName, Action (Add or Remove), and Quantity.
-4. Interpret NATURAL language intent. Examples:
-   - ""slut på mjölk"" → Remove, Mjölk, 1
-   - ""köpte 3 ägg"" → Add, Ägg, 3
-   - ""använt allt kaffe"" → Remove, Kaffe, 1
-   - ""lägg till bröd"" → Add, Bröd, 1
-   - ""ägg är slut"" → Remove, Ägg, 1
-   - ""tog 2 fil"" → Remove, Filmjölk, 2
-5. Default quantity to 1 if not specified.
-6. Respond ONLY with a JSON object. If unsure, return null.
+2. IMPORTANT: Normalize ItemNames. If the user mentions an item that is a variation of an existing item (e.g., ""Arla Mellanmjölk"" vs existing ""Mjölk""), always prefer the existing simplified name from the list above.
+3. Identify ItemName, Action (Add or Remove), and Quantity for EACH item mentioned.
+4. IMPORTANT: Assign a Category to each item from this exact list: [Mejeri, Frukt/Grönt, Skafferi, Kött/Fisk, Bageri, Frysvaror, Hushåll, Övrigt].
+5. Interpret NATURAL language intent. Examples:
+   - ""slut på mjölk"" → [{{ ""ItemName"": ""Mjölk"", ""Action"": ""Remove"", ""Quantity"": 1, ""Category"": ""Mejeri"" }}]
+   - ""köpte 3 ägg och smör"" → [{{ ""ItemName"": ""Ägg"", ""Action"": ""Add"", ""Quantity"": 3, ""Category"": ""Mejeri"" }}, {{ ""ItemName"": ""Smör"", ""Action"": ""Add"", ""Quantity"": 1, ""Category"": ""Mejeri"" }}]
+   - ""använt allt kaffe"" → [{{ ""ItemName"": ""Kaffe"", ""Action"": ""Remove"", ""Quantity"": 9999, ""Category"": ""Skafferi"" }}]
+6. Default quantity to 1 if not specified. For phrases like ""all"", ""everything"", ""slut på all"", use 9999 to indicate total removal.
+7. Respond ONLY with a JSON array of objects. If unsure, return null.
 
-Format: {{ ""ItemName"": ""Mjölk"", ""Action"": ""Remove"", ""Quantity"": 1 }}",
+Format: [ {{ ""ItemName"": ""Mjölk"", ""Action"": ""Remove"", ""Quantity"": 1, ""Category"": ""Mejeri"" }} ]",
 
             _ =>
                 $@"You are a food inventory assistant. Interpret the intent of this voice command: ""{text}""
@@ -82,30 +80,29 @@ Format: {{ ""ItemName"": ""Mjölk"", ""Action"": ""Remove"", ""Quantity"": 1 }}"
 
 Guidelines:
 1. The command is in English.
-2. Identify ItemName, Action (Add or Remove), and Quantity.
-3. Interpret NATURAL language intent. Examples:
-   - ""used the last milk"" → Remove, Milk, 1
-   - ""bought 3 eggs"" → Add, Eggs, 3
-   - ""all the coffee is gone"" → Remove, Coffee, 1
-   - ""add bread"" → Add, Bread, 1
-   - ""eggs are finished"" → Remove, Eggs, 1
-4. If the user mentions an item that sounds like an existing item, use the existing item's name.
-5. Default quantity to 1 if not specified.
-6. Respond ONLY with a JSON object. If unsure, return null.
+2. IMPORTANT: Normalize ItemNames. If the user mentions an item that is a variation of an existing item (e.g., ""Organic Whole Milk"" vs existing ""Milk""), always prefer the existing simplified name from the list above.
+3. Identify ItemName, Action (Add or Remove), and Quantity for EACH item mentioned.
+4. IMPORTANT: Assign a Category to each item from this list: [Dairy, Produce, Pantry, Meat/Fish, Bakery, Frozen, Household, Other].
+5. Interpret NATURAL language intent. Examples:
+   - ""used the last milk"" → [{{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 9999, ""Category"": ""Dairy"" }}]
+   - ""bought 3 eggs and bread"" → [{{ ""ItemName"": ""Eggs"", ""Action"": ""Add"", ""Quantity"": 3, ""Category"": ""Dairy"" }}, {{ ""ItemName"": ""Bread"", ""Action"": ""Add"", ""Quantity"": 1, ""Category"": ""Bakery"" }}]
+6. Default quantity to 1 if not specified. For phrases like ""all"", ""everything"", ""last of"", use 9999 to indicate total removal.
+7. Respond ONLY with a JSON array of objects. If unsure, return null.
 
-Format: {{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 1 }}",
+Format: [ {{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 1, ""Category"": ""Dairy"" }} ]",
         };
 
         var response = await CallGeminiAsync(prompt);
         if (
             string.IsNullOrEmpty(response)
             || response.Equals("null", StringComparison.OrdinalIgnoreCase)
+            || response.Equals("[]", StringComparison.OrdinalIgnoreCase)
         )
             return null;
 
         try
         {
-            return JsonSerializer.Deserialize<ParsedVoiceAction>(
+            return JsonSerializer.Deserialize<List<ParsedVoiceAction>>(
                 response,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             );
@@ -136,29 +133,20 @@ Format: {{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 1 }}",
         var prompt = _language switch
         {
             "Swedish" =>
-                $@"You are a system that reads Swedish grocery receipts. Analyze the provided image or document and extract all food and household items with their prices.
+                $@"You are a system that reads Swedish grocery receipts. ALL communication, reasoning, and output MUST be in Swedish. Analyze the provided image or document and extract all food and household items with their prices.
 
 {inventoryContext}
 
 RULES:
 1. Return ALL item names in SWEDISH. Never translate to English.
-2. Keep brand names and product names exactly as they appear on the receipt (e.g., ""Gammaldags Idealmakaroner"", ""Risifrutti"", ""Mannafrutti"", ""Eldorado"").
-3. Map generic English-sounding categories to Swedish:
-   - ""Dishwasher Tablets"" → ""Diskmaskinstabletter""
-   - ""Bread"" → ""Bröd""
-   - ""Eggs"" → ""Ägg""
-   - ""Cleaning Supplies"" → ""Rengöringsmedel""
-   - ""Meat-free Meatballs"" → ""Vegetariska bullar""
-   - ""Oat Cream"" → ""Havregrädde""
-   - ""Pasta Sauce"" → ""Pastasås""
-   - ""Elderflower Drink"" → ""Fläderdryck""
-   - ""Vegopirog"" → ""Vegetarisk pirog""
+2. Decipher and correct truncated or abbreviated receipt names into full, readable product names with the first letter capitalized (e.g., convert ""Gammaldags idealma"" to ""Gammaldags Idealmakaroner"").
+3. IMPORTANT: Assign a Category to each item from this exact list: [Mejeri, Frukt/Grönt, Skafferi, Kött/Fisk, Bageri, Frysvaror, Hushåll, Övrigt].
 4. Use the inventory list above to match existing item names when applicable.
 5. Ignore: deposits (pant), plastic bags (kassar), discounts (rabatt), totals, loyalty points, packaging fees.
-6. Extract the price for each item if visible on the receipt.
+6. Extract the EXACT decimal price for each item if visible on the receipt (do not round).
 7. Respond ONLY with a JSON array.
 
-Format: [ {{ ""ItemName"": ""Ägg"", ""Quantity"": 1, ""Price"": 34.90 }}, {{ ""ItemName"": ""Mjölk"", ""Quantity"": 2, ""Price"": null }} ]",
+Format: [ {{ ""ItemName"": ""Ägg"", ""Quantity"": 1, ""Price"": 34.90, ""Category"": ""Mejeri"" }}, {{ ""ItemName"": ""Mjölk"", ""Quantity"": 2, ""Price"": null, ""Category"": ""Mejeri"" }} ]",
 
             _ =>
                 $@"You are a system that reads grocery receipts. Analyze the provided image or document and extract all food and household items with their prices.
@@ -167,14 +155,14 @@ Format: [ {{ ""ItemName"": ""Ägg"", ""Quantity"": 1, ""Price"": 34.90 }}, {{ ""
 
 RULES:
 1. Return ALL item names in English.
-2. Keep brand names as they appear on the receipt.
-3. Map items to generic names (e.g., ""Organic Free Range Eggs 12pk"" → ""Eggs"").
+2. Decipher and correct truncated or abbreviated receipt names into full, readable product names with the first letter capitalized.
+3. IMPORTANT: Assign a Category to each item from this list: [Dairy, Produce, Pantry, Meat/Fish, Bakery, Frozen, Household, Other].
 4. Use the inventory list above to match existing item names when applicable.
 5. Ignore: deposits, bags, discounts, totals, loyalty points, packaging fees.
-6. Extract the price for each item if visible.
+6. Extract the EXACT decimal price for each item if visible (do not round).
 7. Respond ONLY with a JSON array.
 
-Format: [ {{ ""ItemName"": ""Eggs"", ""Quantity"": 1, ""Price"": 2.99 }}, {{ ""ItemName"": ""Milk"", ""Quantity"": 2, ""Price"": null }} ]",
+Format: [ {{ ""ItemName"": ""Eggs"", ""Quantity"": 1, ""Price"": 2.99, ""Category"": ""Dairy"" }}, {{ ""ItemName"": ""Milk"", ""Quantity"": 2, ""Price"": null, ""Category"": ""Dairy"" }} ]",
         };
 
         var requestBody = new
@@ -241,7 +229,7 @@ Format: [ {{ ""ItemName"": ""Eggs"", ""Quantity"": 1, ""Price"": 2.99 }}, {{ ""I
         var prompt = _language switch
         {
             "Swedish" =>
-                $@"You are a predictive pantry assistant. The inventory and history data below is in Swedish. Analyze it and return suggestions with Swedish item names.
+                $@"You are a predictive pantry assistant. ALL communication, reasoning, and output MUST be strictly in Swedish. The inventory and history data below is in Swedish. Analyze it and return suggestions with Swedish item names.
 
 History: {historyJson}
 Inventory: {inventoryJson}
@@ -339,11 +327,13 @@ public class ParsedVoiceAction
     public string ItemName { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public double Quantity { get; set; }
+    public string? Category { get; set; }
 }
 
 public class PantryItem
 {
     public string ItemName { get; set; } = string.Empty;
     public double Quantity { get; set; }
+    public string? Category { get; set; }
     public double? Price { get; set; }
 }
