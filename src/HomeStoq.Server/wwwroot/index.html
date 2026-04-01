@@ -3,142 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HomeStoq</title>
+    <title>HomeStoq | Smart Pantry</title>
+    
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div class="bg-texture"></div>
+<body x-data="pantryApp()">
+    
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1>HomeStoq</h1>
+                <p>Intelligent Pantry Assistant</p>
+            </div>
+            <nav>
+                <button class="nav-link" :class="view === 'inventory' && 'active'" @click="view = 'inventory'" x-text="t('nav.stock')"></button>
+                <button class="nav-link" :class="view === 'receipt' && 'active'" @click="view = 'receipt'" x-text="t('nav.scan')"></button>
+                <button class="nav-link" :class="view === 'shopping' && 'active'" @click="view = 'shopping'" x-text="t('nav.list')"></button>
+            </nav>
+        </header>
 
-    <header>
-        <div class="header-inner">
-            <h1>HomeStoq</h1>
-            <p class="tagline">Your pantry, intelligently managed</p>
+        <!-- Dashboard Pulse -->
+        <div class="pulse-bar" x-show="view === 'inventory'">
+            <div class="pulse-stat">
+                <span class="label" x-text="t('pulse.total')"></span>
+                <span class="value" x-text="items.length"></span>
+            </div>
+            <div class="pulse-stat">
+                <span class="label" x-text="t('pulse.low')"></span>
+                <span class="value" x-text="items.filter(i => i.quantity <= 1).length" :style="items.filter(i => i.quantity <= 1).length > 0 && 'color: var(--zest)'"></span>
+            </div>
+            <div class="pulse-stat">
+                <span class="label" x-text="t('pulse.cats')"></span>
+                <span class="value" x-text="Object.keys(categorizedItems).length"></span>
+            </div>
         </div>
-        <nav>
-            <button class="nav-btn active" data-view="inventory" onclick="showView('inventory')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
-                Stock
-            </button>
-            <button class="nav-btn" data-view="receipt" onclick="showView('receipt')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/></svg>
-                Scan
-            </button>
-            <button class="nav-btn" data-view="shopping" onclick="showView('shopping')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                Smart List
-            </button>
-        </nav>
-    </header>
 
-    <main>
-        <!-- View 1: Inventory -->
-        <section id="inventory-view" class="view active">
-            <div class="view-header">
-                <h2>Current Stock</h2>
-                <span class="item-count" id="item-count"></span>
-            </div>
-
-            <div class="controls">
-                <div class="search-wrapper">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                    <input type="text" id="search-input" placeholder="Search items..." oninput="filterInventory()">
-                </div>
-                <div class="add-wrapper">
-                    <input type="text" id="manual-item" placeholder="New item name" onkeydown="if(event.key==='Enter')manualAdd()">
-                    <button class="btn-primary" onclick="manualAdd()">Add</button>
-                </div>
-            </div>
-
-            <div class="inventory-container">
-                <ul id="inventory-list"></ul>
-
-                <div class="empty-state" id="inventory-empty">
-                    <div class="empty-icon">
-                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+        <main>
+            <!-- View: Inventory -->
+            <template x-if="view === 'inventory'">
+                <section>
+                    <div class="view-controls">
+                        <input type="text" class="search-input" :placeholder="t('inv.search')" x-model="search">
+                        <button class="btn-primary" @click="manualAdd()" x-text="t('inv.add')"></button>
                     </div>
-                    <h3>Your pantry is empty</h3>
-                    <p>Start by adding items manually or scanning a receipt</p>
-                </div>
 
-                <div class="loading-state" id="inventory-loading">
-                    <div class="spinner"></div>
-                    <span>Loading inventory...</span>
-                </div>
-            </div>
-        </section>
+                    <div x-show="loading" class="state-box">
+                        <div class="spinner"></div>
+                        <p x-text="t('inv.refreshing')"></p>
+                    </div>
 
-        <!-- View 2: Receipt Scan -->
-        <section id="receipt-view" class="view">
-            <h2>Scan Receipt</h2>
-            <p class="view-description">Photograph or upload a grocery receipt. Gemini will extract items and prices automatically.</p>
+                    <div x-show="!loading && items.length === 0" class="state-box">
+                        <h3 x-text="t('inv.empty.title')"></h3>
+                        <p x-text="t('inv.empty.desc')"></p>
+                    </div>
 
-            <form id="receipt-form">
-                <div class="upload-options">
-                    <label class="upload-card">
-                        <input type="file" id="receipt-camera" accept="image/*" capture="environment">
-                        <div class="upload-card-inner">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                            <span>Take Photo</span>
-                        </div>
-                    </label>
-                    <label class="upload-card secondary">
-                        <input type="file" id="receipt-file" accept="image/*,application/pdf">
-                        <div class="upload-card-inner">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-                            <span>Upload File</span>
-                        </div>
-                    </label>
-                </div>
+                    <div class="masonry-grid">
+                        <template x-for="(group, category) in categorizedItems" :key="category">
+                            <div class="category-group" x-show="group.length > 0">
+                                <h2 class="category-title" x-text="category"></h2>
+                                <ul class="item-list">
+                                    <template x-for="item in group" :key="item.itemName">
+                                        <li class="item-row">
+                                            <div class="item-info">
+                                                <span class="item-name" x-text="item.itemName"></span>
+                                                <span class="item-meta" x-text="t('inv.updated') + ' ' + formatDate(item.updatedAt)"></span>
+                                            </div>
+                                            <div class="qty-pill">
+                                                <button class="qty-act" @click="updateQty(item.itemName, -1)">−</button>
+                                                <span class="qty-val" x-text="formatQty(item.quantity)"></span>
+                                                <button class="qty-act" @click="updateQty(item.itemName, 1)">+</button>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                    </div>
+                </section>
+            </template>
 
-                <div id="file-preview" class="file-preview hidden"></div>
+            <!-- View: Receipt Scan -->
+            <template x-if="view === 'receipt'">
+                <section>
+                    <div class="view-header">
+                        <h2 x-text="t('scan.title')"></h2>
+                        <p class="view-description" x-text="t('scan.desc')"></p>
+                    </div>
 
-                <button type="submit" id="scan-btn" class="btn-primary btn-large" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h5"/><path d="M17 12h5"/><path d="M7 12a5 5 0 0 1 5-5 5 5 0 0 1 5 5"/><path d="M7 12a5 5 0 0 0 5 5 5 5 0 0 0 5-5"/></svg>
-                    Scan & Analyze
-                </button>
-            </form>
+                    <div class="scan-area">
+                        <label class="dropzone">
+                            <input type="file" @change="handleFile" accept="image/*" capture="environment" hidden>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                            <span x-text="t('scan.photo')"></span>
+                        </label>
+                        <label class="dropzone">
+                            <input type="file" @change="handleFile" accept="image/*,application/pdf" hidden>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <span x-text="t('scan.doc')"></span>
+                        </label>
+                    </div>
 
-            <div id="scan-status" class="scan-status"></div>
+                    <div x-show="selectedFile" class="state-box">
+                        <p x-text="t('scan.ready') + ' ' + selectedFile?.name"></p>
+                        <button class="btn-primary" @click="uploadReceipt" :disabled="scanning">
+                            <span x-show="!scanning" x-text="t('scan.btn')"></span>
+                            <span x-show="scanning" x-text="t('scan.btn.active')"></span>
+                        </button>
+                    </div>
 
-            <div class="scan-progress hidden" id="scan-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill"></div>
-                </div>
-                <span class="progress-text">Analyzing with Gemini...</span>
-            </div>
-        </section>
+                    <div x-show="scanResults.length > 0" style="margin-top: 3rem;">
+                        <h3 class="category-title" x-text="t('scan.results')"></h3>
+                        <ul class="item-list">
+                            <template x-for="res in scanResults" :key="res.itemName">
+                                <li class="item-row">
+                                    <span class="item-name" x-text="res.itemName + ' (x' + res.quantity + ')'"></span>
+                                    <span class="item-meta" x-text="res.price ? formatCurrency(res.price) : 'No price'"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </section>
+            </template>
 
-        <!-- View 3: Smart Shopping List -->
-        <section id="shopping-view" class="view">
-            <h2>Predictive Shopping List</h2>
-            <p class="view-description">AI analyzes your 30-day consumption history to predict what you'll need next.</p>
+            <!-- View: Smart List -->
+            <template x-if="view === 'shopping'">
+                <section>
+                    <div class="view-header">
+                        <h2 x-text="t('list.title')"></h2>
+                        <p class="view-description" x-text="t('list.desc')"></p>
+                    </div>
 
-            <button class="btn-primary btn-large" onclick="refreshShoppingList()" id="analyze-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
-                Analyze Patterns
-            </button>
+                    <button class="btn-primary" @click="fetchSuggestions" :disabled="loadingSuggestions">
+                        <span x-show="!loadingSuggestions" x-text="t('list.btn')"></span>
+                        <span x-show="loadingSuggestions" x-text="t('list.btn.active')"></span>
+                    </button>
 
-            <ul id="shopping-list"></ul>
+                    <div x-show="!loadingSuggestions && suggestions.length === 0" class="state-box">
+                        <p x-text="t('list.empty')"></p>
+                    </div>
 
-            <div class="empty-state" id="shopping-empty">
-                <div class="empty-icon">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                </div>
-                <h3>No suggestions yet</h3>
-                <p>Scan some receipts or track usage to get personalized recommendations</p>
-            </div>
+                    <ul class="item-list" style="margin-top: 2rem;">
+                        <template x-for="sug in suggestions" :key="sug.ItemName">
+                            <li class="item-row">
+                                <div class="item-info">
+                                    <span class="item-name" x-text="sug.ItemName"></span>
+                                    <p class="item-meta" x-text="sug.Reason" style="font-style: italic;"></p>
+                                </div>
+                                <span class="qty-pill" x-text="t('list.qty') + ' ' + sug.Quantity"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </section>
+            </template>
+        </main>
+    </div>
 
-            <div class="loading-state" id="shopping-loading">
-                <div class="spinner"></div>
-                <span>Analyzing your patterns...</span>
-            </div>
-        </section>
-    </main>
-
-    <div class="toast-container" id="toast-container"></div>
+    <!-- Toasts -->
+    <template x-for="toast in toasts" :key="toast.id">
+        <div class="toast" :class="toast.type" x-text="toast.message" @click="removeToast(toast.id)"></div>
+    </template>
 
     <script src="app.js"></script>
 </body>
