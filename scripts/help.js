@@ -30,7 +30,7 @@ const commands = [
 ];
 
 const notes = [
-  `${chalk.blue('Browser URL:')}  http://localhost:80`,
+  `${chalk.blue('Browser URL:')}  http://localhost:5000`,
   `${chalk.yellow('Google Keep:')} Log in once via visible browser window.`,
   `${chalk.magenta('Gemini Key:')} Ensure GEMINI_API_KEY is set in .env.`,
 ];

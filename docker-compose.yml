@@ -3,14 +3,14 @@ services:
     build: .
     container_name: homestoq
     ports:
-      - "80:80"
+      - "80:5000"
     volumes:
       - ./config.ini:/app/config.ini:ro
       - ./data:/app/data
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/api/inventory"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/inventory"]
       interval: 10s
       timeout: 5s
       retries: 5
