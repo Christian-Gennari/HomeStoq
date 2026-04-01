@@ -12,7 +12,23 @@ public class InventoryRepository
     public InventoryRepository(IConfiguration configuration, ILogger<InventoryRepository> logger)
     {
         _logger = logger;
-        var dbPath = configuration["Database:Path"] ?? configuration["DATABASE_PATH"] ?? "homestoq.db";
+        
+        // Use environment variable first, then fallback to a safe fixed path.
+        // We avoid putting this in config.ini to prevent users from breaking Docker persistence.
+        var fallbackPath = Path.Combine("data", "homestoq.db");
+        if (Directory.GetCurrentDirectory().EndsWith("HomeStoq.Server"))
+        {
+            fallbackPath = Path.Combine("..", "..", "data", "homestoq.db");
+        }
+        var dbPath = configuration["DATABASE_PATH"] ?? fallbackPath;
+        
+        // Ensure directory exists for the database file
+        var directory = Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
         _connectionString = $"Data Source={dbPath}";
         InitializeDatabase();
     }
@@ -30,6 +46,7 @@ public class InventoryRepository
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ItemName TEXT UNIQUE NOT NULL,
                     Quantity REAL NOT NULL DEFAULT 0,
+                    Category TEXT,
                     LastPrice REAL,
                     Currency TEXT,
                     UpdatedAt TEXT NOT NULL
@@ -80,9 +97,9 @@ public class InventoryRepository
         }
     }
 
-    public async Task UpdateInventoryItemAsync(string itemName, double quantityChange, double? price = null, string? currency = null, string source = "Manual")
+    public async Task UpdateInventoryItemAsync(string itemName, double quantityChange, double? price = null, string? currency = null, string source = "Manual", string? category = null)
     {
-        _logger.LogInformation("Updating inventory: {ItemName} ({Change}) via {Source}", itemName, quantityChange, source);
+        _logger.LogInformation("Updating inventory: {ItemName} ({Change}) via {Source} [Category: {Category}]", itemName, quantityChange, source, category ?? "N/A");
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         using var transaction = await connection.BeginTransactionAsync();
@@ -106,22 +123,39 @@ public class InventoryRepository
                 }
 
                 await connection.ExecuteAsync(@"
-                    INSERT INTO Inventory (ItemName, Quantity, LastPrice, Currency, UpdatedAt)
-                    VALUES (@ItemName, @Quantity, @LastPrice, @Currency, @UpdatedAt)",
-                    new { ItemName = itemName, Quantity = quantityChange, LastPrice = price, Currency = currency, UpdatedAt = now },
+                    INSERT INTO Inventory (ItemName, Quantity, Category, LastPrice, Currency, UpdatedAt)
+                    VALUES (@ItemName, @Quantity, @Category, @LastPrice, @Currency, @UpdatedAt)",
+                    new { ItemName = itemName, Quantity = quantityChange, Category = category, LastPrice = price, Currency = currency, UpdatedAt = now },
                     transaction);
                 _logger.LogInformation("Added new inventory item: {ItemName} with qty {Quantity}", itemName, quantityChange);
             }
             else
             {
+                var actualChange = quantityChange;
+                if (quantityChange < 0)
+                {
+                    // If removing more than we have, the actual change is just the current quantity
+                    if (Math.Abs(quantityChange) > existingItem.Quantity)
+                    {
+                        actualChange = -existingItem.Quantity;
+                    }
+                }
+
                 var newQuantity = Math.Max(0, existingItem.Quantity + quantityChange);
                 await connection.ExecuteAsync(@"
                     UPDATE Inventory 
-                    SET Quantity = @Quantity, LastPrice = COALESCE(@LastPrice, LastPrice), Currency = COALESCE(@Currency, Currency), UpdatedAt = @UpdatedAt
+                    SET Quantity = @Quantity, 
+                        Category = COALESCE(@Category, Category),
+                        LastPrice = COALESCE(@LastPrice, LastPrice), 
+                        Currency = COALESCE(@Currency, Currency), 
+                        UpdatedAt = @UpdatedAt
                     WHERE ItemName = @ItemName",
-                    new { ItemName = itemName, Quantity = newQuantity, LastPrice = price, Currency = currency, UpdatedAt = now },
+                    new { ItemName = itemName, Quantity = newQuantity, Category = category, LastPrice = price, Currency = currency, UpdatedAt = now },
                     transaction);
                 _logger.LogInformation("Updated {ItemName}: {OldQty} -> {NewQty}", itemName, existingItem.Quantity, newQuantity);
+                
+                // Use actualChange for history logging
+                absQuantity = Math.Abs(actualChange);
             }
 
             // Log to History
