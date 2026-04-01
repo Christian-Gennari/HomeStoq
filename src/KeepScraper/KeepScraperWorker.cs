@@ -13,7 +13,7 @@ public class KeepScraperWorker : BackgroundService
     private IBrowserContext? _browserContext;
     private IPage? _page;
 
-    private readonly string _listName;
+    private readonly string[] _listNames;
     private readonly string _apiUrl;
     private readonly string _profileDir;
     private readonly int _pollIntervalSeconds;
@@ -26,10 +26,12 @@ public class KeepScraperWorker : BackgroundService
         ILogger<KeepScraperWorker> logger)
     {
         _logger = logger;
-        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
-        _listName = config["Voice:KeepListName"] ?? config["KEEP_LIST_NAME"] ?? "inköpslistan";
-        _apiUrl = config["API:BaseUrl"] ?? config["HOMESTOQ_API_URL"] ?? "http://localhost:80/api/voice/command";
+        var listNamesConfig = config["Voice:KeepListName"] ?? config["KEEP_LIST_NAME"] ?? "inköpslistan";
+        _listNames = listNamesConfig.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        
+        _apiUrl = config["API:BaseUrl"] ?? config["HOMESTOQ_API_URL"] ?? "http://localhost:5000/api/voice/command";
         _profileDir = Path.GetFullPath(config["BROWSER_PROFILE_DIR"] ?? "browser-profile");
         _pollIntervalSeconds = int.Parse(config["POLL_INTERVAL_SECONDS"] ?? "45");
         _pollIntervalJitterSeconds = int.Parse(config["POLL_INTERVAL_JITTER_SECONDS"] ?? "15");
@@ -43,7 +45,7 @@ public class KeepScraperWorker : BackgroundService
 
         await EnsureBrowserContextAsync();
 
-        _logger.LogInformation("KeepScraper initialized. Monitoring list: {ListName}", _listName);
+        _logger.LogInformation("KeepScraper initialized. Monitoring lists: {ListNames}", string.Join(", ", _listNames));
 
         await base.StartAsync(cancellationToken);
     }
@@ -58,6 +60,7 @@ public class KeepScraperWorker : BackgroundService
             Args = new[]
             {
                 "--disable-blink-features=AutomationControlled",
+                "--disable-features=Translate",
                 "--disable-dev-shm-usage",
                 "--no-first-run",
                 "--no-default-browser-check",
@@ -181,17 +184,19 @@ public class KeepScraperWorker : BackgroundService
         if (_page == null)
             return;
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 15; i++)
         {
             var sidebar = _page.Locator("nav").First;
-            if (await sidebar.IsVisibleAsync())
+            var checkboxes = _page.GetByRole(AriaRole.Checkbox).First;
+            
+            if (await sidebar.IsVisibleAsync() || await checkboxes.IsVisibleAsync())
                 return;
 
-            _logger.LogDebug("Waiting for Keep sidebar to load... (attempt {Attempt})", i + 1);
+            _logger.LogDebug("Waiting for Keep to load... (attempt {Attempt})", i + 1);
             await DelayAsync(2000);
         }
 
-        _logger.LogWarning("Keep sidebar did not load within timeout");
+        _logger.LogWarning("Keep did not load within timeout");
         await TakeScreenshotAsync("keep-not-loaded.png");
     }
 
@@ -235,11 +240,11 @@ public class KeepScraperWorker : BackgroundService
             var ease = t * t * (3 - 2 * t);
             var x = startX + (box.X + box.Width / 2 - startX) * ease + _random.Next(-5, 5);
             var y = startY + (box.Y + box.Height / 2 - startY) * ease + _random.Next(-5, 5);
-            await _page.Mouse.MoveAsync(x, y);
+            await _page.Mouse.MoveAsync((float)x, (float)y);
             await Task.Delay(_random.Next(8, 25));
         }
 
-        await _page.Mouse.MoveAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
+        await _page.Mouse.MoveAsync((float)(box.X + box.Width / 2), (float)(box.Y + box.Height / 2));
         await Task.Delay(_random.Next(100, 400));
     }
 
@@ -271,11 +276,11 @@ public class KeepScraperWorker : BackgroundService
         {
             try
             {
-                await ProcessListAsync();
+                await ProcessListsAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing Keep list");
+                _logger.LogError(ex, "Error processing Keep lists");
 
                 try
                 {
@@ -291,49 +296,107 @@ public class KeepScraperWorker : BackgroundService
         }
     }
 
-    private async Task ProcessListAsync()
+    private async Task ProcessListsAsync()
     {
         if (_page == null)
             return;
 
-        if (!_isOnKeepPage)
+        if (!_isOnKeepPage || !IsLoggedIn())
         {
             await _page.GotoAsync("https://keep.google.com", new() { WaitUntil = WaitUntilState.Load });
             _isOnKeepPage = true;
             await HumanDelayAsync(1500, 500);
+
+            if (!IsLoggedIn())
+            {
+                _logger.LogWarning("Session expired. Please log in again in the browser window.");
+                _isOnKeepPage = false;
+                await EnsureSessionAsync();
+                await WaitForKeepLoadedAsync();
+                return;
+            }
         }
         else
         {
-            await _page.GotoAsync("https://keep.google.com", new() { WaitUntil = WaitUntilState.Load });
+            await _page.ReloadAsync(new() { WaitUntil = WaitUntilState.Load });
             await HumanDelayAsync(1000, 300);
         }
 
-        if (!IsLoggedIn())
+        foreach (var listName in _listNames)
         {
-            _logger.LogWarning("Session expired. Please log in again in the browser window.");
-            _isOnKeepPage = false;
-            await EnsureSessionAsync();
-            await WaitForKeepLoadedAsync();
+            try
+            {
+                await ProcessSingleListAsync(listName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing list '{ListName}'", listName);
+            }
+        }
+    }
+
+    private async Task ProcessSingleListAsync(string listName)
+    {
+        if (_page == null)
+            return;
+
+        _logger.LogDebug("Searching for list '{ListName}'...", listName);
+
+        // 1. Try to find the note card by its title in the main view
+        // Google Keep titles are often role="textbox" with contenteditable="false" OR just divs with text.
+        // We'll search for the text and look for the surrounding note card.
+        var titleElement = _page.GetByText(listName, new() { Exact = true }).First;
+        ILocator? listButton = null;
+
+        if (await titleElement.IsVisibleAsync())
+        {
+            // The card itself is usually a parent div with role="button" or a specific class
+            listButton = titleElement;
+            _logger.LogDebug("Found title element for '{ListName}'", listName);
+        }
+        else
+        {
+            // 2. Fallback: Try sidebar navigation (Labels)
+            var sidebar = _page.Locator("nav").First;
+            var sidebarLabel = sidebar.GetByText(listName, new() { Exact = true }).First;
+            if (await sidebarLabel.IsVisibleAsync())
+            {
+                listButton = sidebarLabel;
+                _logger.LogDebug("Found sidebar label for '{ListName}'", listName);
+            }
+        }
+
+        if (listButton == null || !await listButton.IsVisibleAsync())
+        {
+            _logger.LogWarning("List '{ListName}' not found (tried main view and sidebar)", listName);
             return;
         }
 
-        var listButton = _page.GetByText(_listName, new() { Exact = true }).First;
-        if (!await listButton.IsVisibleAsync())
-        {
-            _logger.LogWarning("List '{ListName}' not found in sidebar", _listName);
-            return;
-        }
-
+        // 3. Click to open/expand the note
+        _logger.LogDebug("Opening list '{ListName}'...", listName);
         await MoveMouseToElementAsync(listButton);
-        await listButton.ClickAsync();
-        await HumanDelayAsync(2000, 500);
+        await listButton.ClickAsync(new() { Force = true });
+        
+        // Wait for expanded view - typically has a "Done" or "Close" button
+        // and a specific role for the dialog/modal
+        await HumanDelayAsync(1500, 500);
 
-        var allCheckboxes = _page.GetByRole(AriaRole.Checkbox);
+        // 4. Process checkboxes (limit to the expanded note area if possible)
+        // In expanded view, the note is usually inside a div with role="dialog" or similar
+        var container = _page.Locator("[role='dialog']").First;
+        if (!await container.IsVisibleAsync())
+        {
+            _logger.LogWarning("Expanded note container not found for '{ListName}', trying global checkboxes", listName);
+            container = _page.Locator("body");
+        }
+
+        var allCheckboxes = container.GetByRole(AriaRole.Checkbox);
         var totalCount = await allCheckboxes.CountAsync();
 
         if (totalCount == 0)
         {
-            _logger.LogDebug("No checkboxes found in '{ListName}'", _listName);
+            _logger.LogDebug("No checkboxes found in '{ListName}'", listName);
+            await CloseExpandedNoteAsync();
             return;
         }
 
@@ -348,6 +411,8 @@ public class KeepScraperWorker : BackgroundService
 
             uncheckedCount++;
 
+            // Get the parent list item to extract text
+            // Structure is often Checkbox -> Label/Div -> Text
             var listItem = checkbox.Locator("..").Locator("..");
             var text = await listItem.InnerTextAsync();
 
@@ -372,7 +437,7 @@ public class KeepScraperWorker : BackgroundService
                 {
                     await MoveMouseToElementAsync(checkbox);
                     await checkbox.ClickAsync();
-                    await HumanDelayAsync(500, 200);
+                    await HumanDelayAsync(800, 300);
                     _logger.LogInformation("  Processed and checked: {Text}", text);
                 }
                 else
@@ -389,11 +454,39 @@ public class KeepScraperWorker : BackgroundService
 
         if (uncheckedCount == 0)
         {
-            _logger.LogDebug("No unchecked items in '{ListName}'", _listName);
+            _logger.LogDebug("No unchecked items in '{ListName}'", listName);
         }
         else
         {
-            _logger.LogInformation("Processed {Count} unchecked item(s) in '{ListName}'", uncheckedCount, _listName);
+            _logger.LogInformation("Processed {Count} unchecked item(s) in '{ListName}'", uncheckedCount, listName);
+        }
+
+        // 5. Close the expanded note
+        await CloseExpandedNoteAsync();
+    }
+
+    private async Task CloseExpandedNoteAsync()
+    {
+        if (_page == null) return;
+
+        var doneButton = _page.GetByText("Done", new() { Exact = true }).First;
+        if (!await doneButton.IsVisibleAsync())
+        {
+            doneButton = _page.GetByText("Stäng", new() { Exact = true }).First; // Swedish fallback
+        }
+
+        if (await doneButton.IsVisibleAsync())
+        {
+            await doneButton.ClickAsync();
+            _logger.LogDebug("Closed expanded note.");
+            await HumanDelayAsync(500, 200);
+        }
+        else
+        {
+            // Click outside or press Esc
+            await _page.Keyboard.PressAsync("Escape");
+            _logger.LogDebug("Pressed Escape to close note.");
+            await HumanDelayAsync(500, 200);
         }
     }
 

@@ -1,12 +1,21 @@
 using HomeStoq.KeepScraper;
 
-// Load .env file
-DotNetEnv.Env.Load();
+// Load environment variables from .env if present
+DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
+if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), ".env")))
+{
+    DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
+}
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Add config.ini as a configuration source
-builder.Configuration.AddIniFile("config.ini", optional: true, reloadOnChange: true);
+// Add config.ini as a configuration source (searching up to project root)
+var configIniPath = Path.Combine(Directory.GetCurrentDirectory(), "config.ini");
+if (!File.Exists(configIniPath))
+{
+    configIniPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "config.ini");
+}
+builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: true);
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: true);
 builder.Configuration.AddEnvironmentVariables();
