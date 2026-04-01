@@ -24,30 +24,30 @@ The application is built as a lightweight ASP.NET Core 10 application using Mini
 [App]
 Language=Swedish
 
-[Database]
-Path=/app/data/homestoq.db
-
 [Voice]
 KeepListName=inköpslistan
 
 [API]
-BaseUrl=http://localhost:80/api/voice/command
-HostUrl=http://*:80
+BaseUrl=http://localhost:5000/api/voice/command
+HostUrl=http://*:5000
 ```
 
 | Setting | Description | Values |
 | :--- | :--- | :--- |
 | `Language` | Language for all AI parsing (voice, receipt, shopping list) | `Swedish` or `English` (default) |
-| `Path` | SQLite database path inside container | `/app/data/homestoq.db` |
 | `KeepListName` | Google Keep list name to monitor | `inköpslistan` |
-| `BaseUrl` | API endpoint for keep-scraper | `http://localhost:80/api/voice/command` |
-| `HostUrl` | Browser access URL and Server Bind URL | `http://*:80` |
+| `BaseUrl` | API endpoint for keep-scraper | `http://localhost:5000/api/voice/command` |
+| `HostUrl` | Browser access URL and Server Bind URL | `http://*:5000` |
+
+### 1.2.1. Advanced Overrides (Environment Variables)
+- `DATABASE_PATH`: Overrides the default SQLite location (`data/homestoq.db`).
+- `GEMINI_API_KEY`: Required for AI features.
 
 The .NET backend reads `config.ini` via `AddIniFile()` and `.env` via default environment variable configuration. The Playwright scraper reads env vars passed by docker-compose.
 
 ### 1.3. Core Services (Business Logic)
 
-**InventoryRepository:** Abstraction layer over SQLite. Reads `Database:Path` from `config.ini` (falls back to `DATABASE_PATH` env var, then `homestoq.db`). Handles all reads and writes to the three tables: `Inventory`, `History`, and `AiCache`.
+**InventoryRepository:** Abstraction layer over SQLite. Uses `data/homestoq.db` by default (overridable via `DATABASE_PATH` env var). Handles all reads and writes to the three tables: `Inventory`, `History`, and `AiCache`.
 
 **GeminiService:** Handles all communication with Google AI Studio. All prompts are language-aware based on the `Language` setting:
 
@@ -57,7 +57,7 @@ The .NET backend reads `config.ini` via `AddIniFile()` and `.env` via default en
 
 ### 1.4. Frontend / Dashboard (User Interface)
 
-The web UI is served statically from `wwwroot`. Built entirely in Vanilla JavaScript, HTML5, and CSS3. Accessible via `HostUrl` (default: `http://localhost:80`).
+The web UI is served statically from `wwwroot`. Built entirely in Vanilla JavaScript, HTML5, and CSS3. Accessible via `HostUrl` (default: `http://localhost:5000`).
 
 - **View 1: Inventory & Manual Control.** Displays current stock with search/filter. Allows manual quantity adjustments with optimistic UI updates. Animated item transitions and toast notifications.
 - **View 2: Receipt Upload.** File input for camera or upload. Sends image asynchronously via `fetch()` to the Minimal API endpoint. Shows progress bar during processing.
@@ -155,7 +155,7 @@ Caches AI responses to avoid redundant Gemini calls for identical inputs.
 The SQLite database file is persisted via a mounted volume so data survives container restarts.
 
 **Services:**
-- **homestoq:** The ASP.NET Core backend serving the web UI and API on port 80.
+- **homestoq:** The ASP.NET Core backend serving the web UI and API on port 5000.
 - **keep-scraper:** Runs locally via `dotnet run --project src/KeepScraper`. Uses a visible Chromium browser with persistent session.
 
 Secrets are passed via `.env`.
