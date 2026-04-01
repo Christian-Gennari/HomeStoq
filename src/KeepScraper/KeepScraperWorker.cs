@@ -28,8 +28,8 @@ public class KeepScraperWorker : BackgroundService
         _logger = logger;
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
 
-        _listName = config["KEEP_LIST_NAME"] ?? "inköpslistan";
-        _apiUrl = config["HOMESTOQ_API_URL"] ?? "http://localhost:5188/api/voice/command";
+        _listName = config["Voice:KeepListName"] ?? config["KEEP_LIST_NAME"] ?? "inköpslistan";
+        _apiUrl = config["API:BaseUrl"] ?? config["HOMESTOQ_API_URL"] ?? "http://localhost:80/api/voice/command";
         _profileDir = Path.GetFullPath(config["BROWSER_PROFILE_DIR"] ?? "browser-profile");
         _pollIntervalSeconds = int.Parse(config["POLL_INTERVAL_SECONDS"] ?? "45");
         _pollIntervalJitterSeconds = int.Parse(config["POLL_INTERVAL_JITTER_SECONDS"] ?? "15");

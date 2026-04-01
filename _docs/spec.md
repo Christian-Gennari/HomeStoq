@@ -31,7 +31,8 @@ Path=/app/data/homestoq.db
 KeepListName=inköpslistan
 
 [API]
-BaseUrl=http://homestoq:8080/api/voice/command
+BaseUrl=http://localhost:80/api/voice/command
+HostUrl=http://*:80
 ```
 
 | Setting | Description | Values |
@@ -39,8 +40,8 @@ BaseUrl=http://homestoq:8080/api/voice/command
 | `Language` | Language for all AI parsing (voice, receipt, shopping list) | `Swedish` or `English` (default) |
 | `Path` | SQLite database path inside container | `/app/data/homestoq.db` |
 | `KeepListName` | Google Keep list name to monitor | `inköpslistan` |
-| `BaseUrl` | API endpoint for keep-scraper (Docker internal) | `http://homestoq:8080/api/voice/command` |
-| `HostUrl` | Browser access URL (for reference) | `http://localhost:80` |
+| `BaseUrl` | API endpoint for keep-scraper | `http://localhost:80/api/voice/command` |
+| `HostUrl` | Browser access URL and Server Bind URL | `http://*:80` |
 
 The .NET backend reads `config.ini` via `AddIniFile()` and `.env` via default environment variable configuration. The Playwright scraper reads env vars passed by docker-compose.
 
@@ -154,7 +155,7 @@ Caches AI responses to avoid redundant Gemini calls for identical inputs.
 The SQLite database file is persisted via a mounted volume so data survives container restarts.
 
 **Services:**
-- **homestoq:** The ASP.NET Core backend serving the web UI and API on port 8080 internally, mapped to port 80 externally.
+- **homestoq:** The ASP.NET Core backend serving the web UI and API on port 80.
 - **keep-scraper:** Runs locally via `dotnet run --project src/KeepScraper`. Uses a visible Chromium browser with persistent session.
 
 Secrets are passed via `.env`.
