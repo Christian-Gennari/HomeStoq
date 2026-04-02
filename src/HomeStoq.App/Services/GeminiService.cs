@@ -115,24 +115,37 @@ Format: [ {{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 1, ""
 {inventoryContext}
 RULES:
 1. Return ALL item names in SWEDISH.
-2. Step 1: Extract exact text from receipt (`ReceiptText`).
-3. Step 2: Decipher truncated text into full product name (`ExpandedName`).
-4. Step 3: Strip brand/size/etc to create generic normalized base category (`ItemName`).
+2. Step 1: Extract the EXACT text from the receipt (`ReceiptText`).
+3. Step 2: Decipher truncated/abbreviated text into a readable full product name (`ExpandedName`). Capitalize properly.
+4. Step 3: Set `ItemName` to the EXACT value of `ExpandedName`. Do NOT change, shorten, or normalize it. Keep every word.
 5. Categories: [Mejeri, Frukt/Grönt, Skafferi, Kött/Fisk, Bageri, Frysvaror, Hushåll, Övrigt].
-6. Use inventory list to match existing `ItemName`s.
-7. Ignore deposits, bags, discounts, totals.
-8. Extract EXACT decimal price.
-9. Respond ONLY with a JSON array.
-Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammaldags Idealmakaroner"", ""ItemName"": ""Makaroner"", ""Quantity"": 1, ""Price"": 34.90, ""Category"": ""Skafferi"" }} ]"
+6. Use the inventory list to MATCH EXISTING `ItemName`s only. If no existing item matches, use the ExpandedName as-is.
+7. NEVER use a category word (e.g. ""Vegetariskt"", ""Mellanmål"", ""Dryck"", ""Ekologiskt"") as an ItemName. If the extracted text is a category label, use the full product name instead.
+8. Ignore: deposits, bags, discounts, totals, loyalty points, packaging fees, receipt footer text.
+9. Extract the EXACT unit price if visible.
+10. Respond ONLY with a JSON array.
+EXAMPLES:
+- Receipt text ""Gammaldags idealma"" → ExpandedName: ""Gammaldags Idealmakaroner"", ItemName: ""Gammaldags Idealmakaroner""
+- Receipt text ""Pasta w/arrabiata"" → ExpandedName: ""Pastasås Arrabiata"", ItemName: ""Pastasås Arrabiata""
+- Receipt text ""Ekologisk mjölk 1l"" → ExpandedName: ""Ekologisk Mjölk 1l"", ItemName: ""Ekologisk Mjölk 1l""
+- Receipt text ""Vegetariskt"" → ExpandedName: ""Vegetariskt"", ItemName: ""Vegetariskt"" ← WRONG, use actual product name from receipt
+Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammaldags Idealmakaroner"", ""ItemName"": ""Gammaldags Idealmakaroner"", ""Quantity"": 1, ""Price"": 34.90, ""Category"": ""Skafferi"" }} ]"
             : $@"You are a system that reads grocery receipts.
 {inventoryContext}
 RULES:
-1. Step 1: Extract exact text (`ReceiptText`).
-2. Step 2: Decipher truncated text into full name (`ExpandedName`).
-3. Step 3: Strip brand/size/etc to create generic category (`ItemName`).
+1. Extract the EXACT text from the receipt (`ReceiptText`).
+2. Decipher truncated text into a readable full product name (`ExpandedName`). Capitalize properly.
+3. Set `ItemName` to the EXACT value of `ExpandedName`. Do NOT change, shorten, or normalize it. Keep every word.
 4. Categories: [Dairy, Produce, Pantry, Meat/Fish, Bakery, Frozen, Household, Other].
-5. Respond ONLY with a JSON array.
-Format: [ {{ ""ReceiptText"": ""Whl Milk Org"", ""ExpandedName"": ""Whole Milk Organic"", ""ItemName"": ""Milk"", ""Quantity"": 1, ""Price"": 4.50, ""Category"": ""Dairy"" }} ]";
+5. Use the inventory list to MATCH EXISTING `ItemName`s only. If no existing item matches, use the ExpandedName as-is.
+6. NEVER use a category word (e.g. ""Vegetarian"", ""Snack"", ""Beverage"") as an ItemName. If the extracted text is a category label, use the full product name instead.
+7. Ignore: deposits, bags, discounts, totals, loyalty points, packaging fees, receipt footer text.
+8. Extract the EXACT unit price if visible.
+9. Respond ONLY with a JSON array.
+EXAMPLES:
+- Receipt text ""Gammaldags idealma"" → ExpandedName: ""Gammaldags Idealmakaroner"", ItemName: ""Gammaldags Idealmakaroner""
+- Receipt text ""Skim Milk Org 1l"" → ExpandedName: ""Skimmed Milk Organic 1l"", ItemName: ""Skimmed Milk Organic 1l""
+Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammaldags Idealmakaroner"", ""ItemName"": ""Gammaldags Idealmakaroner"", ""Quantity"": 1, ""Price"": 34.90, ""Category"": ""Skafferi"" }} ]";
 
         var response = await _chatClient.GetResponseAsync(new List<ChatMessage>
         {

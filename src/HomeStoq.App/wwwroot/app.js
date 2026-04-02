@@ -237,9 +237,11 @@ function pantryApp() {
     async loadReceipts() {
       try {
         const res = await fetch("/api/receipts");
-        if (res.ok) this.receipts = await res.json();
+        if (!res.ok) throw new Error("Failed to load receipts");
+        this.receipts = await res.json();
       } catch (e) {
         console.error("Failed to load receipts", e);
+        this.addToast("Failed to load receipts", "error");
       }
     },
 

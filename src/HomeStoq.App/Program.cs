@@ -35,7 +35,7 @@ if (!string.IsNullOrEmpty(hostUrl))
 
 // Register AI Client
 var apiKey = builder.Configuration["GEMINI_API_KEY"] ?? throw new InvalidOperationException("GEMINI_API_KEY not configured");
-var modelId = builder.Configuration["GEMINI_MODEL"] ?? "gemini-2.0-flash";
+var modelId = builder.Configuration["GEMINI_MODEL"] ?? "gemini-3.1-flash-lite-preview";
 var googleClient = new Client(apiKey: apiKey);
 builder.Services.AddSingleton<IChatClient>(sp =>
     googleClient.AsIChatClient(modelId)
@@ -98,7 +98,8 @@ app.MapPost(
             IFormFile receiptImage,
             GeminiService gemini,
             InventoryRepository repository,
-            ILogger<Program> logger
+            ILogger<Program> logger,
+            IConfiguration config
         ) =>
         {
             logger.LogInformation(
@@ -124,7 +125,7 @@ app.MapPost(
                 return Results.Problem("Gemini failed to process the image.");
             }
 
-            var storeName = "Mataffär";
+            var storeName = ResolveStoreName(receiptImage.FileName, config["App:Language"] ?? "English");
             var totalAmount = items.Sum(i => i.Price ?? 0);
             var receiptId = await repository.CreateReceiptAsync(storeName, totalAmount);
 
@@ -154,7 +155,7 @@ app.MapGet("/api/receipts", async (InventoryRepository repository) =>
     return Results.Ok(receipts);
 });
 
-app.MapGet("/api/receipts/{id}/items", async (int id, InventoryRepository repository) => 
+app.MapGet("/api/receipts/{id}/items", async (long id, InventoryRepository repository) => 
 {
     var items = await repository.GetReceiptItemsAsync(id);
     return Results.Ok(items);
@@ -270,6 +271,30 @@ app.MapPost(
         return Results.Ok();
     }
 );
+
+static string ResolveStoreName(string fileName, string language)
+{
+    var unknownFallback = language == "Swedish" ? "Okänd" : "Unknown";
+
+    if (string.IsNullOrWhiteSpace(fileName)) return unknownFallback;
+
+    var name = Path.GetFileNameWithoutExtension(fileName).Trim();
+
+    name = System.Text.RegularExpressions.Regex.Replace(name, @"[\s_\-]+", " ");
+
+    name = System.Text.RegularExpressions.Regex.Replace(name, @"\d{4}[-_]\d{2}[-_]\d{2}.*$", "").Trim();
+
+    name = System.Text.RegularExpressions.Regex.Replace(name, @"\s+\d+$", "").Trim();
+
+    if (string.IsNullOrWhiteSpace(name) || name.Length < 3)
+        return unknownFallback;
+
+    var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    if (words.Length > 6)
+        name = string.Join(" ", words.Take(6));
+
+    return name;
+}
 
 static string ComputeHash(string input)
 {

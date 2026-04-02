@@ -81,7 +81,7 @@ public class InventoryRepository
             ");
 
             // Migration check for ReceiptId and ExpandedName if History existed before
-            var historyColumns = connection.Query<string>("PRAGMA table_info(History)").Select(c => c.ToLower());
+            var historyColumns = connection.Query<string>("SELECT name FROM pragma_table_info('History')").Select(c => c.ToLower());
             if (!historyColumns.Contains("receiptid"))
             {
                 _logger.LogInformation("Migrating History table: Adding ReceiptId column.");
@@ -117,11 +117,11 @@ public class InventoryRepository
         }
     }
 
-    public async Task<int> CreateReceiptAsync(string storeName, double totalAmount)
+    public async Task<long> CreateReceiptAsync(string storeName, double totalAmount)
     {
         using var connection = new SqliteConnection(_connectionString);
         var now = DateTime.UtcNow.ToString("O");
-        return await connection.QuerySingleAsync<int>(@"
+        return await connection.QuerySingleAsync<long>(@"
             INSERT INTO Receipts (Timestamp, StoreName, TotalAmountPaid)
             VALUES (@Timestamp, @StoreName, @TotalAmountPaid);
             SELECT last_insert_rowid();",
@@ -134,7 +134,7 @@ public class InventoryRepository
         return await connection.QueryAsync<Receipt>("SELECT * FROM Receipts ORDER BY Timestamp DESC");
     }
 
-    public async Task<IEnumerable<HistoryEntry>> GetReceiptItemsAsync(int receiptId)
+    public async Task<IEnumerable<HistoryEntry>> GetReceiptItemsAsync(long receiptId)
     {
         using var connection = new SqliteConnection(_connectionString);
         return await connection.QueryAsync<HistoryEntry>(
@@ -148,7 +148,7 @@ public class InventoryRepository
         string? currency = null, 
         string source = "Manual", 
         string? category = null, 
-        int? receiptId = null,
+        long? receiptId = null,
         string? expandedName = null)
     {
         _logger.LogInformation("Updating inventory: {ItemName} ({Change}) via {Source}", itemName, quantityChange, source);
