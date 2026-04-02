@@ -871,6 +871,9 @@ input:focus-visible {
     border: 1px solid var(--oat-dark);
     border-radius: var(--radius);
     outline: none;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
 }
 
 .chat-input-area input:focus {
@@ -884,6 +887,8 @@ input:focus-visible {
     padding: 0 1.25rem;
     border-radius: var(--radius);
     cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
     font-weight: 500;
 }
 

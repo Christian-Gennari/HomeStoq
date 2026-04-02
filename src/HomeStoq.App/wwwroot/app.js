@@ -40,6 +40,9 @@ const i18n = {
     "toast.err.list": "Could not generate list",
     "toast.scan.success": "Successfully scanned {0} items",
     "category.other": "Other",
+    "chat.title": "Pantry Chat",
+    "chat.placeholder": "Ask your pantry...",
+    "chat.send": "Send",
   },
   Swedish: {
     "nav.stock": "Skafferi",
@@ -48,7 +51,7 @@ const i18n = {
     "nav.list": "Inköpslista",
     "nav.chat": "Chatt",
     "pulse.total": "Totalt antal",
-    "pulse.low": "Lågt saldo",
+    "pulse.low": "Behöver fyllas på",
     "pulse.cats": "Kategorier",
     "inv.search": "Sök efter en vara...",
     "inv.add": "+ Lägg till",
@@ -84,6 +87,9 @@ const i18n = {
     "toast.err.list": "Kunde inte skapa förslag",
     "toast.scan.success": "Skannade {0} varor",
     "category.other": "Övrigt",
+    "chat.title": "Skafferichatt",
+    "chat.placeholder": "Fråga skafferiet...",
+    "chat.send": "Skicka",
   },
 };
 

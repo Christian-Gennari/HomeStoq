@@ -225,7 +225,7 @@
     <div x-show="showChat" class="chat-overlay" @click.self="showChat = false" x-cloak>
         <div class="chat-window" x-transition:enter="chat-slide-in" x-transition:leave="chat-slide-out">
             <div class="chat-header">
-                <h3>Pantry Chat</h3>
+                <h3 x-text="t('chat.title')"></h3>
                 <button @click="showChat = false">×</button>
             </div>
             <div class="chat-messages" x-ref="chatBox">
@@ -239,8 +239,8 @@
                 </div>
             </div>
             <div class="chat-input-area">
-                <input type="text" x-model="chatInput" placeholder="Ask your pantry..." @keyup.enter="sendMessage">
-                <button @click="sendMessage" :disabled="chatLoading">Send</button>
+                <input type="text" x-model="chatInput" :placeholder="t('chat.placeholder')" @keyup.enter="sendMessage">
+                <button @click="sendMessage" :disabled="chatLoading" x-text="t('chat.send')"></button>
             </div>
         </div>
     </div>
