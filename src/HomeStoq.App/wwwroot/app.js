@@ -149,6 +149,12 @@ function pantryApp() {
       }
     },
 
+    isLowStock(item) {
+      if (item.quantity == 0) return "low-stock";
+      if (item.quantity == 1) return "low-stock-warning";
+      return "";
+    },
+
     getLocale() {
       return this.language === "Swedish" ? "sv-SE" : "en-US";
     },

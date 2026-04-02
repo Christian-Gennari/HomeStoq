@@ -175,8 +175,24 @@ Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammal
     {
         var messages = new List<ChatMessage>();
         var systemPrompt = _language == "Swedish"
-            ? "Du är en hjälpsam assistent för HomeStoq-skafferiet. Använd de tillgängliga verktygen för att svara på frågor om lager och historik. Svara alltid på svenska."
-            : "You are a helpful assistant for the HomeStoq pantry. Use the available tools to answer questions about stock and history.";
+            ? @"Du är en hjälpsam assistent för HomeStoq-skafferiet. Använd de tillgängliga verktygen för att svara på frågor om lager och historik. Svara alltid på svenska.
+
+SVARFORMAT:
+- För listor och historik, använd ALLTID ett streck-prefix per rad, aldrig en lång sammanhängande text.
+- Forma varje rad som: ""- [Datum]: [Produkt] x[Antal] ([Pris] kr)"" eller ""- [Produkt] x[Antal]"".
+- Sortera chronologiskt med det nyaste först.
+- Om du visar lager: ""- [Produkt]: [Antal] st""
+- Håll svar korta och läsbara. Max 10 rader per kategori.
+- För övriga frågor, svara kort och direkt."
+            : @"You are a helpful assistant for the HomeStoq pantry. Use the available tools to answer questions about stock and history.
+
+RESPONSE FORMAT:
+- For lists and history, ALWAYS use dash-prefixed lines, NEVER a single long paragraph.
+- Format each line as: ""- [Date]: [Product] x[Qty] ([Price] kr)"" or ""- [Product] x[Qty]"".
+- Sort chronologically with newest first.
+- When showing stock: ""- [Product]: [Qty] pcs""
+- Keep responses short and readable. Max 10 lines per category.
+- For other questions, answer briefly and directly.";
 
         messages.Add(new ChatMessage(ChatRole.System, systemPrompt));
         if (history != null) messages.AddRange(history);

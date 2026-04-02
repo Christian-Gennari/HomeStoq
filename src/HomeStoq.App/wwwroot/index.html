@@ -40,7 +40,7 @@
             </div>
             <div class="pulse-stat">
                 <span class="label" x-text="t('pulse.low')"></span>
-                <span class="value" x-text="items.filter(i => i.quantity <= 1).length" :style="items.filter(i => i.quantity <= 1).length > 0 && 'color: var(--zest)'"></span>
+                <span class="value" x-text="items.filter(i => i.quantity == 0).length" :style="items.filter(i => i.quantity == 0).length > 0 && 'color: var(--zest)'"></span>
             </div>
             <div class="pulse-stat">
                 <span class="label" x-text="t('pulse.cats')"></span>
@@ -76,9 +76,10 @@
                                 <h2 class="category-title" x-text="category"></h2>
                                 <ul class="item-list">
                                     <template x-for="item in group" :key="item.itemName">
-                                        <li class="item-row" :class="item.quantity <= 1 && 'low-stock'">
+                                        <li class="item-row" :class="isLowStock(item)">
                                             <div class="item-info">
-                                                <span x-show="item.quantity <= 1" class="low-stock-dot"></span>
+                                                <span x-show="item.quantity == 0" class="low-stock-dot"></span>
+                                                <span x-show="item.quantity == 1" class="low-stock-dot-warning"></span>
                                                 <span class="item-name" x-text="item.itemName"></span>
                                             </div>
                                             <div class="qty-pill">

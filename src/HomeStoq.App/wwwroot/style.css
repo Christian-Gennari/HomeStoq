@@ -253,6 +253,10 @@ nav {
     background: rgba(212, 106, 78, 0.05);
 }
 
+.item-row.low-stock-warning {
+    background: rgba(212, 106, 78, 0.03);
+}
+
 .item-info {
     display: flex;
     align-items: center;
@@ -265,6 +269,14 @@ nav {
     width: 8px;
     height: 8px;
     background: var(--zest);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.low-stock-dot-warning {
+    width: 8px;
+    height: 8px;
+    background: #e8a030;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -824,6 +836,7 @@ input:focus-visible {
     border-radius: 12px;
     font-size: 0.95rem;
     line-height: 1.4;
+    white-space: pre-wrap;
 }
 
 .user .msg-bubble {
