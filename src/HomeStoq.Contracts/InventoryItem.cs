@@ -1,4 +1,4 @@
-namespace HomeStoq.Server.Models;
+namespace HomeStoq.Contracts;
 
 public class InventoryItem
 {

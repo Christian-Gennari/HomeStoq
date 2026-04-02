@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using HomeStoq.Contracts;
 using HomeStoq.Server.Repositories;
 using HomeStoq.Server.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -242,12 +243,3 @@ static string ComputeHash(string input)
 }
 
 app.Run();
-
-public record ManualUpdateRequest(
-    string ItemName,
-    double QuantityChange,
-    double? Price,
-    string? Currency
-);
-
-public record VoiceCommandRequest(string Text);

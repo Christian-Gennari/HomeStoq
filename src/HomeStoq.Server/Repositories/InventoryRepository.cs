@@ -1,5 +1,5 @@
 using Dapper;
-using HomeStoq.Server.Models;
+using HomeStoq.Contracts;
 using Microsoft.Data.Sqlite;
 
 namespace HomeStoq.Server.Repositories;
