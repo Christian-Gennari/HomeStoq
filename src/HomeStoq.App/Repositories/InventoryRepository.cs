@@ -2,7 +2,7 @@ using Dapper;
 using HomeStoq.Contracts;
 using Microsoft.Data.Sqlite;
 
-namespace HomeStoq.Server.Repositories;
+namespace HomeStoq.App.Repositories;
 
 public class InventoryRepository
 {
@@ -16,7 +16,7 @@ public class InventoryRepository
         // Use environment variable first, then fallback to a safe fixed path.
         // We avoid putting this in config.ini to prevent users from breaking Docker persistence.
         var fallbackPath = Path.Combine("data", "homestoq.db");
-        if (Directory.GetCurrentDirectory().EndsWith("HomeStoq.Server"))
+        if (Directory.GetCurrentDirectory().EndsWith("HomeStoq.App"))
         {
             fallbackPath = Path.Combine("..", "..", "data", "homestoq.db");
         }

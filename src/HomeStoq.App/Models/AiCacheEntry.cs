@@ -1,4 +1,4 @@
-namespace HomeStoq.Server.Models;
+namespace HomeStoq.App.Models;
 
 public class AiCacheEntry
 {

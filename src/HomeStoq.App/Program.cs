@@ -2,15 +2,15 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HomeStoq.Contracts;
-using HomeStoq.Server.Repositories;
-using HomeStoq.Server.Services;
+using HomeStoq.App.Repositories;
+using HomeStoq.App.Services;
 using Microsoft.AspNetCore.Mvc;
 
 // Load environment variables from .env if present (searching up to project root)
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), ".env")))
 {
-    // If not in root, try one level up (common when running from src/HomeStoq.Server)
+    // If not in root, try one level up (common when running from src/HomeStoq.App)
     DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
 }
 

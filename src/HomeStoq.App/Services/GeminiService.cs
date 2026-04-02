@@ -1,9 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using HomeStoq.Server.Models;
+using HomeStoq.App.Models;
 
-namespace HomeStoq.Server.Services;
+namespace HomeStoq.App.Services;
 
 public class GeminiService
 {

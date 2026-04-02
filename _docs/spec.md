@@ -231,7 +231,7 @@ Access the UI at `http://localhost`.
 
 HomeStoq/
 ├── src/
-│   ├── HomeStoq.Server/          # Main API and Web App
+│   ├── HomeStoq.App/             # Main API and Web App
 │   │   ├── Program.cs
 │   │   ├── Services/
 │   │   │   └── GeminiService.cs
