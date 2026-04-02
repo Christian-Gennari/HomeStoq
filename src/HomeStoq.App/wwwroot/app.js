@@ -2,7 +2,9 @@ const i18n = {
   English: {
     "nav.stock": "Stock",
     "nav.scan": "Scan",
+    "nav.receipts": "Receipts",
     "nav.list": "List",
+    "nav.chat": "Chat",
     "pulse.total": "Total Items",
     "pulse.low": "Low Stock",
     "pulse.cats": "Categories",
@@ -21,8 +23,10 @@ const i18n = {
     "scan.btn": "Process with Gemini",
     "scan.btn.active": "Analyzing...",
     "scan.results": "Recent Scan Results",
+    "receipts.desc": "Your purchase history from scanned receipts.",
+    "receipts.empty": "No receipts scanned yet.",
     "list.title": "Predictive Suggestions",
-    "list.desc": "Consumption-based logic trained on your 6-month history.",
+    "list.desc": "Consumption-based logic trained on your history.",
     "list.btn": "Generate List",
     "list.btn.active": "Analyzing history...",
     "list.empty": "No suggestions yet. Scan more receipts to train the AI.",
@@ -40,7 +44,9 @@ const i18n = {
   Swedish: {
     "nav.stock": "Skafferi",
     "nav.scan": "Skanna",
+    "nav.receipts": "Kvitton",
     "nav.list": "Inköpslista",
+    "nav.chat": "Chatt",
     "pulse.total": "Totalt antal",
     "pulse.low": "Lågt saldo",
     "pulse.cats": "Kategorier",
@@ -60,9 +66,11 @@ const i18n = {
     "scan.btn": "Analysera med Gemini",
     "scan.btn.active": "Analyserar...",
     "scan.results": "Senaste skanning",
+    "receipts.desc": "Din köphistorik från skannade kvitton.",
+    "receipts.empty": "Inga kvitton skannade ännu.",
     "list.title": "Smarta förslag",
     "list.desc":
-      "Förslag baserade på din historik från de senaste 6 månaderna.",
+      "Förslag baserade på din historik från tidigare inköp.",
     "list.btn": "Skapa lista",
     "list.btn.active": "Analyserar historik...",
     "list.empty": "Inga förslag ännu. Skanna fler kvitton för att träna AI:n.",
@@ -94,9 +102,20 @@ function pantryApp() {
     scanning: false,
     scanResults: [],
 
+    // Receipts History
+    receipts: [],
+    receiptItems: [],
+    expandedReceiptId: null,
+
     // Shopping State
     suggestions: [],
     loadingSuggestions: false,
+
+    // Chat State
+    showChat: false,
+    chatInput: "",
+    chatHistory: [],
+    chatLoading: false,
 
     // UI State
     toasts: [],
@@ -112,6 +131,7 @@ function pantryApp() {
       // Watch view changes to refresh data
       this.$watch("view", (value) => {
         if (value === "inventory") this.refreshInventory();
+        if (value === "receipts_history") this.loadReceipts();
       });
     },
 
@@ -184,7 +204,6 @@ function pantryApp() {
     },
 
     async updateQty(itemName, change) {
-      // Optimistic UI update
       const item = this.items.find((i) => i.itemName === itemName);
       if (!item && change < 0) return;
 
@@ -208,12 +227,91 @@ function pantryApp() {
           body: JSON.stringify({ itemName, quantityChange: change }),
         });
         if (!res.ok) throw new Error("Update failed");
-
-        // Refresh to get correct category/timestamp from server if new
         if (!item) this.refreshInventory();
       } catch (err) {
         if (item) item.quantity = oldQty;
         this.addToast(this.t("toast.err.update"), "error");
+      }
+    },
+
+    async loadReceipts() {
+      try {
+        const res = await fetch("/api/receipts");
+        if (res.ok) this.receipts = await res.json();
+      } catch (e) {
+        console.error("Failed to load receipts", e);
+      }
+    },
+
+    async toggleReceipt(id) {
+      if (this.expandedReceiptId === id) {
+        this.expandedReceiptId = null;
+        this.receiptItems = [];
+      } else {
+        this.expandedReceiptId = id;
+        try {
+          const res = await fetch(`/api/receipts/${id}/items`);
+          if (res.ok) this.receiptItems = await res.json();
+        } catch (e) {
+          console.error("Failed to load receipt items", e);
+        }
+      }
+    },
+
+    toggleChat() {
+      this.showChat = !this.showChat;
+      if (this.showChat && this.chatHistory.length === 0) {
+        const initialMsg = this.language === "Swedish" 
+          ? "Hej! Jag är din skafferi-assistent. Hur kan jag hjälpa dig idag?"
+          : "Hello! I'm your pantry assistant. How can I help you today?";
+        this.chatHistory.push({ id: Date.now(), role: "assistant", content: initialMsg });
+      }
+    },
+
+    async sendMessage() {
+      if (!this.chatInput.trim() || this.chatLoading) return;
+
+      const userMsg = this.chatInput.trim();
+      this.chatInput = "";
+      this.chatHistory.push({ id: Date.now(), role: "user", content: userMsg });
+      this.chatLoading = true;
+
+      this.$nextTick(() => {
+        const box = this.$refs.chatBox;
+        box.scrollTop = box.scrollHeight;
+      });
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            message: userMsg, 
+            history: this.chatHistory.map(m => ({ role: m.role, content: m.content })) 
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          this.chatHistory.push({ id: Date.now(), role: "assistant", content: data.reply });
+          if (data.reply.toLowerCase().includes("uppdaterat") || data.reply.toLowerCase().includes("updated")) {
+            this.refreshInventory();
+          }
+        } else {
+          throw new Error("Chat failed");
+        }
+      } catch (e) {
+        this.chatHistory.push({ 
+          id: Date.now(), 
+          role: "assistant", 
+          content: "Sorry, I encountered an error. Please try again." 
+        });
+      } finally {
+        this.chatLoading = false;
+        this.$nextTick(() => {
+          const box = this.$refs.chatBox;
+          box.scrollTop = box.scrollHeight;
+        });
       }
     },
 
@@ -272,7 +370,6 @@ function pantryApp() {
       }
     },
 
-    // Helpers
     formatQty(qty) {
       return Number.isInteger(qty) ? qty : qty.toFixed(1);
     },
@@ -283,6 +380,8 @@ function pantryApp() {
       return date.toLocaleDateString(this.getLocale(), {
         month: "short",
         day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
       });
     },
 

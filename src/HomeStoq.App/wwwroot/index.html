@@ -26,7 +26,9 @@
             <nav>
                 <button class="nav-link" :class="view === 'inventory' && 'active'" @click="view = 'inventory'" x-text="t('nav.stock')"></button>
                 <button class="nav-link" :class="view === 'receipt' && 'active'" @click="view = 'receipt'" x-text="t('nav.scan')"></button>
+                <button class="nav-link" :class="view === 'receipts_history' && 'active'" @click="view = 'receipts_history'" x-text="t('nav.receipts')"></button>
                 <button class="nav-link" :class="view === 'shopping' && 'active'" @click="view = 'shopping'" x-text="t('nav.list')"></button>
+                <button class="nav-link chat-nav" @click="toggleChat()" x-text="t('nav.chat')"></button>
             </nav>
         </header>
 
@@ -136,6 +138,50 @@
                 </section>
             </template>
 
+            <!-- View: Receipts History -->
+            <template x-if="view === 'receipts_history'">
+                <section>
+                    <div class="view-header">
+                        <h2 x-text="t('nav.receipts')"></h2>
+                        <p class="view-description" x-text="t('receipts.desc')"></p>
+                    </div>
+
+                    <div x-show="receipts.length === 0" class="state-box">
+                        <p x-text="t('receipts.empty')"></p>
+                    </div>
+
+                    <div class="receipts-list">
+                        <template x-for="r in receipts" :key="r.id">
+                            <div class="receipt-card">
+                                <div class="receipt-header" @click="toggleReceipt(r.id)">
+                                    <div class="receipt-info">
+                                        <span class="store-name" x-text="r.storeName"></span>
+                                        <span class="receipt-date" x-text="formatDate(r.timestamp)"></span>
+                                    </div>
+                                    <div class="receipt-amount">
+                                        <span x-text="formatCurrency(r.totalAmountPaid)"></span>
+                                        <span class="chevron" :class="expandedReceiptId === r.id && 'open'">▼</span>
+                                    </div>
+                                </div>
+                                <div x-show="expandedReceiptId === r.id" class="receipt-details" x-collapse>
+                                    <ul class="item-list detail-list">
+                                        <template x-for="item in receiptItems" :key="item.id">
+                                            <li class="item-row">
+                                                <div class="item-info">
+                                                    <span class="item-name" x-text="item.itemName"></span>
+                                                    <p class="item-expanded" x-text="item.expandedName"></p>
+                                                </div>
+                                                <span class="item-qty" x-text="'x' + item.quantity"></span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </section>
+            </template>
+
             <!-- View: Smart List -->
             <template x-if="view === 'shopping'">
                 <section>
@@ -172,6 +218,30 @@
                 </section>
             </template>
         </main>
+    </div>
+
+    <!-- Chat Slide-over -->
+    <div x-show="showChat" class="chat-overlay" @click.self="showChat = false" x-cloak>
+        <div class="chat-window" x-transition:enter="chat-slide-in" x-transition:leave="chat-slide-out">
+            <div class="chat-header">
+                <h3>Pantry Chat</h3>
+                <button @click="showChat = false">×</button>
+            </div>
+            <div class="chat-messages" x-ref="chatBox">
+                <template x-for="msg in chatHistory" :key="msg.id">
+                    <div class="msg-wrapper" :class="msg.role === 'user' ? 'user' : 'assistant'">
+                        <div class="msg-bubble" x-text="msg.content"></div>
+                    </div>
+                </template>
+                <div x-show="chatLoading" class="msg-wrapper assistant">
+                    <div class="msg-bubble loading-dots">...</div>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" x-model="chatInput" placeholder="Ask your pantry..." @keyup.enter="sendMessage">
+                <button @click="sendMessage" :disabled="chatLoading">Send</button>
+            </div>
+        </div>
     </div>
 
     <!-- Toasts -->
