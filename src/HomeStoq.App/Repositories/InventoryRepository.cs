@@ -52,16 +52,25 @@ public class InventoryRepository
                     UpdatedAt TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS Receipts (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Timestamp TEXT NOT NULL,
+                    StoreName TEXT NOT NULL,
+                    TotalAmountPaid REAL NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS History (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     Timestamp TEXT NOT NULL,
                     ItemName TEXT NOT NULL,
+                    ExpandedName TEXT,
                     Action TEXT NOT NULL,
                     Quantity REAL NOT NULL,
                     Price REAL,
                     TotalPrice REAL,
                     Currency TEXT,
-                    Source TEXT NOT NULL
+                    Source TEXT NOT NULL,
+                    ReceiptId INTEGER REFERENCES Receipts(Id)
                 );
 
                 CREATE TABLE IF NOT EXISTS AiCache (
@@ -72,6 +81,20 @@ public class InventoryRepository
                     ExpiresAt TEXT NOT NULL
                 );
             ");
+
+            // Migration check for ReceiptId and ExpandedName if History existed before
+            var historyColumns = connection.Query<string>("PRAGMA table_info(History)").Select(c => c.ToLower());
+            if (!historyColumns.Contains("receiptid"))
+            {
+                _logger.LogInformation("Migrating History table: Adding ReceiptId column.");
+                connection.Execute("ALTER TABLE History ADD COLUMN ReceiptId INTEGER REFERENCES Receipts(Id)");
+            }
+            if (!historyColumns.Contains("expandedname"))
+            {
+                _logger.LogInformation("Migrating History table: Adding ExpandedName column.");
+                connection.Execute("ALTER TABLE History ADD COLUMN ExpandedName TEXT");
+            }
+
             _logger.LogInformation("Database tables initialized successfully.");
         }
         catch (Exception ex)
