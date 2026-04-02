@@ -1,12 +1,13 @@
 using System.Net.Http.Json;
 using Microsoft.Playwright;
+using HomeStoq.Contracts;
 
-namespace HomeStoq.KeepScraper;
+namespace HomeStoq.Plugins.GoogleKeepScraper;
 
-public class KeepScraperWorker : BackgroundService
+public class GoogleKeepScraperWorker : BackgroundService
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<KeepScraperWorker> _logger;
+    private readonly ILogger<GoogleKeepScraperWorker> _logger;
     private readonly Random _random = Random.Shared;
 
     private IPlaywright? _playwright;
@@ -23,9 +24,9 @@ public class KeepScraperWorker : BackgroundService
 
     private bool _isOnKeepPage;
 
-    public KeepScraperWorker(
+    public GoogleKeepScraperWorker(
         IConfiguration config,
-        ILogger<KeepScraperWorker> logger)
+        ILogger<GoogleKeepScraperWorker> logger)
     {
         _logger = logger;
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
@@ -54,13 +55,13 @@ public class KeepScraperWorker : BackgroundService
 
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting KeepScraper...");
+        _logger.LogInformation("Starting GoogleKeepScraper...");
 
         _playwright = await Playwright.CreateAsync();
 
         await EnsureBrowserContextAsync();
 
-        _logger.LogInformation("KeepScraper initialized. Monitoring lists: {ListNames}", string.Join(", ", _listNames));
+        _logger.LogInformation("GoogleKeepScraper initialized. Monitoring lists: {ListNames}", string.Join(", ", _listNames));
 
         await base.StartAsync(cancellationToken);
     }
@@ -534,7 +535,7 @@ public class KeepScraperWorker : BackgroundService
             {
                 var response = await _httpClient.PostAsJsonAsync(
                     _apiUrl,
-                    new { Text = text });
+                    new VoiceCommandRequest(text));
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -692,7 +693,7 @@ public class KeepScraperWorker : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Stopping KeepScraper...");
+        _logger.LogInformation("Stopping GoogleKeepScraper...");
 
         try
         {
