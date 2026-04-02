@@ -1,119 +1,101 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using HomeStoq.Contracts;
 using HomeStoq.App.Models;
+using Microsoft.Extensions.AI;
+using Google.GenAI;
+using HomeStoq.App.Repositories;
 
 namespace HomeStoq.App.Services;
 
 public class GeminiService
 {
-    private readonly HttpClient _httpClient;
-    private readonly string _apiKey;
-    private readonly string _model;
+    private readonly IChatClient _chatClient;
     private readonly string _language;
     private readonly ILogger<GeminiService> _logger;
+    private readonly InventoryRepository _repository;
+    private readonly ChatOptions _chatOptions;
 
     public GeminiService(
-        HttpClient httpClient,
+        IChatClient chatClient,
         IConfiguration configuration,
-        ILogger<GeminiService> logger
+        ILogger<GeminiService> logger,
+        InventoryRepository repository
     )
     {
-        _httpClient = httpClient;
+        _chatClient = chatClient;
         _logger = logger;
-        _apiKey =
-            configuration["GEMINI_API_KEY"]
-            ?? throw new InvalidOperationException("GEMINI_API_KEY not configured");
-        _model = configuration["GEMINI_MODEL"] ?? "gemini-3.1-flash-lite-preview";
+        _repository = repository;
         _language = NormalizeLanguage(configuration["App:Language"]);
+
+        // Define tools for the AI
+        var tools = new List<AITool>
+        {
+            AIFunctionFactory.Create(_repository.GetStockLevel),
+            AIFunctionFactory.Create(_repository.GetFullInventory),
+            AIFunctionFactory.Create(_repository.GetConsumptionHistory)
+        };
+
+        _chatOptions = new ChatOptions
+        {
+            Tools = tools,
+            ToolMode = ChatToolMode.Auto
+        };
     }
 
     private static string NormalizeLanguage(string? language)
     {
         if (string.Equals(language, "Swedish", StringComparison.OrdinalIgnoreCase))
             return "Swedish";
-        if (string.Equals(language, "English", StringComparison.OrdinalIgnoreCase))
-            return "English";
         return "English";
     }
-
-    private string GeminiEndpoint =>
-        $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent";
 
     public async Task<List<ParsedVoiceAction>?> ParseVoiceCommandAsync(
         string text,
         IEnumerable<string>? existingItems = null
     )
     {
-        var inventoryContext =
-            existingItems != null && existingItems.Any()
-                ? $"Current Inventory Items (PREFER THESE NAMES): {string.Join(", ", existingItems)}"
-                : "";
+        var inventoryContext = existingItems != null && existingItems.Any()
+            ? $"Current Inventory Items (PREFER THESE NAMES): {string.Join(", ", existingItems)}"
+            : "";
 
-        var prompt = _language switch
+        var systemPrompt = _language == "Swedish"
+            ? $@"You are a food inventory assistant. ALL communication, reasoning, and output MUST be in Swedish. Interpret the intent.
+{inventoryContext}
+Guidelines:
+1. Return the ItemName in Swedish.
+2. Normalize ItemNames. Prefer existing simplified names.
+3. Identify ItemName, Action (Add or Remove), and Quantity.
+4. Categories: [Mejeri, Frukt/Grönt, Skafferi, Kött/Fisk, Bageri, Frysvaror, Hushåll, Övrigt].
+5. Default quantity to 1. For ""all""/""everything"" use 9999.
+6. Respond ONLY with a JSON array of objects.
+Format: [ {{ ""ItemName"": ""Mjölk"", ""Action"": ""Remove"", ""Quantity"": 1, ""Category"": ""Mejeri"" }} ]"
+            : $@"You are a food inventory assistant. Interpret intent.
+{inventoryContext}
+Guidelines:
+1. Normalize ItemNames. Prefer existing names.
+2. Identify ItemName, Action, Quantity.
+3. Categories: [Dairy, Produce, Pantry, Meat/Fish, Bakery, Frozen, Household, Other].
+4. Default quantity 1. ""All""/""everything"" = 9999.
+5. Respond ONLY with a JSON array.
+Format: [ {{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 1, ""Category"": ""Dairy"" }} ]";
+
+        var response = await _chatClient.GetResponseAsync(new List<ChatMessage>
         {
-            "Swedish" =>
-                $@"You are a food inventory assistant. ALL communication, reasoning, and output MUST be in Swedish. The following voice command is in Swedish. Interpret the intent.
+            new ChatMessage(ChatRole.System, systemPrompt),
+            new ChatMessage(ChatRole.User, text)
+        });
 
-Command: ""{text}""
-
-{inventoryContext}
-
-Guidelines:
-1. The command is in Swedish. Return the ItemName in Swedish.
-2. IMPORTANT: Normalize ItemNames. If the user mentions an item that is a variation of an existing item (e.g., ""Arla Mellanmjölk"" vs existing ""Mjölk""), always prefer the existing simplified name from the list above.
-3. Identify ItemName, Action (Add or Remove), and Quantity for EACH item mentioned.
-4. IMPORTANT: Assign a Category to each item from this exact list: [Mejeri, Frukt/Grönt, Skafferi, Kött/Fisk, Bageri, Frysvaror, Hushåll, Övrigt].
-5. Interpret NATURAL language intent. Examples:
-   - ""slut på mjölk"" → [{{ ""ItemName"": ""Mjölk"", ""Action"": ""Remove"", ""Quantity"": 1, ""Category"": ""Mejeri"" }}]
-   - ""köpte 3 ägg och smör"" → [{{ ""ItemName"": ""Ägg"", ""Action"": ""Add"", ""Quantity"": 3, ""Category"": ""Mejeri"" }}, {{ ""ItemName"": ""Smör"", ""Action"": ""Add"", ""Quantity"": 1, ""Category"": ""Mejeri"" }}]
-   - ""använt allt kaffe"" → [{{ ""ItemName"": ""Kaffe"", ""Action"": ""Remove"", ""Quantity"": 9999, ""Category"": ""Skafferi"" }}]
-6. Default quantity to 1 if not specified. For phrases like ""all"", ""everything"", ""slut på all"", use 9999 to indicate total removal.
-7. Respond ONLY with a JSON array of objects. If unsure, return null.
-
-Format: [ {{ ""ItemName"": ""Mjölk"", ""Action"": ""Remove"", ""Quantity"": 1, ""Category"": ""Mejeri"" }} ]",
-
-            _ =>
-                $@"You are a food inventory assistant. Interpret the intent of this voice command: ""{text}""
-
-{inventoryContext}
-
-Guidelines:
-1. The command is in English.
-2. IMPORTANT: Normalize ItemNames. If the user mentions an item that is a variation of an existing item (e.g., ""Organic Whole Milk"" vs existing ""Milk""), always prefer the existing simplified name from the list above.
-3. Identify ItemName, Action (Add or Remove), and Quantity for EACH item mentioned.
-4. IMPORTANT: Assign a Category to each item from this list: [Dairy, Produce, Pantry, Meat/Fish, Bakery, Frozen, Household, Other].
-5. Interpret NATURAL language intent. Examples:
-   - ""used the last milk"" → [{{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 9999, ""Category"": ""Dairy"" }}]
-   - ""bought 3 eggs and bread"" → [{{ ""ItemName"": ""Eggs"", ""Action"": ""Add"", ""Quantity"": 3, ""Category"": ""Dairy"" }}, {{ ""ItemName"": ""Bread"", ""Action"": ""Add"", ""Quantity"": 1, ""Category"": ""Bakery"" }}]
-6. Default quantity to 1 if not specified. For phrases like ""all"", ""everything"", ""last of"", use 9999 to indicate total removal.
-7. Respond ONLY with a JSON array of objects. If unsure, return null.
-
-Format: [ {{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 1, ""Category"": ""Dairy"" }} ]",
-        };
-
-        var response = await CallGeminiAsync(prompt);
-        if (
-            string.IsNullOrEmpty(response)
-            || response.Equals("null", StringComparison.OrdinalIgnoreCase)
-            || response.Equals("[]", StringComparison.OrdinalIgnoreCase)
-        )
-            return null;
+        var cleaned = CleanJsonFromMarkdown(response.Text);
+        if (string.IsNullOrEmpty(cleaned)) return null;
 
         try
         {
-            return JsonSerializer.Deserialize<List<ParsedVoiceAction>>(
-                response,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            );
+            return JsonSerializer.Deserialize<List<ParsedVoiceAction>>(cleaned, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
         catch (JsonException ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to deserialize Gemini response for voice command: {Response}",
-                response
-            );
+            _logger.LogError(ex, "Failed to deserialize voice command response: {Response}", cleaned);
             return null;
         }
     }
@@ -124,216 +106,110 @@ Format: [ {{ ""ItemName"": ""Milk"", ""Action"": ""Remove"", ""Quantity"": 1, ""
         IEnumerable<string>? existingItems = null
     )
     {
-        var base64Image = Convert.ToBase64String(imageBytes);
-        var inventoryContext =
-            existingItems != null && existingItems.Any()
-                ? $"Current Inventory Items (use these names to match): {string.Join(", ", existingItems)}"
-                : "";
+        var inventoryContext = existingItems != null && existingItems.Any()
+            ? $"Current Inventory Items (use these names to match): {string.Join(", ", existingItems)}"
+            : "";
 
-        var prompt = _language switch
-        {
-            "Swedish" =>
-                $@"You are a system that reads Swedish grocery receipts. ALL communication, reasoning, and output MUST be in Swedish. Analyze the provided image or document and extract all food and household items with their prices.
-
+        var systemPrompt = _language == "Swedish"
+            ? $@"You are a system that reads Swedish grocery receipts. ALL communication, reasoning, and output MUST be in Swedish.
 {inventoryContext}
-
 RULES:
-1. Return ALL item names in SWEDISH. Never translate to English.
-2. Decipher and correct truncated or abbreviated receipt names into full, readable product names with the first letter capitalized (e.g., convert ""Gammaldags idealma"" to ""Gammaldags Idealmakaroner"").
-3. IMPORTANT: Assign a Category to each item from this exact list: [Mejeri, Frukt/Grönt, Skafferi, Kött/Fisk, Bageri, Frysvaror, Hushåll, Övrigt].
-4. Use the inventory list above to match existing item names when applicable.
-5. Ignore: deposits (pant), plastic bags (kassar), discounts (rabatt), totals, loyalty points, packaging fees.
-6. Extract the EXACT decimal price for each item if visible on the receipt (do not round).
-7. Respond ONLY with a JSON array.
-
-Format: [ {{ ""ItemName"": ""Ägg"", ""Quantity"": 1, ""Price"": 34.90, ""Category"": ""Mejeri"" }}, {{ ""ItemName"": ""Mjölk"", ""Quantity"": 2, ""Price"": null, ""Category"": ""Mejeri"" }} ]",
-
-            _ =>
-                $@"You are a system that reads grocery receipts. Analyze the provided image or document and extract all food and household items with their prices.
-
+1. Return ALL item names in SWEDISH.
+2. Step 1: Extract exact text from receipt (`ReceiptText`).
+3. Step 2: Decipher truncated text into full product name (`ExpandedName`).
+4. Step 3: Strip brand/size/etc to create generic normalized base category (`ItemName`).
+5. Categories: [Mejeri, Frukt/Grönt, Skafferi, Kött/Fisk, Bageri, Frysvaror, Hushåll, Övrigt].
+6. Use inventory list to match existing `ItemName`s.
+7. Ignore deposits, bags, discounts, totals.
+8. Extract EXACT decimal price.
+9. Respond ONLY with a JSON array.
+Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammaldags Idealmakaroner"", ""ItemName"": ""Makaroner"", ""Quantity"": 1, ""Price"": 34.90, ""Category"": ""Skafferi"" }} ]"
+            : $@"You are a system that reads grocery receipts.
 {inventoryContext}
-
 RULES:
-1. Return ALL item names in English.
-2. Decipher and correct truncated or abbreviated receipt names into full, readable product names with the first letter capitalized.
-3. IMPORTANT: Assign a Category to each item from this list: [Dairy, Produce, Pantry, Meat/Fish, Bakery, Frozen, Household, Other].
-4. Use the inventory list above to match existing item names when applicable.
-5. Ignore: deposits, bags, discounts, totals, loyalty points, packaging fees.
-6. Extract the EXACT decimal price for each item if visible (do not round).
-7. Respond ONLY with a JSON array.
+1. Step 1: Extract exact text (`ReceiptText`).
+2. Step 2: Decipher truncated text into full name (`ExpandedName`).
+3. Step 3: Strip brand/size/etc to create generic category (`ItemName`).
+4. Categories: [Dairy, Produce, Pantry, Meat/Fish, Bakery, Frozen, Household, Other].
+5. Respond ONLY with a JSON array.
+Format: [ {{ ""ReceiptText"": ""Whl Milk Org"", ""ExpandedName"": ""Whole Milk Organic"", ""ItemName"": ""Milk"", ""Quantity"": 1, ""Price"": 4.50, ""Category"": ""Dairy"" }} ]";
 
-Format: [ {{ ""ItemName"": ""Eggs"", ""Quantity"": 1, ""Price"": 2.99, ""Category"": ""Dairy"" }}, {{ ""ItemName"": ""Milk"", ""Quantity"": 2, ""Price"": null, ""Category"": ""Dairy"" }} ]",
-        };
-
-        var requestBody = new
+        var response = await _chatClient.GetResponseAsync(new List<ChatMessage>
         {
-            contents = new[]
+            new ChatMessage(ChatRole.System, systemPrompt),
+            new ChatMessage(ChatRole.User, new List<AIContent>
             {
-                new
-                {
-                    parts = new object[]
-                    {
-                        new { text = prompt },
-                        new { inlineData = new { mimeType = mimeType, data = base64Image } },
-                    },
-                },
-            },
-        };
+                new DataContent(imageBytes, mimeType),
+                new TextContent("Extract items from this receipt.")
+            })
+        });
 
-        var response = await _httpClient.PostAsJsonAsync(
-            $"{GeminiEndpoint}?key={_apiKey}",
-            requestBody
-        );
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            _logger.LogError(
-                "Gemini API error (Receipt): {StatusCode} - {Error}",
-                response.StatusCode,
-                error
-            );
-            return null;
-        }
-
-        var json = await response.Content.ReadFromJsonAsync<GeminiResponse>();
-        var textResponse = json?.Candidates?[0]?.Content?.Parts?[0]?.Text;
-
-        if (string.IsNullOrEmpty(textResponse))
-            return null;
-
-        var cleaned = CleanJsonFromMarkdown(textResponse);
-        if (string.IsNullOrEmpty(cleaned))
-            return null;
+        var cleaned = CleanJsonFromMarkdown(response.Text);
+        if (string.IsNullOrEmpty(cleaned)) return null;
 
         try
         {
-            return JsonSerializer.Deserialize<List<PantryItem>>(
-                cleaned,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            );
+            return JsonSerializer.Deserialize<List<PantryItem>>(cleaned, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
         catch (JsonException ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to deserialize Gemini response for receipt scan: {Response}",
-                cleaned
-            );
+            _logger.LogError(ex, "Failed to deserialize receipt scan response: {Response}", cleaned);
             return null;
         }
+    }
+
+    public async Task<HomeStoq.Contracts.ChatResponse> ChatAsync(string userMessage, List<ChatMessage>? history = null)
+    {
+        var messages = new List<ChatMessage>();
+        var systemPrompt = _language == "Swedish"
+            ? "Du är en hjälpsam assistent för HomeStoq-skafferiet. Använd de tillgängliga verktygen för att svara på frågor om lager och historik. Svara alltid på svenska."
+            : "You are a helpful assistant for the HomeStoq pantry. Use the available tools to answer questions about stock and history.";
+
+        messages.Add(new ChatMessage(ChatRole.System, systemPrompt));
+        if (history != null) messages.AddRange(history);
+        messages.Add(new ChatMessage(ChatRole.User, userMessage));
+
+        var response = await _chatClient.GetResponseAsync(messages, _chatOptions);
+        
+        var updatedHistory = messages.ToList();
+        foreach(var msg in response.Messages) {
+            updatedHistory.Add(msg);
+        }
+
+        return new HomeStoq.Contracts.ChatResponse(response.Text ?? "", updatedHistory);
     }
 
     public async Task<string?> GenerateShoppingListAsync(string historyJson, string inventoryJson)
     {
-        var prompt = _language switch
+        var systemPrompt = _language == "Swedish"
+            ? $@"You are a predictive pantry assistant. ALL communication, reasoning, and output MUST be strictly in Swedish. 
+Identify items that are likely to run out soon.
+Respond ONLY with a JSON array.
+Format: [ {{ ""ItemName"": ""Mjölk"", ""Quantity"": 2, ""Reason"": ""Konsumerar 2 per vecka, nuvarande lager 0"" }} ]"
+            : $@"You are a predictive pantry assistant. Analyze consumption data.
+Identify items that are likely to run out soon.
+Respond ONLY with a JSON array.
+Format: [ {{ ""ItemName"": ""Milk"", ""Quantity"": 2, ""Reason"": ""Consumes 2 per week, stock 0"" }} ]";
+
+        var userMessage = $"History: {historyJson}\nInventory: {inventoryJson}";
+
+        var response = await _chatClient.GetResponseAsync(new List<ChatMessage>
         {
-            "Swedish" =>
-                $@"You are a predictive pantry assistant. ALL communication, reasoning, and output MUST be strictly in Swedish. The inventory and history data below is in Swedish. Analyze it and return suggestions with Swedish item names.
+            new ChatMessage(ChatRole.System, systemPrompt),
+            new ChatMessage(ChatRole.User, userMessage)
+        });
 
-History: {historyJson}
-Inventory: {inventoryJson}
-
-Identify items that are likely to run out soon or are already low based on patterns.
-Respond ONLY with a JSON array of suggested items to buy, including estimated quantity and reason (in Swedish).
-Format: [ {{ ""ItemName"": ""Mjölk"", ""Quantity"": 2, ""Reason"": ""Konsumerar 2 per vecka, nuvarande lager 0"" }} ]",
-
-            _ => $@"You are a predictive pantry assistant.
-            Analyze the following historical consumption data (History) and current inventory (Inventory).
-            Identify items that are likely to run out soon or are already low based on patterns.
-            History: {historyJson}
-            Inventory: {inventoryJson}
-            Respond ONLY with a JSON array of suggested items to buy, including estimated quantity and reason.
-            Format: [ {{ ""ItemName"": ""Milk"", ""Quantity"": 2, ""Reason"": ""Consumes 2 per week, current stock 0"" }} ]",
-        };
-
-        return await CallGeminiAsync(prompt);
-    }
-
-    private async Task<string?> CallGeminiAsync(string prompt)
-    {
-        var requestBody = new
-        {
-            contents = new[] { new { parts = new[] { new { text = prompt } } } },
-        };
-
-        var response = await _httpClient.PostAsJsonAsync(
-            $"{GeminiEndpoint}?key={_apiKey}",
-            requestBody
-        );
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            _logger.LogError(
-                "Gemini API error: {StatusCode} - {Error}",
-                response.StatusCode,
-                error
-            );
-            return null;
-        }
-
-        var json = await response.Content.ReadFromJsonAsync<GeminiResponse>();
-        var textResponse = json?.Candidates?[0]?.Content?.Parts?[0]?.Text;
-
-        return CleanJsonFromMarkdown(textResponse);
+        return CleanJsonFromMarkdown(response.Text);
     }
 
     private static string? CleanJsonFromMarkdown(string? text)
     {
-        if (string.IsNullOrEmpty(text))
-            return null;
-
+        if (string.IsNullOrEmpty(text)) return null;
         var cleaned = text.Trim();
-        if (cleaned.StartsWith("```json"))
-            cleaned = cleaned.Substring(7);
-        else if (cleaned.StartsWith("```"))
-            cleaned = cleaned.Substring(3);
-
+        if (cleaned.StartsWith("```json")) cleaned = cleaned.Substring(7);
+        else if (cleaned.StartsWith("```")) cleaned = cleaned.Substring(3);
         cleaned = cleaned.Trim();
-        if (cleaned.EndsWith("```"))
-            cleaned = cleaned.Substring(0, cleaned.Length - 3);
-
+        if (cleaned.EndsWith("```")) cleaned = cleaned.Substring(0, cleaned.Length - 3);
         return cleaned.Trim();
     }
-
-    private class GeminiResponse
-    {
-        [JsonPropertyName("candidates")]
-        public List<Candidate>? Candidates { get; set; }
-    }
-
-    private class Candidate
-    {
-        [JsonPropertyName("content")]
-        public Content? Content { get; set; }
-    }
-
-    private class Content
-    {
-        [JsonPropertyName("parts")]
-        public List<Part>? Parts { get; set; }
-    }
-
-    private class Part
-    {
-        [JsonPropertyName("text")]
-        public string? Text { get; set; }
-    }
-}
-
-public class ParsedVoiceAction
-{
-    public string ItemName { get; set; } = string.Empty;
-    public string Action { get; set; } = string.Empty;
-    public double Quantity { get; set; }
-    public string? Category { get; set; }
-}
-
-public class PantryItem
-{
-    public string ItemName { get; set; } = string.Empty;
-    public double Quantity { get; set; }
-    public string? Category { get; set; }
-    public double? Price { get; set; }
 }
