@@ -13,4 +13,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Ini" Version="10.0.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\HomeStoq.Contracts\HomeStoq.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>
