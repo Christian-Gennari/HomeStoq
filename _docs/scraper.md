@@ -11,10 +11,10 @@ The Keep Scraper is a C# Playwright-based automation service that monitors your 
 - Mark processed items as complete and delete them from the list
 
 **Architecture:**
-- Runs as a .NET `BackgroundService` (`KeepScraperWorker`)
+- Runs as a .NET `BackgroundService` (`GoogleKeepScraperWorker`)
 - Uses Playwright for Chromium browser automation
 - Persists browser session in `browser-profile/` directory
-- Communicates with HomeStoq API via HTTP POST
+- Communicates with HomeStoq API via HTTP POST using `HomeStoq.Contracts`
 
 ---
 
@@ -256,10 +256,10 @@ This approach is not currently implemented but is architecturally possible with 
 ## File Structure
 
 ```
-src/KeepScraper/
-├── KeepScraperWorker.cs    # Main BackgroundService implementation
-├── Program.cs              # Worker entry point, DI setup
-└── HomeStoq.KeepScraper.csproj
+src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/
+├── GoogleKeepScraperWorker.cs    # Main BackgroundService implementation
+├── Program.cs                    # Worker entry point, DI setup
+└── HomeStoq.Plugins.GoogleKeepScraper.csproj
 
-browser-profile/            # Persisted Chromium session (created at runtime)
+browser-profile/                  # Persisted Chromium session (created at runtime)
 ```

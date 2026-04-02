@@ -6,11 +6,11 @@
     "dev:docker": "concurrently --names \"API,SCRAPER\" --prefix-colors \"blue,green\" \"npm run api:docker\" \"npm run scraper\"",
     "api": "dotnet run --project src/HomeStoq.Server",
     "api:docker": "docker compose up",
-    "scraper": "dotnet run --project src/KeepScraper",
+    "scraper": "dotnet run --project src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper",
     "stop": "docker compose down",
     "clean": "node scripts/clean.js",
     "setup": "node scripts/setup.js",
-    "playwright:install": "dotnet exec --project src/KeepScraper Microsoft.Playwright.dll install",
+    "playwright:install": "dotnet exec --project src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper Microsoft.Playwright.dll install",
     "help": "node scripts/help.js"
   },
   "devDependencies": {

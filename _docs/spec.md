@@ -12,7 +12,7 @@ The application is built as a lightweight ASP.NET Core 10 application using Mini
 
 ### 1.1. Local Scraper (No user interaction required after first login)
 
-**keep-scraper (C# Playwright):** A .NET Worker that runs locally via `dotnet run --project src/KeepScraper`. Launches a visible Chromium browser, persists the session in `browser-profile/`. On first run, the user logs into Google Keep manually. Subsequent runs reuse the saved session.
+**GoogleKeepScraper (C# Playwright):** A .NET Worker that runs locally via `npm run scraper` (or `dotnet run --project src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper`). Launches a visible Chromium browser, persists the session in `browser-profile/`. On first run, the user logs into Google Keep manually. Subsequent runs reuse the saved session.
 
 **Polling Behavior:**
 - Polls every ~45 seconds (with ±15s random jitter to avoid pattern detection)
@@ -215,7 +215,7 @@ The SQLite database file is persisted via a mounted volume so data survives cont
 
 **Services:**
 - **homestoq:** The ASP.NET Core backend serving the web UI and API on port 5000.
-- **keep-scraper:** Runs locally via `dotnet run --project src/KeepScraper`. Uses a visible Chromium browser with persistent session.
+- **keep-scraper:** Runs locally via `npm run scraper` (or `dotnet run --project src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper`). Uses a visible Chromium browser with persistent session.
 
 Secrets are passed via `.env`.
 
@@ -229,28 +229,24 @@ Access the UI at `http://localhost`.
 
 ## 6. Project Structure
 
-```
 HomeStoq/
 ├── src/
-│   ├── HomeStoq.Server/
+│   ├── HomeStoq.Server/          # Main API and Web App
 │   │   ├── Program.cs
 │   │   ├── Services/
 │   │   │   └── GeminiService.cs
-│   │   ├── Repositories/
-│   │   │   └── InventoryRepository.cs
-│   │   ├── Models/
-│   │   │   ├── InventoryItem.cs
-│   │   │   ├── HistoryEntry.cs
-│   │   │   └── AiCacheEntry.cs
-│   │   └── wwwroot/
-│   │       ├── index.html
-│   │       ├── app.js
-│   │       └── style.css
-│   └── KeepScraper/
-│       ├── Program.cs
-│       ├── KeepScraperWorker.cs
-│       └── HomeStoq.KeepScraper.csproj
+│   │   └── Repositories/
+│   │       └── InventoryRepository.cs
+│   ├── HomeStoq.Contracts/       # Shared models and communication contracts
+│   │   ├── InventoryItem.cs
+│   │   ├── HistoryEntry.cs
+│   │   └── VoiceCommandRequest.cs
+│   └── HomeStoq.Plugins/         # Container for plugins and scrapers
+│       └── HomeStoq.Plugins.GoogleKeepScraper/
+│           ├── Program.cs
+│           └── GoogleKeepScraperWorker.cs
 ├── browser-profile/
+...
 ├── _docs/
 ├── config.ini
 ├── docker-compose.yml

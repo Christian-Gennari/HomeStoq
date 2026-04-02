@@ -31,7 +31,7 @@ try {
 }
 
 // 3. Check for Playwright browsers
-const scraperBin = path.join(__dirname, '..', 'src', 'KeepScraper', 'bin');
+const scraperBin = path.join(__dirname, '..', 'src', 'HomeStoq.Plugins', 'HomeStoq.Plugins.GoogleKeepScraper', 'bin');
 if (!fs.existsSync(scraperBin)) {
   console.log("");
   console.log(chalk.blue("Note: You will need to run 'npm run playwright:install' after your first build"));

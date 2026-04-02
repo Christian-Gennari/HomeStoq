@@ -90,7 +90,7 @@ Before you head to the store, check the **Smart List** tab.
 
 ## ❓ Troubleshooting
 - **Items not updating?** Check the logs in your Docker container or console.
-- **Voice sync not starting?** Make sure the scraper is running (`dotnet run --project src/KeepScraper`). If Google requires re-login, log in again in the browser window.
+- **Voice sync not starting?** Make sure the scraper is running (`npm run scraper` or `dotnet run --project src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper`). If Google requires re-login, log in again in the browser window.
 - **Voice sync not working?** Verify the `KeepListName` in `config.ini` matches your Google Keep list name (default: "inköpslistan").
 - **OCR failing?** Ensure your Gemini API key is valid and has not reached its quota.
 - **Scraper not polling during expected hours?** Check the `ActiveHours` setting in `config.ini`. The scraper only operates between the configured start and end hours (default: 07-23).
