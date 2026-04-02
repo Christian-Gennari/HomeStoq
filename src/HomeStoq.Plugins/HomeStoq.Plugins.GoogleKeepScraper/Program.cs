@@ -13,7 +13,18 @@ var builder = Host.CreateApplicationBuilder(args);
 var configIniPath = Path.Combine(Directory.GetCurrentDirectory(), "config.ini");
 if (!File.Exists(configIniPath))
 {
-    configIniPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "config.ini");
+    var current = new DirectoryInfo(Directory.GetCurrentDirectory());
+    while (current != null)
+    {
+        var candidate = Path.Combine(current.FullName, "config.ini");
+        if (File.Exists(candidate))
+        {
+            configIniPath = candidate;
+            break;
+        }
+
+        current = current.Parent;
+    }
 }
 builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: true);
 
