@@ -1,6 +1,7 @@
 using Dapper;
 using HomeStoq.Contracts;
 using Microsoft.Data.Sqlite;
+using System.ComponentModel;
 
 namespace HomeStoq.App.Repositories;
 
@@ -13,8 +14,6 @@ public class InventoryRepository
     {
         _logger = logger;
         
-        // Use environment variable first, then fallback to a safe fixed path.
-        // We avoid putting this in config.ini to prevent users from breaking Docker persistence.
         var fallbackPath = Path.Combine("data", "homestoq.db");
         if (Directory.GetCurrentDirectory().EndsWith("HomeStoq.App"))
         {
@@ -22,7 +21,6 @@ public class InventoryRepository
         }
         var dbPath = configuration["DATABASE_PATH"] ?? fallbackPath;
         
-        // Ensure directory exists for the database file
         var directory = Path.GetDirectoryName(dbPath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
@@ -110,7 +108,6 @@ public class InventoryRepository
         {
             using var connection = new SqliteConnection(_connectionString);
             var items = await connection.QueryAsync<InventoryItem>("SELECT * FROM Inventory ORDER BY ItemName");
-            _logger.LogDebug("Fetched {Count} inventory items.", items.Count());
             return items;
         }
         catch (Exception ex)
@@ -120,16 +117,47 @@ public class InventoryRepository
         }
     }
 
-    public async Task UpdateInventoryItemAsync(string itemName, double quantityChange, double? price = null, string? currency = null, string source = "Manual", string? category = null)
+    public async Task<int> CreateReceiptAsync(string storeName, double totalAmount)
     {
-        _logger.LogInformation("Updating inventory: {ItemName} ({Change}) via {Source} [Category: {Category}]", itemName, quantityChange, source, category ?? "N/A");
+        using var connection = new SqliteConnection(_connectionString);
+        var now = DateTime.UtcNow.ToString("O");
+        return await connection.QuerySingleAsync<int>(@"
+            INSERT INTO Receipts (Timestamp, StoreName, TotalAmountPaid)
+            VALUES (@Timestamp, @StoreName, @TotalAmountPaid);
+            SELECT last_insert_rowid();",
+            new { Timestamp = now, StoreName = storeName, TotalAmountPaid = totalAmount });
+    }
+
+    public async Task<IEnumerable<Receipt>> GetReceiptsAsync()
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        return await connection.QueryAsync<Receipt>("SELECT * FROM Receipts ORDER BY Timestamp DESC");
+    }
+
+    public async Task<IEnumerable<HistoryEntry>> GetReceiptItemsAsync(int receiptId)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        return await connection.QueryAsync<HistoryEntry>(
+            "SELECT * FROM History WHERE ReceiptId = @ReceiptId", new { ReceiptId = receiptId });
+    }
+
+    public async Task UpdateInventoryItemAsync(
+        string itemName, 
+        double quantityChange, 
+        double? price = null, 
+        string? currency = null, 
+        string source = "Manual", 
+        string? category = null, 
+        int? receiptId = null,
+        string? expandedName = null)
+    {
+        _logger.LogInformation("Updating inventory: {ItemName} ({Change}) via {Source}", itemName, quantityChange, source);
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         using var transaction = await connection.BeginTransactionAsync();
 
         try
         {
-            // Try exact match first, then case-insensitive
             var existingItem = await connection.QueryFirstOrDefaultAsync<InventoryItem>(
                 "SELECT * FROM Inventory WHERE ItemName = @ItemName COLLATE NOCASE", new { ItemName = itemName }, transaction);
 
@@ -139,31 +167,16 @@ public class InventoryRepository
 
             if (existingItem == null)
             {
-                if (quantityChange < 0)
-                {
-                    _logger.LogWarning("Attempted to remove non-existent item: {ItemName}", itemName);
-                    return;
-                }
+                if (quantityChange < 0) return;
 
                 await connection.ExecuteAsync(@"
                     INSERT INTO Inventory (ItemName, Quantity, Category, LastPrice, Currency, UpdatedAt)
                     VALUES (@ItemName, @Quantity, @Category, @LastPrice, @Currency, @UpdatedAt)",
                     new { ItemName = itemName, Quantity = quantityChange, Category = category, LastPrice = price, Currency = currency, UpdatedAt = now },
                     transaction);
-                _logger.LogInformation("Added new inventory item: {ItemName} with qty {Quantity}", itemName, quantityChange);
             }
             else
             {
-                var actualChange = quantityChange;
-                if (quantityChange < 0)
-                {
-                    // If removing more than we have, the actual change is just the current quantity
-                    if (Math.Abs(quantityChange) > existingItem.Quantity)
-                    {
-                        actualChange = -existingItem.Quantity;
-                    }
-                }
-
                 var newQuantity = Math.Max(0, existingItem.Quantity + quantityChange);
                 await connection.ExecuteAsync(@"
                     UPDATE Inventory 
@@ -175,31 +188,27 @@ public class InventoryRepository
                     WHERE ItemName = @ItemName",
                     new { ItemName = itemName, Quantity = newQuantity, Category = category, LastPrice = price, Currency = currency, UpdatedAt = now },
                     transaction);
-                _logger.LogInformation("Updated {ItemName}: {OldQty} -> {NewQty}", itemName, existingItem.Quantity, newQuantity);
-                
-                // Use actualChange for history logging
-                absQuantity = Math.Abs(actualChange);
             }
 
-            // Log to History
             await connection.ExecuteAsync(@"
-                INSERT INTO History (Timestamp, ItemName, Action, Quantity, Price, TotalPrice, Currency, Source)
-                VALUES (@Timestamp, @ItemName, @Action, @Quantity, @Price, @TotalPrice, @Currency, @Source)",
+                INSERT INTO History (Timestamp, ItemName, ExpandedName, Action, Quantity, Price, TotalPrice, Currency, Source, ReceiptId)
+                VALUES (@Timestamp, @ItemName, @ExpandedName, @Action, @Quantity, @Price, @TotalPrice, @Currency, @Source, @ReceiptId)",
                 new 
                 { 
                     Timestamp = now, 
-                    ItemName = itemName, 
+                    ItemName = itemName,
+                    ExpandedName = expandedName ?? itemName,
                     Action = action, 
                     Quantity = absQuantity, 
                     Price = price, 
                     TotalPrice = price.HasValue ? price.Value * absQuantity : (double?)null,
                     Currency = currency,
-                    Source = source
+                    Source = source,
+                    ReceiptId = receiptId
                 },
                 transaction);
 
             await transaction.CommitAsync();
-            _logger.LogDebug("Inventory update transaction committed for {ItemName}", itemName);
         }
         catch (Exception ex)
         {
@@ -211,66 +220,63 @@ public class InventoryRepository
 
     public async Task<IEnumerable<HistoryEntry>> GetHistoryAsync(int days = 30)
     {
-        try
+        using var connection = new SqliteConnection(_connectionString);
+        var cutoffDate = DateTime.UtcNow.AddDays(-days).ToString("O");
+        return await connection.QueryAsync<HistoryEntry>(
+            "SELECT * FROM History WHERE Timestamp >= @CutoffDate ORDER BY Timestamp DESC",
+            new { CutoffDate = cutoffDate });
+    }
+
+    // AI Tool Methods
+    [Description("Gets the current stock level for a specific item.")]
+    public async Task<double> GetStockLevel(string itemName)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        return await connection.QueryFirstOrDefaultAsync<double>(
+            "SELECT Quantity FROM Inventory WHERE ItemName = @ItemName COLLATE NOCASE", new { ItemName = itemName });
+    }
+
+    [Description("Gets the full list of items currently in the inventory and their quantities.")]
+    public async Task<IEnumerable<InventoryItem>> GetFullInventory()
+    {
+        return await GetInventoryAsync();
+    }
+
+    [Description("Gets the consumption/purchase history for the last X days, optionally filtered by category.")]
+    public async Task<IEnumerable<HistoryEntry>> GetConsumptionHistory(int days, string? category = null)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        var cutoffDate = DateTime.UtcNow.AddDays(-days).ToString("O");
+        var query = "SELECT h.* FROM History h ";
+        if (!string.IsNullOrEmpty(category))
         {
-            using var connection = new SqliteConnection(_connectionString);
-            var cutoffDate = DateTime.UtcNow.AddDays(-days).ToString("O");
-            var history = await connection.QueryAsync<HistoryEntry>(
-                "SELECT * FROM History WHERE Timestamp >= @CutoffDate ORDER BY Timestamp DESC",
-                new { CutoffDate = cutoffDate });
-            _logger.LogDebug("Fetched {Count} history entries for last {Days} days.", history.Count(), days);
-            return history;
+            query += "JOIN Inventory i ON h.ItemName = i.ItemName WHERE i.Category = @Category AND h.Timestamp >= @CutoffDate ";
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogError(ex, "Error fetching history for last {Days} days.", days);
-            throw;
+            query += "WHERE h.Timestamp >= @CutoffDate ";
         }
+        query += "ORDER BY h.Timestamp DESC";
+        
+        return await connection.QueryAsync<HistoryEntry>(query, new { CutoffDate = cutoffDate, Category = category });
     }
 
     public async Task<string?> GetAiCacheAsync(string cacheKey)
     {
-        try
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            var now = DateTime.UtcNow.ToString("O");
-            var response = await connection.QueryFirstOrDefaultAsync<string>(
-                "SELECT Response FROM AiCache WHERE CacheKey = @CacheKey AND ExpiresAt > @Now",
-                new { CacheKey = cacheKey, Now = now });
-            
-            if (response != null) _logger.LogDebug("AI Cache HIT for key {CacheKey}", cacheKey);
-            else _logger.LogDebug("AI Cache MISS for key {CacheKey}", cacheKey);
-            
-            return response;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error reading from AI Cache.");
-            return null;
-        }
+        using var connection = new SqliteConnection(_connectionString);
+        var now = DateTime.UtcNow.ToString("O");
+        return await connection.QueryFirstOrDefaultAsync<string>(
+            "SELECT Response FROM AiCache WHERE CacheKey = @CacheKey AND ExpiresAt > @Now",
+            new { CacheKey = cacheKey, Now = now });
     }
 
     public async Task SetAiCacheAsync(string cacheKey, string response, TimeSpan ttl)
     {
-        try
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            var now = DateTime.UtcNow;
-            await connection.ExecuteAsync(@"
-                INSERT OR REPLACE INTO AiCache (CacheKey, Response, CreatedAt, ExpiresAt)
-                VALUES (@CacheKey, @Response, @CreatedAt, @ExpiresAt)",
-                new 
-                { 
-                    CacheKey = cacheKey, 
-                    Response = response, 
-                    CreatedAt = now.ToString("O"), 
-                    ExpiresAt = now.Add(ttl).ToString("O") 
-                });
-            _logger.LogDebug("Saved AI response to cache with key {CacheKey} (TTL: {TTL})", cacheKey, ttl);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error writing to AI Cache.");
-        }
+        using var connection = new SqliteConnection(_connectionString);
+        var now = DateTime.UtcNow;
+        await connection.ExecuteAsync(@"
+            INSERT OR REPLACE INTO AiCache (CacheKey, Response, CreatedAt, ExpiresAt)
+            VALUES (@CacheKey, @Response, @CreatedAt, @ExpiresAt)",
+            new { CacheKey = cacheKey, Response = response, CreatedAt = now.ToString("O"), ExpiresAt = now.Add(ttl).ToString("O") });
     }
 }
