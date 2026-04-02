@@ -5,6 +5,8 @@ using HomeStoq.Contracts;
 using HomeStoq.App.Repositories;
 using HomeStoq.App.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.AI;
+using Google.GenAI;
 
 // Load environment variables from .env if present (searching up to project root)
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
@@ -31,11 +33,19 @@ if (!string.IsNullOrEmpty(hostUrl))
     builder.WebHost.UseUrls(hostUrl);
 }
 
+// Register AI Client
+var apiKey = builder.Configuration["GEMINI_API_KEY"] ?? throw new InvalidOperationException("GEMINI_API_KEY not configured");
+var modelId = builder.Configuration["GEMINI_MODEL"] ?? "gemini-2.0-flash";
+var googleClient = new Client(apiKey: apiKey);
+builder.Services.AddSingleton<IChatClient>(sp =>
+    googleClient.AsIChatClient(modelId)
+        .AsBuilder()
+        .UseFunctionInvocation()
+        .Build());
+
 builder.Services.AddSingleton<InventoryRepository>();
-builder.Services.AddHttpClient<GeminiService>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+builder.Services.AddSingleton<GeminiService>();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
@@ -108,13 +118,18 @@ app.MapPost(
                 itemNames
             );
 
-            if (items == null)
+            if (items == null || !items.Any())
             {
                 logger.LogWarning("Gemini failed to process the receipt image.");
                 return Results.Problem("Gemini failed to process the image.");
             }
 
-            logger.LogInformation("Gemini identified {Count} items from receipt.", items.Count);
+            var storeName = "Mataffär";
+            var totalAmount = items.Sum(i => i.Price ?? 0);
+            var receiptId = await repository.CreateReceiptAsync(storeName, totalAmount);
+
+            logger.LogInformation("Gemini identified {Count} items from receipt. Saved as Receipt #{Id}", items.Count, receiptId);
+            
             foreach (var item in items)
             {
                 await repository.UpdateInventoryItemAsync(
@@ -122,7 +137,9 @@ app.MapPost(
                     item.Quantity,
                     item.Price,
                     source: "Receipt",
-                    category: item.Category
+                    category: item.Category,
+                    receiptId: receiptId,
+                    expandedName: item.ExpandedName
                 );
             }
 
@@ -130,6 +147,24 @@ app.MapPost(
         }
     )
     .DisableAntiforgery();
+
+app.MapGet("/api/receipts", async (InventoryRepository repository) => 
+{
+    var receipts = await repository.GetReceiptsAsync();
+    return Results.Ok(receipts);
+});
+
+app.MapGet("/api/receipts/{id}/items", async (int id, InventoryRepository repository) => 
+{
+    var items = await repository.GetReceiptItemsAsync(id);
+    return Results.Ok(items);
+});
+
+app.MapPost("/api/chat", async (ChatRequest request, GeminiService gemini) => 
+{
+    var response = await gemini.ChatAsync(request.Message, request.History);
+    return Results.Ok(response);
+});
 
 app.MapGet(
     "/api/insights/shopping-list",
