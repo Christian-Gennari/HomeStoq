@@ -1,6 +1,6 @@
 # HomeStoq 🏠🍎
 
-**HomeStoq** is a lightweight, AI-powered pantry management system designed to run on a local network. It helps you track inventory effortlessly using receipt scanning, voice commands via Google Keep, and predictive analysis to generate smart shopping lists.
+**HomeStoq** is a lightweight, AI-powered pantry management system designed to run on a local network. It helps you track inventory effortlessly using receipt scanning, voice commands via Google Keep, predictive analysis to generate smart shopping lists, and a conversational AI chatbot to query your pantry.
 
 ---
 
@@ -13,17 +13,19 @@
 ## 🚀 Features
 
 -   **Stock Tracking**: Real-time view of your pantry items with manual override.
--   **Receipt OCR**: Snap a photo of your grocery receipt or upload a PDF/Image, and HomeStoq (powered by Gemini 3.1 Flash) will automatically extract items, quantities, and prices to update your inventory.
+-   **Receipt OCR**: Snap a photo of your grocery receipt or upload a PDF/Image, and HomeStoq (powered by Gemini) will automatically extract items, quantities, and prices to update your inventory.
 -   **Voice Sync**: Integrate with Google Keep using a C# Playwright scraper. Simply say "slut på ägg" or "köpte mjölk" to your Google Nest Mini, and the keep-scraper service will process the change from your "inköpslistan" list.
+-   **AI Pantry Chatbot**: Ask questions about your pantry in natural language. The chatbot uses function calling to query stock levels, consumption history, and more — all through a sleek slide-over chat UI.
 -   **Smart Shopping List**: Predictive analysis based on your 30-day consumption history and current stock levels to suggest what you need to buy next.
+-   **Receipts History**: View all past scanned receipts with expandable item details and total spent.
 -   **Privacy-First**: Runs locally in Docker with a SQLite database.
 
 ## 🛠 Tech Stack
 
 -   **Backend**: ASP.NET Core 10 (Minimal APIs)
 -   **Database**: SQLite (Dapper)
--   **AI Engine**: Google Gemini 3.1 Flash (OCR, Parsing, Prediction)
--   **Frontend**: Vanilla HTML5, CSS3, and JavaScript (No heavy frameworks)
+-   **AI Engine**: Google Gemini (OCR, Parsing, Prediction, Chat) via `Google.GenAI` + `Microsoft.Extensions.AI` (`IChatClient`)
+-   **Frontend**: Vanilla HTML5, CSS3, JavaScript with Alpine.js (lightweight reactivity)
 -   **Voice Queue**: Google Keep (via C# Playwright scraper)
 -   **Containerization**: Docker (Alpine Linux)
 
@@ -78,9 +80,11 @@ npm run playwright:install
 For a detailed, day-to-day guide on how to use HomeStoq effectively, check out our **[Practical Usage Guide (USAGE.md)](USAGE.md)**.
 
 1.  **Inventory**: Use the "Stock" tab to see what you have. Use the `+` and `-` buttons for manual adjustments.
-2.  **Scan Receipts**: Go to the "Scan" tab. You can either take a photo directly or upload a file (PDF/Image). Tap **Scan & Analyze**, and Gemini will process the receipt and update your inventory.
+2.  **Scan Receipts**: Go to the "Scan" tab. You can either take a photo directly or upload a file (PDF/Image). Tap **Process with Gemini**, and Gemini will process the receipt and update your inventory.
 3.  **Voice Commands**: Add items to your Google Keep list (default: "inköpslistan") like "slut på mjölk" or "köpte 5 äpplen". The keep-scraper polls every ~45 seconds (with jitter), parses the text via the API, updates the stock, and deletes the processed item from your list.
-4.  **Shopping List**: Click "Analyze Patterns" in the "Smart List" tab to see AI-generated suggestions based on your history.
+4.  **AI Chat**: Click the "Chat" button in the nav to open the pantry assistant. Ask about stock levels, consumption history, or anything related to your pantry — the AI uses function calling to query your data in real time.
+5.  **Shopping List**: Click "Generate List" in the "List" tab to see AI-generated suggestions based on your history.
+6.  **Receipts History**: View all your past scanned receipts, expand to see individual items and total spent.
 
 ## 📝 License
 MIT License. See [LICENSE](LICENSE) for details.

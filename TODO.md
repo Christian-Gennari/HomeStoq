@@ -61,6 +61,27 @@ A prioritized list of enhancements and future work for HomeStoq.
 
 ## General Enhancements
 
+### Completed
+
+#### AI Chat with Function Calling
+**Status:** ✅ Complete
+
+The pantry chatbot is fully implemented with:
+- `IChatClient` via `Microsoft.Extensions.AI` + `Google.GenAI`
+- Function invocation middleware (`.UseFunctionInvocation()`)
+- Three registered tools: `GetStockLevel`, `GetFullInventory`, `GetConsumptionHistory`
+- `/api/chat` endpoint with conversation history
+- Alpine.js slide-over chat UI with message history
+
+#### Receipts History & Chain-of-Thought OCR
+**Status:** ✅ Complete
+
+- `Receipts` table with `ReceiptId` FK on `History`
+- Chain-of-thought prompt: `ReceiptText` → `ExpandedName` → `ItemName`
+- `/api/receipts/scan` creates Receipt first, then links items
+- Receipts history view with expandable item details
+- `ExpandedName` column for preserving full product names
+
 ### Medium Priority
 
 #### Push Notifications
