@@ -22,8 +22,23 @@ builder.Configuration.AddIniFile(
 builder.Configuration.AddJsonFile("appsettings.json", optional: true);
 builder.Configuration.AddEnvironmentVariables();
 
+// Determine browser mode: "RemoteDebugging" (default, secure) or "Playwright" (fallback)
+var browserMode = builder.Configuration["GoogleKeepScraper:BrowserMode"]?.ToLowerInvariant() ?? "remotedebugging";
+
 builder.Services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromSeconds(30) });
-builder.Services.AddSingleton<IBrowserService, PlaywrightBrowserService>();
+
+if (browserMode == "playwright")
+{
+    builder.Services.AddSingleton<IBrowserService, PlaywrightBrowserService>();
+    Console.WriteLine("[INFO] Using Playwright browser mode (fallback)");
+}
+else
+{
+    builder.Services.AddSingleton<IBrowserService, CdpBrowserService>();
+    Console.WriteLine("[INFO] Using Remote Debugging browser mode (default, secure)");
+    Console.WriteLine("[INFO] Chrome will be launched automatically with remote debugging enabled");
+}
+
 builder.Services.AddTransient<IKeepListProcessor, KeepListProcessor>();
 builder.Services.AddHostedService<GoogleKeepScraperWorker>();
 
