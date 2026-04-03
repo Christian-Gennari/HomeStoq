@@ -34,10 +34,10 @@ public class GoogleKeepScraperWorker : BackgroundService
         var listNamesConfig = config["Voice:KeepListName"] ?? "inköpslistan";
         _listNames = listNamesConfig.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         
-        _pollIntervalSeconds = int.Parse(config["Scraper:PollIntervalSeconds"] ?? "45");
-        _pollIntervalJitterSeconds = int.Parse(config["Scraper:PollIntervalJitterSeconds"] ?? "15");
+        _pollIntervalSeconds = int.Parse(config["GoogleKeepScraper:PollIntervalSeconds"] ?? "45");
+        _pollIntervalJitterSeconds = int.Parse(config["GoogleKeepScraper:PollIntervalJitterSeconds"] ?? "15");
 
-        var activeHours = config["Scraper:ActiveHours"] ?? "07-23";
+        var activeHours = config["GoogleKeepScraper:ActiveHours"] ?? "07-23";
         var parts = activeHours.Split('-', StringSplitOptions.TrimEntries);
         if (parts.Length == 2 && int.TryParse(parts[0], out var start) && int.TryParse(parts[1], out var end))
         {
@@ -185,7 +185,7 @@ public class GoogleKeepScraperWorker : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Stopping GoogleKeepScraper...");
+        _logger.LogInformation("Stopping GoogleKeepScraper and closing browser...");
 
         await _browserService.CloseBrowserAsync();
 
