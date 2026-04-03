@@ -1,12 +1,9 @@
 using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
 namespace HomeStoq.Contracts;
 
-public record ChatRequestDto
-{
-    [JsonPropertyName("message")]
-    public string Message { get; init; } = "";
-    
-    [JsonPropertyName("history")]
-    public List<ChatHistoryMessageDto>? History { get; init; }
-}
+public record ChatRequestDto(
+    [property: JsonPropertyName("message")] string Message = "",
+    [property: JsonPropertyName("history")] List<ChatHistoryMessageDto>? History = null
+);

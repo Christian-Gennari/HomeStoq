@@ -95,7 +95,10 @@ public class GeminiService
                 ? $"Current Inventory Items (use these names to match): {string.Join(", ", existingItems)}"
                 : "";
 
-        var systemPrompt = _promptProvider.GetProcessReceiptImagePrompt(_language, inventoryContext);
+        var systemPrompt = _promptProvider.GetProcessReceiptImagePrompt(
+            _language,
+            inventoryContext
+        );
 
         var response = await _chatClient.GetResponseAsync(
             [
@@ -132,7 +135,7 @@ public class GeminiService
         }
     }
 
-    public async Task<Contracts.ChatResponseDto> ChatAsync(
+    public async Task<ChatResponseDto> ChatAsync(
         string userMessage,
         List<ChatHistoryMessageDto>? history = null
     )
@@ -178,7 +181,7 @@ public class GeminiService
             clientHistory.Add(new ChatHistoryMessageDto("assistant", replyText));
         }
 
-        return new HomeStoq.Contracts.ChatResponseDto { Reply = replyText, History = clientHistory };
+        return new ChatResponseDto { Reply = replyText, History = clientHistory };
     }
 
     public async Task<string?> GenerateShoppingListAsync(string historyJson, string inventoryJson)
