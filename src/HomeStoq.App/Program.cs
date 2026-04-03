@@ -75,5 +75,6 @@ app.UseStaticFiles();
 app.MapInventoryEndpoints();
 app.MapReceiptEndpoints();
 app.MapAiEndpoints();
+app.MapShoppingListEndpoints();
 
 app.Run();
