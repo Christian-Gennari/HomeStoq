@@ -175,7 +175,7 @@ Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammal
     {
         var messages = new List<ChatMessage>();
         var systemPrompt = _language == "Swedish"
-            ? @"Du är en hjälpsam assistent för HomeStoq-skafferiet. Använd de tillgängliga verktygen för att svara på frågor om lager och historik. Svara alltid på svenska.
+            ? @"Du är en hjälpsam assistent för HomeStoq-skafferiet. Du kan svara på frågor, föra konversationer och komma ihåg tidigare meddelanden i denna chatt. För frågor om lagersaldo och konsumtionshistorik, använd de tillgängliga verktygen. Svara alltid på svenska.
 
 SVARFORMAT:
 - För listor och historik, använd ALLTID ett streck-prefix per rad, aldrig en lång sammanhängande text.
@@ -184,7 +184,7 @@ SVARFORMAT:
 - Om du visar lager: ""- [Produkt]: [Antal] st""
 - Håll svar korta och läsbara. Max 10 rader per kategori.
 - För övriga frågor, svara kort och direkt."
-            : @"You are a helpful assistant for the HomeStoq pantry. Use the available tools to answer questions about stock and history.
+            : @"You are a helpful assistant for the HomeStoq pantry. You can answer questions, have conversations, and remember previous messages in this chat. For questions about stock levels and consumption history, use the available tools.
 
 RESPONSE FORMAT:
 - For list and history, ALWAYS use dash-prefixed lines, NEVER a single long paragraph.
@@ -200,6 +200,12 @@ RESPONSE FORMAT:
         {
             foreach (var msg in history)
             {
+                // Skip initial assistant greeting - Gemini requires history to start with user message
+                if (messages.Count == 1 && msg.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 var role = msg.Role.ToLowerInvariant() switch
                 {
                     "user" => ChatRole.User,
@@ -223,7 +229,11 @@ RESPONSE FORMAT:
             clientHistory.Add(new ChatHistoryMessage("assistant", replyText));
         }
 
-        return new HomeStoq.Contracts.ChatResponse(replyText, clientHistory);
+        return new HomeStoq.Contracts.ChatResponse
+        {
+            Reply = replyText,
+            History = clientHistory
+        };
     }
 
     public async Task<string?> GenerateShoppingListAsync(string historyJson, string inventoryJson)
