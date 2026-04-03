@@ -17,6 +17,7 @@ public class PlaywrightBrowserService : IBrowserService
 
     private readonly string _profileDir;
     public bool IsOnKeepPage { get; set; }
+    public bool IsConnected => _page != null && _browserContext != null;
 
     public PlaywrightBrowserService(ILogger<PlaywrightBrowserService> logger)
     {
@@ -165,7 +166,7 @@ public class PlaywrightBrowserService : IBrowserService
 
         for (var i = 0; i < 600; i++)
         {
-            await DelayAsync(3000);
+            await BrowserUtils.DelayAsync(3000);
             if (IsLoggedIn())
             {
                 _logger.LogInformation("Login detected! Session saved.");
@@ -191,11 +192,11 @@ public class PlaywrightBrowserService : IBrowserService
                 return;
 
             _logger.LogDebug("Waiting for Keep to load... (attempt {Attempt})", i + 1);
-            await DelayAsync(2000);
+            await BrowserUtils.DelayAsync(2000);
         }
 
         _logger.LogWarning("Keep did not load within timeout");
-        await TakeScreenshotAsync("keep-not-loaded.png");
+        await BrowserUtils.TakeScreenshotAsync(_page, "keep-not-loaded.png", _profileDir, _logger);
     }
 
     public async Task PerformRandomActivityAsync()
@@ -215,7 +216,7 @@ public class PlaywrightBrowserService : IBrowserService
                 _logger.LogDebug("  Navigating to Reminders tab...");
                 var reminders = _page.GetByText("Reminders").Or(_page.GetByText("Påminnelser")).First;
                 if (await reminders.IsVisibleAsync()) await reminders.ClickAsync();
-                await HumanDelayAsync(2000, 1000);
+                await BrowserUtils.HumanDelayAsync(2000, 1000);
                 var notes = _page.GetByText("Notes").Or(_page.GetByText("Anteckningar")).First;
                 if (await notes.IsVisibleAsync()) await notes.ClickAsync();
                 break;
@@ -223,7 +224,7 @@ public class PlaywrightBrowserService : IBrowserService
                 // Just scroll a bit
                 _logger.LogDebug("  Scrolling page...");
                 await _page.Mouse.WheelAsync(0, _random.Next(100, 500));
-                await HumanDelayAsync(1500, 500);
+                await BrowserUtils.HumanDelayAsync(1500, 500);
                 await _page.Mouse.WheelAsync(0, -_random.Next(100, 500));
                 break;
             case 2:
@@ -234,13 +235,13 @@ public class PlaywrightBrowserService : IBrowserService
                 if (count > 0)
                 {
                     var index = _random.Next(0, Math.Min(count, 5));
-                    await MoveMouseToElementAsync(noteCards.Nth(index));
-                    await HumanDelayAsync(800, 300);
+                    await BrowserUtils.MoveMouseToElementAsync(_page, noteCards.Nth(index));
+                    await BrowserUtils.HumanDelayAsync(800, 300);
                 }
                 break;
         }
         
-        await HumanDelayAsync(1000, 500);
+        await BrowserUtils.HumanDelayAsync(1000, 500);
     }
 
     public async Task RecoverAsync()
@@ -253,7 +254,7 @@ public class PlaywrightBrowserService : IBrowserService
             {
                 await _page.GotoAsync("https://keep.google.com", new() { WaitUntil = WaitUntilState.Load });
                 IsOnKeepPage = true;
-                await HumanDelayAsync(2000, 500);
+                await BrowserUtils.HumanDelayAsync(2000, 500);
 
                 if (IsLoggedIn())
                 {
@@ -293,60 +294,5 @@ public class PlaywrightBrowserService : IBrowserService
         }
 
         _playwright?.Dispose();
-    }
-
-    private async Task HumanDelayAsync(int baseMs, int jitterMs = 500)
-    {
-        var delay = baseMs + _random.Next(-jitterMs, jitterMs);
-        delay = Math.Max(100, delay);
-        await Task.Delay(delay);
-    }
-
-    private async Task DelayAsync(int baseMs)
-    {
-        var jitter = (int)(baseMs * 0.15);
-        var delay = baseMs + _random.Next(-jitter, jitter);
-        delay = Math.Max(100, delay);
-        await Task.Delay(delay);
-    }
-
-    private async Task MoveMouseToElementAsync(ILocator element)
-    {
-        if (_page == null) return;
-
-        var box = await element.BoundingBoxAsync();
-        if (box == null) return;
-
-        var startX = _random.Next(100, 300);
-        var startY = _random.Next(100, 300);
-        await _page.Mouse.MoveAsync(startX, startY);
-
-        var steps = _random.Next(8, 15);
-        for (var i = 1; i <= steps; i++)
-        {
-            var t = (double)i / steps;
-            var ease = t * t * (3 - 2 * t);
-            var x = startX + (box.X + box.Width / 2 - startX) * ease + _random.Next(-5, 5);
-            var y = startY + (box.Y + box.Height / 2 - startY) * ease + _random.Next(-5, 5);
-            await _page.Mouse.MoveAsync((float)x, (float)y);
-            await Task.Delay(_random.Next(8, 25));
-        }
-
-        await _page.Mouse.MoveAsync((float)(box.X + box.Width / 2), (float)(box.Y + box.Height / 2));
-        await Task.Delay(_random.Next(100, 400));
-    }
-
-    private async Task TakeScreenshotAsync(string filename)
-    {
-        try
-        {
-            var path = Path.Combine(_profileDir, filename);
-            await _page!.ScreenshotAsync(new() { Path = path });
-            _logger.LogInformation("Screenshot saved to {Path}", path);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to take screenshot");
-        }
     }
 }
