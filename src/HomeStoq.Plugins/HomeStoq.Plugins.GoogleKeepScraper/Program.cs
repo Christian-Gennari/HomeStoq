@@ -1,6 +1,6 @@
 using System;
 using System.Net.Http;
-using HomeStoq.Contracts.SharedUtils;
+using HomeStoq.Shared.Utils;
 using HomeStoq.Plugins.GoogleKeepScraper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\HomeStoq.Contracts\HomeStoq.Contracts.csproj" />
+    <ProjectReference Include="..\HomeStoq.Shared\HomeStoq.Shared.csproj" />
   </ItemGroup>
 
 </Project>

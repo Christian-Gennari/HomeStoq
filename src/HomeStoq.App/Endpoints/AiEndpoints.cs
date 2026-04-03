@@ -1,7 +1,7 @@
 using HomeStoq.App.Repositories;
 using HomeStoq.App.Services;
 using HomeStoq.App.Utils;
-using HomeStoq.Contracts;
+using HomeStoq.Shared.DTOs;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

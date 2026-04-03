@@ -1,6 +1,6 @@
 using System;
 
-namespace HomeStoq.Contracts;
+namespace HomeStoq.Shared.DTOs;
 
 public record InventoryItemDto(
     int Id = 0,

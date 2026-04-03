@@ -1,5 +1,5 @@
 using Microsoft.Playwright;
-using HomeStoq.Contracts;
+using HomeStoq.Shared.DTOs;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Http;

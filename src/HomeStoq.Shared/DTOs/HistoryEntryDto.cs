@@ -1,6 +1,6 @@
 using System;
 
-namespace HomeStoq.Contracts;
+namespace HomeStoq.Shared.DTOs;
 
 public record HistoryEntryDto(
     int Id = 0,

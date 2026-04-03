@@ -1,6 +1,6 @@
 using System.Text.Json;
 using HomeStoq.App.Repositories;
-using HomeStoq.Contracts;
+using HomeStoq.Shared.DTOs;
 using Microsoft.Extensions.AI;
 
 namespace HomeStoq.App.Services;

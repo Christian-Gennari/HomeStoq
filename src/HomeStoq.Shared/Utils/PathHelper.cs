@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace HomeStoq.Contracts.SharedUtils;
+namespace HomeStoq.Shared.Utils;
 
 public static class PathHelper
 {

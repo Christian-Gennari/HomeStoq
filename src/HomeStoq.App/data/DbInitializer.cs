@@ -1,5 +1,5 @@
 using Dapper;
-using HomeStoq.Contracts.SharedUtils;
+using HomeStoq.Shared.Utils;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using System;
@@ -103,7 +103,7 @@ public class DbInitializer
             if (count == 0)
             {
                 _logger.LogInformation("Database is empty. Seeding with initial data.");
-                var seedFile = System.IO.Path.Combine(HomeStoq.Contracts.SharedUtils.PathHelper.RepoRoot, "data", "seed.sql");
+                var seedFile = System.IO.Path.Combine(HomeStoq.Shared.Utils.PathHelper.RepoRoot, "data", "seed.sql");
                 if (System.IO.File.Exists(seedFile))
                 {
                     var sql = System.IO.File.ReadAllText(seedFile);

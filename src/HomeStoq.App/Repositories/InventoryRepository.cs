@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Dapper;
-using HomeStoq.Contracts;
-using HomeStoq.Contracts.SharedUtils;
+using HomeStoq.Shared.DTOs;
+using HomeStoq.Shared.Utils;
 using Microsoft.Data.Sqlite;
 
 namespace HomeStoq.App.Repositories;

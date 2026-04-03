@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{07D5
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeStoq.Plugins.GoogleKeepScraper", "src\HomeStoq.Plugins\HomeStoq.Plugins.GoogleKeepScraper\HomeStoq.Plugins.GoogleKeepScraper.csproj", "{1162264F-B06E-4FD5-9B19-DDDE2A33189B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeStoq.Contracts", "src\HomeStoq.Contracts\HomeStoq.Contracts.csproj", "{68F16559-E6BB-4B94-9273-B5D1457CF984}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeStoq.Shared", "src\HomeStoq.Shared\HomeStoq.Shared.csproj", "{68F16559-E6BB-4B94-9273-B5D1457CF984}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

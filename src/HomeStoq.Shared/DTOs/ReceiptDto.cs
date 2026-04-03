@@ -1,4 +1,4 @@
-namespace HomeStoq.Contracts;
+namespace HomeStoq.Shared.DTOs;
 
 public record ReceiptDto(
     long Id = 0,
