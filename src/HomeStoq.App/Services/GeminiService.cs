@@ -171,7 +171,7 @@ Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammal
         }
     }
 
-    public async Task<HomeStoq.Contracts.ChatResponse> ChatAsync(string userMessage, List<ChatMessage>? history = null)
+    public async Task<HomeStoq.Contracts.ChatResponse> ChatAsync(string userMessage, List<ChatHistoryMessage>? history = null)
     {
         var messages = new List<ChatMessage>();
         var systemPrompt = _language == "Swedish"
@@ -187,7 +187,7 @@ SVARFORMAT:
             : @"You are a helpful assistant for the HomeStoq pantry. Use the available tools to answer questions about stock and history.
 
 RESPONSE FORMAT:
-- For lists and history, ALWAYS use dash-prefixed lines, NEVER a single long paragraph.
+- For list and history, ALWAYS use dash-prefixed lines, NEVER a single long paragraph.
 - Format each line as: ""- [Date]: [Product] x[Qty] ([Price] kr)"" or ""- [Product] x[Qty]"".
 - Sort chronologically with newest first.
 - When showing stock: ""- [Product]: [Qty] pcs""
@@ -195,17 +195,35 @@ RESPONSE FORMAT:
 - For other questions, answer briefly and directly.";
 
         messages.Add(new ChatMessage(ChatRole.System, systemPrompt));
-        if (history != null) messages.AddRange(history);
+        
+        if (history != null)
+        {
+            foreach (var msg in history)
+            {
+                var role = msg.Role.ToLowerInvariant() switch
+                {
+                    "user" => ChatRole.User,
+                    "assistant" => ChatRole.Assistant,
+                    _ => ChatRole.User
+                };
+                messages.Add(new ChatMessage(role, msg.Text));
+            }
+        }
+
         messages.Add(new ChatMessage(ChatRole.User, userMessage));
 
         var response = await _chatClient.GetResponseAsync(messages, _chatOptions);
         
-        var updatedHistory = messages.ToList();
-        foreach(var msg in response.Messages) {
-            updatedHistory.Add(msg);
+        var clientHistory = history?.ToList() ?? new List<ChatHistoryMessage>();
+        clientHistory.Add(new ChatHistoryMessage("user", userMessage));
+        
+        var replyText = response.Text ?? "";
+        if (!string.IsNullOrEmpty(replyText))
+        {
+            clientHistory.Add(new ChatHistoryMessage("assistant", replyText));
         }
 
-        return new HomeStoq.Contracts.ChatResponse(response.Text ?? "", updatedHistory);
+        return new HomeStoq.Contracts.ChatResponse(replyText, clientHistory);
     }
 
     public async Task<string?> GenerateShoppingListAsync(string historyJson, string inventoryJson)

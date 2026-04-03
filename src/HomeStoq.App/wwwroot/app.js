@@ -287,12 +287,14 @@ function pantryApp() {
 
       const userMsg = this.chatInput.trim();
       this.chatInput = "";
+      
+      // Update local history immediately for UX
       this.chatHistory.push({ id: Date.now(), role: "user", content: userMsg });
       this.chatLoading = true;
 
       this.$nextTick(() => {
         const box = this.$refs.chatBox;
-        box.scrollTop = box.scrollHeight;
+        if (box) box.scrollTop = box.scrollHeight;
       });
 
       try {
@@ -301,30 +303,47 @@ function pantryApp() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
             message: userMsg, 
-            history: this.chatHistory.map(m => ({ role: m.role, content: m.content })) 
+            // Send history BEFORE this new message (server adds it)
+            // Map to 'text' property which aligns with ChatMessage.Text
+            history: this.chatHistory.slice(0, -1).map(m => ({ 
+              role: m.role, 
+              text: m.content 
+            })) 
           })
         });
 
         if (res.ok) {
           const data = await res.json();
-          this.chatHistory.push({ id: Date.now(), role: "assistant", content: data.reply });
-          if (data.reply.toLowerCase().includes("uppdaterat") || data.reply.toLowerCase().includes("updated")) {
+          
+          // Re-sync local history with the server's official version
+          if (data.history) {
+            this.chatHistory = data.history
+              .filter(m => m.role !== 'system')
+              .map((m, i) => ({
+                id: Date.now() + i,
+                role: m.role,
+                content: m.text || ""
+              }));
+          }
+
+          if (data.reply && (data.reply.toLowerCase().includes("uppdaterat") || data.reply.toLowerCase().includes("updated"))) {
             this.refreshInventory();
           }
         } else {
           throw new Error("Chat failed");
         }
       } catch (e) {
+        console.error("Chat error:", e);
         this.chatHistory.push({ 
           id: Date.now(), 
           role: "assistant", 
-          content: "Sorry, I encountered an error. Please try again." 
+          content: this.language === "Swedish" ? "Tyvärr uppstod ett fel. Försök igen." : "Sorry, I encountered an error. Please try again." 
         });
       } finally {
         this.chatLoading = false;
         this.$nextTick(() => {
           const box = this.$refs.chatBox;
-          box.scrollTop = box.scrollHeight;
+          if (box) box.scrollTop = box.scrollHeight;
         });
       }
     },

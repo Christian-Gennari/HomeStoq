@@ -46,6 +46,11 @@ builder.Services.AddSingleton<InventoryRepository>();
 builder.Services.AddSingleton<GeminiService>();
 builder.Services.AddHttpClient();
 
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
+});
+
 var app = builder.Build();
 
 // Eagerly initialize the database repository on startup
