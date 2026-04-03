@@ -13,5 +13,6 @@ public interface IBrowserService
     Task PerformRandomActivityAsync();
     Task RecoverAsync();
     bool IsOnKeepPage { get; set; }
+    bool IsConnected { get; }
     bool IsLoggedIn();
 }
