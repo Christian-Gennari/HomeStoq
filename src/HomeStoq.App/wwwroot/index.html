@@ -183,38 +183,235 @@
                 </section>
             </template>
 
-            <!-- View: Smart List -->
+            <!-- View: Inköpslistor (Shopping Lists) with Subtabs -->
             <template x-if="view === 'shopping'">
-                <section>
-                    <div class="view-header">
-                        <h2 x-text="t('list.title')"></h2>
-                        <p class="view-description" x-text="t('list.desc')"></p>
+                <section class="shopping-factory">
+                    <!-- Header with Subtabs -->
+                    <div class="shop-header">
+                        <h2 x-text="language === 'Swedish' ? 'Inköpslistor' : 'Shopping Lists'"></h2>
+                        <div class="shop-subtabs">
+                            <button 
+                                @click="switchShopSubtab('create')" 
+                                :class="{ 'active': shopSubtab === 'create' }"
+                                class="shop-subtab">
+                                <span x-text="language === 'Swedish' ? 'Skapa lista' : 'Create List'"></span>
+                            </button>
+                            <button 
+                                @click="switchShopSubtab('view')" 
+                                :class="{ 'active': shopSubtab === 'view' }"
+                                class="shop-subtab">
+                                <span x-text="language === 'Swedish' ? 'Se inköpslistor' : 'View Lists'"></span>
+                                <span x-show="savedLists.length > 0" class="badge" x-text="savedLists.length"></span>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="list-actions">
-                        <button class="btn-primary" @click="fetchSuggestions" :disabled="loadingSuggestions">
-                            <span x-show="!loadingSuggestions" x-text="t('list.btn')"></span>
-                            <span x-show="loadingSuggestions" x-text="t('list.btn.active')"></span>
-                        </button>
-                    </div>
+                    <!-- SUBTAB: Create List (Conversational) -->
+                    <div x-show="shopSubtab === 'create'" class="subtab-content">
+                        <!-- Empty State - Welcome Hero -->
+                        <div x-show="buyList.messages.length === 0 && !buyList.isLoading" class="welcome-hero">
+                            <div class="hero-icon-row">📝 🛒 🥑</div>
+                            <h3 x-text="language === 'Swedish' ? 'Skapa en ny inköpslista' : 'Create a new shopping list'"></h3>
+                            <p class="subtitle" x-text="language === 'Swedish' ? 'Jag kan hjälpa dig brainstorma vad du behöver köpa.' : 'I can help you brainstorm what you need to buy.'"></p>
+                            
+                            <div class="action-cards">
+                                <div class="action-card" @click="startNewList(); sendChatMessage(language === 'Swedish' ? 'Föreslå baserat på mina mönster' : 'Suggest based on my patterns')">
+                                    <span class="action-card-icon">🤖</span>
+                                    <h4 x-text="language === 'Swedish' ? 'AI Assist' : 'AI Assist'"></h4>
+                                    <p x-text="language === 'Swedish' ? 'Få förslag baserat på dina tidigare inköp' : 'Get suggestions based on your purchase history'"></p>
+                                </div>
+                                <div class="action-card" @click="startNewList()">
+                                    <span class="action-card-icon">✏️</span>
+                                    <h4 x-text="language === 'Swedish' ? 'Starta Tom' : 'Start Fresh'"></h4>
+                                    <p x-text="language === 'Swedish' ? 'Bygg din egen lista från scratch' : 'Build your own list from scratch'"></p>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div x-show="!loadingSuggestions && suggestions.length === 0" class="state-box">
-                        <p x-text="t('list.empty')"></p>
-                    </div>
-
-                    <div x-show="suggestions.length > 0">
-                        <h3 class="category-title suggestions-header" x-text="t('scan.results')"></h3>
-                        <ul class="item-list">
-                            <template x-for="sug in suggestions" :key="sug.ItemName">
-                                <li class="item-row">
-                                    <div class="item-info">
-                                        <span class="item-name" x-text="sug.ItemName"></span>
-                                        <p class="suggestion-reason" x-text="sug.Reason"></p>
+                        <!-- Chat Interface -->
+                        <div x-show="buyList.messages.length > 0" class="chat-container">
+                            <!-- Chat Thread -->
+                            <div class="chat-thread" x-ref="chatThread">
+                                <template x-for="(msg, index) in buyList.messages" :key="index">
+                                    <div class="message-wrapper" :class="msg.role">
+                                        <!-- AI Avatar -->
+                                        <div x-show="msg.role === 'assistant'" class="ai-avatar-enhanced">🤖</div>
+                                        
+                                        <!-- Message Bubble -->
+                                        <div class="message-bubble" :class="msg.role">
+                                            <div class="message-content" x-text="msg.content"></div>
+                                            <div class="message-meta" x-text="new Date(msg.timestamp).toLocaleTimeString(language === 'Swedish' ? 'sv-SE' : 'en-US', {hour: '2-digit', minute:'2-digit'})"></div>
+                                            
+                                            <!-- Enhanced Action Confirmation Card -->
+                                            <div x-show="msg.requiresConfirmation && msg.actions && msg.actions.length > 0" 
+                                                 class="confirmation-panel">
+                                                <div class="confirmation-header">
+                                                    <span class="icon">✨</span>
+                                                    <h5 x-text="language === 'Swedish' ? 'Föreslagna ändringar' : 'Suggested Changes'"></h5>
+                                                </div>
+                                                <div class="item-preview-grid">
+                                                    <template x-for="action in msg.actions.slice(0, 6)" :key="action.itemName">
+                                                        <div class="item-preview-card">
+                                                            <div class="item-preview-icon" x-text="action.type === 'add' ? '📦' : (action.type === 'remove' ? '🗑️' : '✏️')"></div>
+                                                            <div class="item-preview-name" x-text="action.itemName"></div>
+                                                            <div class="item-preview-qty" x-show="action.quantity > 0" x-text="'x' + action.quantity"></div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <p class="confirmation-question" x-text="language === 'Swedish' ? 'Vill du lägga till dessa varor?' : 'Add these items?'"></p>
+                                                <div class="confirmation-actions">
+                                                    <button @click="confirmActions(true)" class="btn-confirmation yes">
+                                                        <span>✓</span>
+                                                        <span x-text="language === 'Swedish' ? 'Ja, lägg till' : 'Yes, add them'"></span>
+                                                    </button>
+                                                    <button @click="confirmActions(false)" class="btn-confirmation no">
+                                                        <span>✗</span>
+                                                        <span x-text="language === 'Swedish' ? 'Nej, strunta' : 'No, skip'"></span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <span class="suggestion-qty" x-text="sug.Quantity"></span>
-                                </li>
+                                </template>
+                                
+                                <!-- Typing Indicator -->
+                                <div x-show="buyList.isLoading" class="message-wrapper assistant">
+                                    <div class="ai-avatar-enhanced">🤖</div>
+                                    <div class="message-bubble assistant">
+                                        <div class="typing-indicator">
+                                            <div class="dot"></div>
+                                            <div class="dot"></div>
+                                            <div class="dot"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Suggested Reply Buttons -->
+                        <div x-show="buyList.suggestedReplies.length > 0 && !buyList.isLoading" class="suggested-replies-v2">
+                            <template x-for="reply in buyList.suggestedReplies" :key="reply">
+                                <button @click="sendChatMessage(reply)" class="suggested-reply-pill" x-text="reply"></button>
                             </template>
-                        </ul>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div x-show="buyList.messages.length > 0 || buyList.isLoading" class="chat-input-v2">
+                            <input type="text" 
+                                   x-model="buyList.chatInput" 
+                                   :placeholder="language === 'Swedish' ? 'Skriv till din assistent...' : 'Type to your assistant...'"
+                                   @keyup.enter="sendChatMessage()"
+                                   :disabled="buyList.isLoading">
+                            <button @click="sendChatMessage()" 
+                                    :disabled="buyList.isLoading || !buyList.chatInput.trim()"
+                                    x-text="language === 'Swedish' ? 'Skicka' : 'Send'"></button>
+                        </div>
+
+                        <!-- Current List Panel (Floating) -->
+                        <div x-show="buyList.items.filter(i => !i.isDismissed).length > 0" class="list-panel-v2" style="margin-top: 1.5rem;">
+                            <div class="list-panel-header">
+                                <h4 x-text="buyList.savedName || (language === 'Swedish' ? 'Din lista' : 'Your List')"></h4>
+                                <span class="item-count" x-text="buyList.items.filter(i => !i.isDismissed).length + ' ' + (language === 'Swedish' ? 'varor' : 'items')"></span>
+                            </div>
+                            
+                            <div class="list-items-v2">
+                                <template x-for="item in buyList.items" :key="item.id">
+                                    <div x-show="!item.isDismissed" class="list-item-v2">
+                                        <div class="list-item-info">
+                                            <div class="list-item-icon">🛒</div>
+                                            <span class="list-item-name" x-text="item.itemName"></span>
+                                        </div>
+                                        <div class="list-item-actions-v2">
+                                            <div class="quantity-stepper">
+                                                <button @click="item.quantity > 1 && (item.quantity--)" :disabled="item.quantity <= 1">−</button>
+                                                <input type="number" x-model="item.quantity" min="1" readonly>
+                                                <button @click="item.quantity++">+</button>
+                                            </div>
+                                            <button @click="removeItem(item.id)" class="btn-remove" title="Remove">×</button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            <div class="list-panel-footer">
+                                <div class="save-bar">
+                                    <input type="text" 
+                                           x-model="buyList.customName" 
+                                           :placeholder="language === 'Swedish' ? 'Namnge din lista (valfritt)' : 'Name your list (optional)'">
+                                    <button @click="saveList(true)" class="btn-auto-name" 
+                                            x-text="language === 'Swedish' ? 'Auto' : 'Auto'"></button>
+                                    <button @click="saveList(false)" class="btn-save"
+                                            x-text="language === 'Swedish' ? '💾 Spara' : '💾 Save'"></button>
+                                </div>
+                                <button @click="copyList()" class="btn-copy">
+                                    📋 <span x-text="language === 'Swedish' ? 'Kopiera till urklipp' : 'Copy to clipboard'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB: View Lists (Saved Lists Browser) -->
+                    <div x-show="shopSubtab === 'view'" class="subtab-content">
+                        <!-- Loading State -->
+                        <div x-show="savedLists === null || savedLists === undefined" class="empty-state-v2">
+                            <div class="empty-icon">⏳</div>
+                            <h3 x-text="language === 'Swedish' ? 'Laddar dina listor...' : 'Loading your lists...'"></h3>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div x-show="savedLists && savedLists.length === 0" class="empty-state-v2">
+                            <div class="empty-icon">📋</div>
+                            <h3 x-text="language === 'Swedish' ? 'Inga sparade listor än' : 'No saved lists yet'"></h3>
+                            <p x-text="language === 'Swedish' ? 'Skapa din första inköpslista för att se den här!' : 'Create your first shopping list to see it here!'"></p>
+                            <button class="btn-primary" @click="switchShopSubtab('create')" style="margin-top: 1rem;">
+                                <span x-text="language === 'Swedish' ? 'Gå till Skapa lista →' : 'Go to Create List →'"></span>
+                            </button>
+                        </div>
+
+                        <!-- Saved Lists Grid V2 -->
+                        <div x-show="savedLists && savedLists.length > 0" class="saved-lists-grid-v2">
+                            <template x-for="list in savedLists" :key="list.id">
+                                <div class="saved-list-card-v2">
+                                    <div class="saved-list-card-header-v2">
+                                        <h4 class="saved-list-name-v2" x-text="list.name"></h4>
+                                        <div class="saved-list-meta-v2">
+                                            <span class="saved-list-date">
+                                                📅 <span x-text="formatDate(list.createdAt)"></span>
+                                            </span>
+                                            <span class="saved-list-count" x-text="list.itemCount"></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Visual Item Preview -->
+                                    <div class="saved-list-preview-v2">
+                                        <template x-for="(item, idx) in list.items.slice(0, 4)" :key="idx">
+                                            <div class="mini-list-item">
+                                                <div class="mini-list-checkbox checked">✓</div>
+                                                <span x-text="item.itemName + ' x' + item.quantity"></span>
+                                            </div>
+                                        </template>
+                                        <div x-show="list.itemCount > 4" class="mini-list-more" 
+                                             x-text="'+ ' + (list.itemCount - 4) + ' ' + (language === 'Swedish' ? 'fler varor' : 'more items') + '...'"></div>
+                                    </div>
+                                    
+                                    <!-- Actions -->
+                                    <div class="saved-list-actions-v2">
+                                        <button @click="useSavedList(list.id)" class="btn-list-action use">
+                                            <span class="icon">📋</span>
+                                            <span x-text="language === 'Swedish' ? 'Kopiera' : 'Copy'"></span>
+                                        </button>
+                                        <button @click="editSavedList(list.id)" class="btn-list-action edit">
+                                            <span class="icon">✏️</span>
+                                            <span x-text="language === 'Swedish' ? 'Redigera' : 'Edit'"></span>
+                                        </button>
+                                        <button @click="deleteSavedList(list.id)" class="btn-list-action delete">
+                                            <span class="icon">🗑️</span>
+                                            <span x-text="language === 'Swedish' ? 'Ta bort' : 'Delete'"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </section>
             </template>
