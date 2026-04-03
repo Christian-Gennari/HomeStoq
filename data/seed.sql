@@ -1792,7 +1792,7 @@ INSERT INTO Inventory (ItemName, Quantity, Category, LastPrice, Currency, Update
 ('Lök', 11.00, 'Frukt & Grönt', 14.90, 'SEK', '2026-03-29T09:50:44.745Z'),
 ('Mjölk', 12.00, 'Mejeri', 14.90, 'SEK', '2026-04-03T09:50:44.745Z'),
 ('Lax', 4.00, 'Kött & Fisk', 99.00, 'SEK', '2026-03-31T09:50:51.745Z'),
-('Banan', 12.30, 'Frukt & Grönt', 24.90, 'SEK', '2026-03-28T10:50:44.745Z'),
+('Banan', 12, 'Frukt & Grönt', 24.90, 'SEK', '2026-03-28T10:50:44.745Z'),
 ('Pommes frites', 4.00, 'Frysvaror', 29.90, 'SEK', '2026-03-25T10:50:44.745Z'),
 ('Pasta', 13.00, 'Skafferi', 24.90, 'SEK', '2026-04-01T09:50:44.745Z'),
 ('Fiskpinnar', 1.00, 'Frysvaror', 34.90, 'SEK', '2026-03-28T10:50:45.745Z'),

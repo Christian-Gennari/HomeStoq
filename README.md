@@ -23,7 +23,7 @@
 ## 🛠 Tech Stack
 
 -   **Backend**: ASP.NET Core 10 (Minimal APIs)
--   **Database**: SQLite (Dapper)
+-   **Database**: SQLite (Entity Framework Core)
 -   **AI Engine**: Google Gemini (OCR, Parsing, Prediction, Chat) via `Google.GenAI` + `Microsoft.Extensions.AI` (`IChatClient`)
 -   **Frontend**: Vanilla HTML5, CSS3, JavaScript with Alpine.js (lightweight reactivity)
 -   **Voice Queue**: Google Keep (via C# Playwright scraper)

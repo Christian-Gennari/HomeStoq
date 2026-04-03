@@ -2,7 +2,7 @@
 
 ## Version 8.0
 
-**Tech Stack:** ASP.NET Core 10 (Minimal APIs), Vanilla JS/HTML/CSS + Alpine.js (Frontend), Docker (Alpine), SQLite (Database), Google Keep (Voice Queue), C# Playwright Scraper (Local Browser Automation), Gemini (AI/OCR/Chat) via `Google.GenAI` + `Microsoft.Extensions.AI` (`IChatClient`).
+**Tech Stack:** ASP.NET Core 10 (Minimal APIs), Vanilla JS/HTML/CSS + Alpine.js (Frontend), Docker (Alpine), SQLite (EF Core), Google Keep (Voice Queue), C# Playwright Scraper (Local Browser Automation), Gemini (AI/OCR/Chat) via `Google.GenAI` + `Microsoft.Extensions.AI` (`IChatClient`).
 
 ---
 
@@ -109,7 +109,7 @@ These tools are configured in `ChatOptions` with `ToolMode = ChatToolMode.Auto`,
 
 ### 1.4. Core Services (Business Logic)
 
-**InventoryRepository:** Abstraction layer over SQLite. Uses `data/homestoq.db` by default (overridable via `DATABASE_PATH` env var). Handles all reads and writes to the tables: `Inventory`, `History`, `Receipts`, and `AiCache`. Also exposes the AI tool methods described above.
+**InventoryRepository:** Abstraction layer over SQLite using **Entity Framework Core**. Uses `data/homestoq.db` by default (overridable via `DATABASE_PATH` env var). Handles all reads and writes to the tables: `Inventory`, `History`, `Receipts`, and `AiCache`. Also exposes the AI tool methods described above.
 
 ### 1.5. Frontend / Dashboard (User Interface)
 
@@ -291,15 +291,18 @@ HomeStoq/
 │   │       ├── index.html
 │   │       ├── app.js
 │   │       └── style.css
-│   └── HomeStoq.Contracts/       # Shared models and communication contracts
-│       ├── InventoryItem.cs
-│       ├── HistoryEntry.cs
-│       ├── Receipt.cs
-│       ├── PantryItem.cs
-│       ├── ParsedVoiceAction.cs
-│       ├── ChatRequest.cs
-│       ├── ChatResponse.cs
-│       └── VoiceCommandRequest.cs
+│   └── HomeStoq.Shared/          # Shared models and utilities
+│       ├── DTOs/                 # Data Transfer Objects
+│       │   ├── InventoryItemDto.cs
+│       │   ├── HistoryEntryDto.cs
+│       │   ├── ReceiptDto.cs
+│       │   ├── PantryItemDto.cs
+│       │   ├── ParsedVoiceActionDto.cs
+│       │   ├── ChatRequestDto.cs
+│       │   ├── ChatResponseDto.cs
+│       │   └── VoiceCommandRequestDto.cs
+│       └── Utils/                # Shared utilities
+│           └── PathHelper.cs
 ├── src/HomeStoq.Plugins/         # Container for plugins and scrapers
 │   └── HomeStoq.Plugins.GoogleKeepScraper/
 │       ├── Program.cs

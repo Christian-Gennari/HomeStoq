@@ -14,7 +14,7 @@ The Keep Scraper is a C# Playwright-based automation service that monitors your 
 - Runs as a .NET `BackgroundService` (`GoogleKeepScraperWorker`)
 - Uses Playwright for Chromium browser automation
 - Persists browser session in `browser-profile/` directory
-- Communicates with HomeStoq API via HTTP POST using `HomeStoq.Contracts`
+- Communicates with HomeStoq API via HTTP POST using `HomeStoq.Shared`
 
 ---
 
