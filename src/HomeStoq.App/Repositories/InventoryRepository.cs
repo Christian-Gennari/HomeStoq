@@ -277,4 +277,212 @@ public class InventoryRepository
         
         await _context.SaveChangesAsync();
     }
+
+    // BuyList Methods
+    public async Task<BuyList?> GetDraftOrActiveBuyListAsync()
+    {
+        return await _context.BuyLists
+            .Include(l => l.Items)
+            .Where(l => l.Status == BuyListStatus.Draft || l.Status == BuyListStatus.Active)
+            .OrderByDescending(l => l.UpdatedAt)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<BuyList> CreateBuyListAsync(string greeting, string? generatedContext = null)
+    {
+        var now = DateTime.UtcNow;
+        var buyList = new BuyList
+        {
+            CreatedAt = now,
+            UpdatedAt = now,
+            Status = BuyListStatus.Draft,
+            GeneratedContext = generatedContext,
+            TotalItems = 0,
+            CheckedItems = 0
+        };
+        _context.BuyLists.Add(buyList);
+        await _context.SaveChangesAsync();
+        return buyList;
+    }
+
+    public async Task<BuyListItem> AddItemToBuyListAsync(long buyListId, string itemName, double quantity, string source, string? aiReasoning = null, bool isChecked = true)
+    {
+        var now = DateTime.UtcNow;
+        var item = new BuyListItem
+        {
+            BuyListId = buyListId,
+            ItemName = itemName,
+            Quantity = quantity,
+            Source = source,
+            AIOriginalReasoning = aiReasoning,
+            IsChecked = isChecked,
+            IsDismissed = false,
+            CreatedAt = now
+        };
+        _context.BuyListItems.Add(item);
+        
+        // Update totals
+        var buyList = await _context.BuyLists.FindAsync(buyListId);
+        if (buyList != null)
+        {
+            buyList.TotalItems++;
+            if (isChecked) buyList.CheckedItems++;
+            buyList.UpdatedAt = now;
+        }
+        
+        await _context.SaveChangesAsync();
+        return item;
+    }
+
+    public async Task UpdateBuyListItemAsync(long itemId, bool? isChecked = null, double? quantity = null, bool? isDismissed = null, string? note = null)
+    {
+        var item = await _context.BuyListItems.FindAsync(itemId);
+        if (item == null) return;
+
+        var buyList = await _context.BuyLists.FindAsync(item.BuyListId);
+        if (buyList == null) return;
+
+        var now = DateTime.UtcNow;
+
+        if (isChecked.HasValue && item.IsChecked != isChecked.Value)
+        {
+            item.IsChecked = isChecked.Value;
+            buyList.CheckedItems += isChecked.Value ? 1 : -1;
+        }
+
+        if (quantity.HasValue)
+        {
+            item.Quantity = quantity.Value;
+        }
+
+        if (isDismissed.HasValue && item.IsDismissed != isDismissed.Value)
+        {
+            item.IsDismissed = isDismissed.Value;
+            item.DismissedAt = isDismissed.Value ? now : null;
+        }
+
+        if (note != null)
+        {
+            item.Note = note;
+        }
+
+        buyList.UpdatedAt = now;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<BuyList?> GetBuyListByIdAsync(long id)
+    {
+        return await _context.BuyLists
+            .Include(l => l.Items)
+            .FirstOrDefaultAsync(l => l.Id == id);
+    }
+
+    public async Task<IEnumerable<BuyList>> GetBuyListHistoryAsync(int limit = 20)
+    {
+        return await _context.BuyLists
+            .Where(l => l.Status == BuyListStatus.Completed || l.Status == BuyListStatus.Cancelled)
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(limit)
+            .Select(l => new BuyList
+            {
+                Id = l.Id,
+                CreatedAt = l.CreatedAt,
+                Status = l.Status,
+                TotalItems = l.TotalItems,
+                CheckedItems = l.CheckedItems,
+                GeneratedContext = l.GeneratedContext,
+                UserContext = l.UserContext
+            })
+            .ToListAsync();
+    }
+
+    public async Task CommitBuyListAsync(long buyListId)
+    {
+        var buyList = await _context.BuyLists.FindAsync(buyListId);
+        if (buyList == null) return;
+
+        buyList.Status = BuyListStatus.Active;
+        buyList.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task CompleteBuyListAsync(long buyListId)
+    {
+        var buyList = await _context.BuyLists.FindAsync(buyListId);
+        if (buyList == null) return;
+
+        buyList.Status = BuyListStatus.Completed;
+        buyList.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateBuyListUserContextAsync(long buyListId, string userContext)
+    {
+        var buyList = await _context.BuyLists.FindAsync(buyListId);
+        if (buyList == null) return;
+
+        buyList.UserContext = userContext;
+        buyList.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ClearBuyListItemsAsync(long buyListId)
+    {
+        var items = await _context.BuyListItems
+            .Where(i => i.BuyListId == buyListId)
+            .ToListAsync();
+        
+        _context.BuyListItems.RemoveRange(items);
+        
+        var buyList = await _context.BuyLists.FindAsync(buyListId);
+        if (buyList != null)
+        {
+            buyList.TotalItems = 0;
+            buyList.CheckedItems = 0;
+            buyList.UpdatedAt = DateTime.UtcNow;
+        }
+        
+        await _context.SaveChangesAsync();
+    }
+
+    // NEW: Conversation message methods
+    public async Task AddBuyListMessageAsync(BuyListMessage message)
+    {
+        _context.BuyListMessages.Add(message);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateBuyListAsync(BuyList buyList)
+    {
+        _context.BuyLists.Update(buyList);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<BuyList?> GetSavedBuyListAsync()
+    {
+        return await _context.BuyLists
+            .Include(l => l.Items)
+            .Where(l => l.IsSaved && l.IsActiveSession)
+            .OrderByDescending(l => l.UpdatedAt)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<List<BuyList>> GetAllSavedListsAsync()
+    {
+        return await _context.BuyLists
+            .Include(l => l.Items)
+            .Where(l => l.IsSaved)
+            .OrderByDescending(l => l.UpdatedAt)
+            .ToListAsync();
+    }
+
+    public async Task DeleteBuyListAsync(long buyListId)
+    {
+        var buyList = await _context.BuyLists.FindAsync(buyListId);
+        if (buyList != null)
+        {
+            _context.BuyLists.Remove(buyList);
+            await _context.SaveChangesAsync();
+        }
+    }
 }
