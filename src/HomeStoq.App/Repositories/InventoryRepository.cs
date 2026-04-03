@@ -14,12 +14,7 @@ public class InventoryRepository
     {
         _logger = logger;
         
-        var fallbackPath = Path.Combine("data", "homestoq.db");
-        if (Directory.GetCurrentDirectory().EndsWith("HomeStoq.App"))
-        {
-            fallbackPath = Path.Combine("..", "..", "data", "homestoq.db");
-        }
-        var dbPath = configuration["DATABASE_PATH"] ?? fallbackPath;
+        var dbPath = configuration["DATABASE_PATH"] ?? PathHelper.ResolveDatabasePath();
         
         var directory = Path.GetDirectoryName(dbPath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))

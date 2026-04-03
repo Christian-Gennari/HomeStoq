@@ -8,23 +8,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using Google.GenAI;
 
-// Load environment variables from .env if present (searching up to project root)
-DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
-if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), ".env")))
-{
-    // If not in root, try one level up (common when running from src/HomeStoq.App)
-    DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
-}
+// Load environment variables from .env if present
+DotNetEnv.Env.Load(PathHelper.ResolveEnvFile());
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add config.ini as a configuration source (searching up to project root)
-var configIniPath = Path.Combine(Directory.GetCurrentDirectory(), "config.ini");
-if (!File.Exists(configIniPath))
-{
-    configIniPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "config.ini");
-}
-builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: true);
+// Add config.ini as a configuration source
+builder.Configuration.AddIniFile(PathHelper.ResolveConfigIni(), optional: true, reloadOnChange: true);
 
 // Get the host URL from config.ini [API] HostUrl
 var hostUrl = builder.Configuration["API:HostUrl"];

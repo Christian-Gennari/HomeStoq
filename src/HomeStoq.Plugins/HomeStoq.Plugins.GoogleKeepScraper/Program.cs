@@ -1,32 +1,13 @@
 using HomeStoq.Plugins.GoogleKeepScraper;
+using HomeStoq.Contracts;
 
 // Load environment variables from .env if present
-DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
-if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), ".env")))
-{
-    DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
-}
+DotNetEnv.Env.Load(PathHelper.ResolveEnvFile());
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Add config.ini as a configuration source (searching up to project root)
-var configIniPath = Path.Combine(Directory.GetCurrentDirectory(), "config.ini");
-if (!File.Exists(configIniPath))
-{
-    var current = new DirectoryInfo(Directory.GetCurrentDirectory());
-    while (current != null)
-    {
-        var candidate = Path.Combine(current.FullName, "config.ini");
-        if (File.Exists(candidate))
-        {
-            configIniPath = candidate;
-            break;
-        }
-
-        current = current.Parent;
-    }
-}
-builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: true);
+// Add config.ini as a configuration source
+builder.Configuration.AddIniFile(PathHelper.ResolveConfigIni(), optional: true, reloadOnChange: true);
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: true);
 builder.Configuration.AddEnvironmentVariables();
