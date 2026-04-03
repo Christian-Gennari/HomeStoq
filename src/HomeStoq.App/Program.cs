@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HomeStoq.Contracts;
+using HomeStoq.Contracts.SharedUtils;
 using HomeStoq.App.Repositories;
 using HomeStoq.App.Services;
 using Microsoft.AspNetCore.Mvc;

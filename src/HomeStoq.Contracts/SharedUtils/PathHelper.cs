@@ -1,11 +1,11 @@
 using System.Reflection;
 
-namespace HomeStoq.Contracts;
+namespace HomeStoq.Contracts.SharedUtils;
 
 public static class PathHelper
 {
-    private static readonly string _repoRoot = typeof(PathHelper).Assembly
-        .GetCustomAttributes<AssemblyMetadataAttribute>()
+    private static readonly string _repoRoot = typeof(PathHelper)
+        .Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
         .First(a => a.Key == "RepoRoot")
         .Value!;
 
