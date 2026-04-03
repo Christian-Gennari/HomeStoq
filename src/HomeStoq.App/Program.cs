@@ -25,7 +25,7 @@ if (!string.IsNullOrEmpty(hostUrl))
 
 // Register AI Client
 var apiKey = builder.Configuration["GEMINI_API_KEY"] ?? throw new InvalidOperationException("GEMINI_API_KEY not configured");
-var modelId = builder.Configuration["GEMINI_MODEL"] ?? "gemini-3.1-flash-lite-preview";
+var modelId = builder.Configuration["AI:Model"] ?? "gemini-3.1-flash-lite-preview";
 var googleClient = new Client(apiKey: apiKey);
 builder.Services.AddSingleton<IChatClient>(sp =>
     googleClient.AsIChatClient(modelId)

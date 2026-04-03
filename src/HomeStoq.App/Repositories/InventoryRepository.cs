@@ -14,7 +14,7 @@ public class InventoryRepository
     {
         _logger = logger;
         
-        var dbPath = configuration["DATABASE_PATH"] ?? PathHelper.ResolveDatabasePath();
+        var dbPath = configuration["Database:Path"] ?? PathHelper.ResolveDatabasePath();
         
         var directory = Path.GetDirectoryName(dbPath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))

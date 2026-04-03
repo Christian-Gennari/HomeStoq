@@ -31,13 +31,13 @@ public class GoogleKeepScraperWorker : BackgroundService
         _logger = logger;
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
-        var listNamesConfig = config["Voice:KeepListName"] ?? config["KEEP_LIST_NAME"] ?? "inköpslistan";
+        var listNamesConfig = config["Voice:KeepListName"] ?? "inköpslistan";
         _listNames = listNamesConfig.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         
-        _apiUrl = config["API:BaseUrl"] ?? config["HOMESTOQ_API_URL"] ?? "http://localhost:5000/api/voice/command";
-        _profileDir = Path.GetFullPath(config["BROWSER_PROFILE_DIR"] ?? "browser-profile");
-        _pollIntervalSeconds = int.Parse(config["Scraper:PollIntervalSeconds"] ?? config["POLL_INTERVAL_SECONDS"] ?? "45");
-        _pollIntervalJitterSeconds = int.Parse(config["Scraper:PollIntervalJitterSeconds"] ?? config["POLL_INTERVAL_JITTER_SECONDS"] ?? "15");
+        _apiUrl = config["API:BaseUrl"] ?? "http://localhost:5000/api/voice/command";
+        _profileDir = Path.GetFullPath("browser-profile");
+        _pollIntervalSeconds = int.Parse(config["Scraper:PollIntervalSeconds"] ?? "45");
+        _pollIntervalJitterSeconds = int.Parse(config["Scraper:PollIntervalJitterSeconds"] ?? "15");
 
         var activeHours = config["Scraper:ActiveHours"] ?? "07-23";
         var parts = activeHours.Split('-', StringSplitOptions.TrimEntries);
