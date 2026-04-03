@@ -14,6 +14,9 @@ public class PantryDbContext : DbContext
     public DbSet<Receipt> Receipts { get; set; } = null!;
     public DbSet<HistoryEntry> History { get; set; } = null!;
     public DbSet<AiCacheEntry> AiCache { get; set; } = null!;
+    public DbSet<BuyList> BuyLists { get; set; } = null!;
+    public DbSet<BuyListItem> BuyListItems { get; set; } = null!;
+    public DbSet<BuyListMessage> BuyListMessages { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +40,27 @@ public class PantryDbContext : DbContext
         {
             entity.ToTable("AiCache");
             entity.HasIndex(e => e.CacheKey).IsUnique();
+        });
+
+        modelBuilder.Entity<BuyList>(entity =>
+        {
+            entity.ToTable("BuyLists");
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        modelBuilder.Entity<BuyListItem>(entity =>
+        {
+            entity.ToTable("BuyListItems");
+            entity.HasIndex(e => e.BuyListId);
+            entity.HasIndex(e => e.ItemName);
+        });
+
+        modelBuilder.Entity<BuyListMessage>(entity =>
+        {
+            entity.ToTable("BuyListMessages");
+            entity.HasIndex(e => e.BuyListId);
+            entity.HasIndex(e => e.Timestamp);
         });
     }
 }

@@ -55,3 +55,64 @@ public class AiCacheEntry
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
 }
+
+public class BuyList
+{
+    [Key]
+    public long Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public BuyListStatus Status { get; set; }
+    public string? GeneratedContext { get; set; }
+    public string? UserContext { get; set; }
+    public int TotalItems { get; set; }
+    public int CheckedItems { get; set; }
+    
+    // NEW: For conversational shopping list factory
+    public string? ConversationJson { get; set; }
+    public bool IsSaved { get; set; }
+    public string? SavedName { get; set; }
+    public bool IsActiveSession { get; set; }
+    
+    public virtual ICollection<BuyListItem> Items { get; set; } = new List<BuyListItem>();
+    public virtual ICollection<BuyListMessage> Messages { get; set; } = new List<BuyListMessage>();
+}
+
+public enum BuyListStatus
+{
+    Draft,
+    Active,
+    Completed,
+    Cancelled,
+    Saved
+}
+
+public class BuyListItem
+{
+    [Key]
+    public long Id { get; set; }
+    public long BuyListId { get; set; }
+    public virtual BuyList BuyList { get; set; } = null!;
+    public string ItemName { get; set; } = string.Empty;
+    public double Quantity { get; set; }
+    public string? Note { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public string? AIOriginalReasoning { get; set; }
+    public bool IsChecked { get; set; }
+    public bool IsDismissed { get; set; }
+    public DateTime? DismissedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+// NEW: Store individual messages for conversation history
+public class BuyListMessage
+{
+    [Key]
+    public long Id { get; set; }
+    public long BuyListId { get; set; }
+    public virtual BuyList BuyList { get; set; } = null!;
+    public string Role { get; set; } = string.Empty; // "system", "user", "assistant"
+    public string Content { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public string? ActionsJson { get; set; } // JSON array of actions performed ["added:Milk:2", "removed:Salsa"]
+}
