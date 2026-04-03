@@ -2,11 +2,11 @@ using System.Text.Json.Serialization;
 
 namespace HomeStoq.Contracts;
 
-public class ChatResponse
+public record ChatResponse
 {
     [JsonPropertyName("reply")]
-    public string Reply { get; set; } = "";
+    public string Reply { get; init; } = "";
     
     [JsonPropertyName("history")]
-    public List<ChatHistoryMessage> History { get; set; } = new();
+    public List<ChatHistoryMessage> History { get; init; } = new();
 }

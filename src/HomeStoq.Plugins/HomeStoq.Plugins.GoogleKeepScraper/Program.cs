@@ -1,5 +1,7 @@
 using HomeStoq.Contracts.SharedUtils;
 using HomeStoq.Plugins.GoogleKeepScraper;
+using Microsoft.Extensions.Options;
+using HomeStoq.Plugins.GoogleKeepScraper.Configuration;
 
 // Load environment variables from .env if present
 DotNetEnv.Env.Load(PathHelper.ResolveEnvFile());
@@ -15,6 +17,9 @@ builder.Configuration.AddIniFile(
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: true);
 builder.Configuration.AddEnvironmentVariables();
+
+builder.Services.Configure<VoiceOptions>(builder.Configuration.GetSection("Voice"));
+builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
 
 builder.Services.AddHostedService<GoogleKeepScraperWorker>();
 

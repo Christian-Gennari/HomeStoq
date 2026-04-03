@@ -1,9 +1,9 @@
 namespace HomeStoq.Contracts;
 
-public class ChatHistoryMessage
+public record ChatHistoryMessage
 {
-    public string Role { get; set; } = "";
-    public string Text { get; set; } = "";
+    public string Role { get; init; } = "";
+    public string Text { get; init; } = "";
     
     public ChatHistoryMessage() { }
     

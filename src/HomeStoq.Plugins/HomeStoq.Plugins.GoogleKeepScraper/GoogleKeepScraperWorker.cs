@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using Microsoft.Playwright;
 using HomeStoq.Contracts;
+using Microsoft.Extensions.Options;
+using HomeStoq.Plugins.GoogleKeepScraper.Configuration;
 
 namespace HomeStoq.Plugins.GoogleKeepScraper;
 
@@ -25,21 +27,22 @@ public class GoogleKeepScraperWorker : BackgroundService
     private bool _isOnKeepPage;
 
     public GoogleKeepScraperWorker(
-        IConfiguration config,
+        IOptions<VoiceOptions> voiceOptions,
+        IOptions<ScraperOptions> scraperOptions,
         ILogger<GoogleKeepScraperWorker> logger)
     {
         _logger = logger;
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
-        var listNamesConfig = config["Voice:KeepListName"] ?? "inköpslistan";
+        var listNamesConfig = string.IsNullOrEmpty(voiceOptions.Value.KeepListName) ? "inköpslistan" : voiceOptions.Value.KeepListName;
         _listNames = listNamesConfig.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         
         _apiUrl = "http://localhost:5000/api/voice/command";
         _profileDir = Path.GetFullPath("browser-profile");
-        _pollIntervalSeconds = int.Parse(config["Scraper:PollIntervalSeconds"] ?? "45");
-        _pollIntervalJitterSeconds = int.Parse(config["Scraper:PollIntervalJitterSeconds"] ?? "15");
+        _pollIntervalSeconds = scraperOptions.Value.PollIntervalSeconds;
+        _pollIntervalJitterSeconds = scraperOptions.Value.PollIntervalJitterSeconds;
 
-        var activeHours = config["Scraper:ActiveHours"] ?? "07-23";
+        var activeHours = scraperOptions.Value.ActiveHours;
         var parts = activeHours.Split('-', StringSplitOptions.TrimEntries);
         if (parts.Length == 2 && int.TryParse(parts[0], out var start) && int.TryParse(parts[1], out var end))
         {

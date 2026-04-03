@@ -1,9 +1,9 @@
 namespace HomeStoq.Contracts;
 
-public class ParsedVoiceAction
+public record ParsedVoiceAction
 {
-    public string ItemName { get; set; } = string.Empty;
-    public string Action { get; set; } = string.Empty;
-    public double Quantity { get; set; }
-    public string? Category { get; set; }
+    public string ItemName { get; init; } = string.Empty;
+    public string Action { get; init; } = string.Empty;
+    public double Quantity { get; init; }
+    public string? Category { get; init; }
 }
