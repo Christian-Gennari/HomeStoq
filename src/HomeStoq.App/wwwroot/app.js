@@ -318,11 +318,11 @@ function pantryApp() {
           // Re-sync local history with the server's official version
           if (data.history) {
             this.chatHistory = data.history
-              .filter(m => m.role !== 'system')
+              .filter(m => (m.role || m.Role) !== 'system')
               .map((m, i) => ({
                 id: Date.now() + i,
-                role: m.role,
-                content: m.text || ""
+                role: m.role || m.Role,
+                content: m.text || m.Text || ""
               }));
           }
 
