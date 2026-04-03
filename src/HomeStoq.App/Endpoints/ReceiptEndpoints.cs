@@ -52,7 +52,7 @@ public static class ReceiptEndpoints
                     var totalAmount = items.Sum(i => i.Price ?? 0);
                     var receiptId = await repository.CreateReceiptAsync(storeName, totalAmount);
 
-                    logger.LogInformation("Gemini identified {Count} items from receipt. Saved as Receipt #{Id}", items.Count, receiptId);
+                    logger.LogInformation("Gemini identified {Count} items from receipt. Saved as ReceiptDto #{Id}", items.Count, receiptId);
                     
                     foreach (var item in items)
                     {
@@ -60,7 +60,7 @@ public static class ReceiptEndpoints
                             item.ItemName,
                             item.Quantity,
                             item.Price,
-                            source: "Receipt",
+                            source: "ReceiptDto",
                             category: item.Category,
                             receiptId: receiptId,
                             expandedName: item.ExpandedName

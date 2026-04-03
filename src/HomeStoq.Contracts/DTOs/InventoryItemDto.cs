@@ -1,6 +1,6 @@
 namespace HomeStoq.Contracts;
 
-public record InventoryItem
+public record InventoryItemDto
 {
     public int Id { get; init; }
     public string ItemName { get; init; } = string.Empty;

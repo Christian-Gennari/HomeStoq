@@ -1,6 +1,6 @@
 namespace HomeStoq.Contracts;
 
-public record ParsedVoiceAction
+public record ParsedVoiceActionDto
 {
     public string ItemName { get; init; } = string.Empty;
     public string Action { get; init; } = string.Empty;

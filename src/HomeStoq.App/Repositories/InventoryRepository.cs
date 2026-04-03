@@ -26,12 +26,12 @@ public class InventoryRepository
         _connectionString = $"Data Source={dbPath}";
     }
 
-    public async Task<IEnumerable<InventoryItem>> GetInventoryAsync()
+    public async Task<IEnumerable<InventoryItemDto>> GetInventoryAsync()
     {
         try
         {
             using var connection = new SqliteConnection(_connectionString);
-            var items = await connection.QueryAsync<InventoryItem>(
+            var items = await connection.QueryAsync<InventoryItemDto>(
                 "SELECT * FROM Inventory ORDER BY ItemName"
             );
             return items;
@@ -61,18 +61,18 @@ public class InventoryRepository
         );
     }
 
-    public async Task<IEnumerable<Receipt>> GetReceiptsAsync()
+    public async Task<IEnumerable<ReceiptDto>> GetReceiptsAsync()
     {
         using var connection = new SqliteConnection(_connectionString);
-        return await connection.QueryAsync<Receipt>(
+        return await connection.QueryAsync<ReceiptDto>(
             "SELECT * FROM Receipts ORDER BY Timestamp DESC"
         );
     }
 
-    public async Task<IEnumerable<HistoryEntry>> GetReceiptItemsAsync(long receiptId)
+    public async Task<IEnumerable<HistoryEntryDto>> GetReceiptItemsAsync(long receiptId)
     {
         using var connection = new SqliteConnection(_connectionString);
-        return await connection.QueryAsync<HistoryEntry>(
+        return await connection.QueryAsync<HistoryEntryDto>(
             "SELECT * FROM History WHERE ReceiptId = @ReceiptId",
             new { ReceiptId = receiptId }
         );
@@ -101,7 +101,7 @@ public class InventoryRepository
 
         try
         {
-            var existingItem = await connection.QueryFirstOrDefaultAsync<InventoryItem>(
+            var existingItem = await connection.QueryFirstOrDefaultAsync<InventoryItemDto>(
                 "SELECT * FROM Inventory WHERE ItemName = @ItemName COLLATE NOCASE",
                 new { ItemName = itemName },
                 transaction
@@ -187,11 +187,11 @@ public class InventoryRepository
         }
     }
 
-    public async Task<IEnumerable<HistoryEntry>> GetHistoryAsync(int days = 30)
+    public async Task<IEnumerable<HistoryEntryDto>> GetHistoryAsync(int days = 30)
     {
         using var connection = new SqliteConnection(_connectionString);
         var cutoffDate = DateTime.UtcNow.AddDays(-days).ToString("O");
-        return await connection.QueryAsync<HistoryEntry>(
+        return await connection.QueryAsync<HistoryEntryDto>(
             "SELECT * FROM History WHERE Timestamp >= @CutoffDate ORDER BY Timestamp DESC",
             new { CutoffDate = cutoffDate }
         );
@@ -209,7 +209,7 @@ public class InventoryRepository
     }
 
     [Description("Gets the full list of items currently in the inventory and their quantities.")]
-    public async Task<IEnumerable<InventoryItem>> GetFullInventory()
+    public async Task<IEnumerable<InventoryItemDto>> GetFullInventory()
     {
         return await GetInventoryAsync();
     }
@@ -217,7 +217,7 @@ public class InventoryRepository
     [Description(
         "Gets the consumption/purchase history for the last X days, optionally filtered by category."
     )]
-    public async Task<IEnumerable<HistoryEntry>> GetConsumptionHistory(
+    public async Task<IEnumerable<HistoryEntryDto>> GetConsumptionHistory(
         int days,
         string? category = null
     )
@@ -236,7 +236,7 @@ public class InventoryRepository
         }
         query += "ORDER BY h.Timestamp DESC";
 
-        return await connection.QueryAsync<HistoryEntry>(
+        return await connection.QueryAsync<HistoryEntryDto>(
             query,
             new { CutoffDate = cutoffDate, Category = category }
         );

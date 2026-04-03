@@ -46,7 +46,7 @@ public class GeminiService
         return "English";
     }
 
-    public async Task<List<ParsedVoiceAction>?> ParseVoiceCommandAsync(
+    public async Task<List<ParsedVoiceActionDto>?> ParseVoiceCommandAsync(
         string text,
         IEnumerable<string>? existingItems = null
     )
@@ -68,7 +68,7 @@ public class GeminiService
 
         try
         {
-            return JsonSerializer.Deserialize<List<ParsedVoiceAction>>(
+            return JsonSerializer.Deserialize<List<ParsedVoiceActionDto>>(
                 cleaned,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             );
@@ -84,7 +84,7 @@ public class GeminiService
         }
     }
 
-    public async Task<List<PantryItem>?> ProcessReceiptImageAsync(
+    public async Task<List<PantryItemDto>?> ProcessReceiptImageAsync(
         byte[] imageBytes,
         string mimeType = "image/jpeg",
         IEnumerable<string>? existingItems = null
@@ -116,7 +116,7 @@ public class GeminiService
 
         try
         {
-            return JsonSerializer.Deserialize<List<PantryItem>>(
+            return JsonSerializer.Deserialize<List<PantryItemDto>>(
                 cleaned,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             );
@@ -132,9 +132,9 @@ public class GeminiService
         }
     }
 
-    public async Task<Contracts.ChatResponse> ChatAsync(
+    public async Task<Contracts.ChatResponseDto> ChatAsync(
         string userMessage,
-        List<ChatHistoryMessage>? history = null
+        List<ChatHistoryMessageDto>? history = null
     )
     {
         var messages = new List<ChatMessage>();
@@ -169,16 +169,16 @@ public class GeminiService
 
         var response = await _chatClient.GetResponseAsync(messages, _chatOptions);
 
-        var clientHistory = history?.ToList() ?? new List<ChatHistoryMessage>();
-        clientHistory.Add(new ChatHistoryMessage("user", userMessage));
+        var clientHistory = history?.ToList() ?? new List<ChatHistoryMessageDto>();
+        clientHistory.Add(new ChatHistoryMessageDto("user", userMessage));
 
         var replyText = response.Text ?? "";
         if (!string.IsNullOrEmpty(replyText))
         {
-            clientHistory.Add(new ChatHistoryMessage("assistant", replyText));
+            clientHistory.Add(new ChatHistoryMessageDto("assistant", replyText));
         }
 
-        return new HomeStoq.Contracts.ChatResponse { Reply = replyText, History = clientHistory };
+        return new HomeStoq.Contracts.ChatResponseDto { Reply = replyText, History = clientHistory };
     }
 
     public async Task<string?> GenerateShoppingListAsync(string historyJson, string inventoryJson)

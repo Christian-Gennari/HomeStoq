@@ -1,6 +1,6 @@
 namespace HomeStoq.Contracts;
 
-public record Receipt
+public record ReceiptDto
 {
     public long Id { get; init; }
     public string Timestamp { get; init; } = string.Empty;

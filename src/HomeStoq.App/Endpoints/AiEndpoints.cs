@@ -17,7 +17,7 @@ public static class AiEndpoints
 {
     public static IEndpointRouteBuilder MapAiEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/chat", async (ChatRequest request, GeminiService gemini) => 
+        app.MapPost("/api/chat", async (ChatRequestDto request, GeminiService gemini) => 
         {
             var response = await gemini.ChatAsync(request.Message, request.History);
             return Results.Ok(response);
@@ -59,7 +59,7 @@ public static class AiEndpoints
         app.MapPost(
             "/api/voice/command",
             async (
-                [FromBody] VoiceCommandRequest? request,
+                [FromBody] VoiceCommandRequestDto? request,
                 GeminiService gemini,
                 InventoryRepository repository,
                 ILogger<GeminiService> logger

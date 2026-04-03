@@ -32,7 +32,7 @@ public static class InventoryEndpoints
 
         app.MapPost(
             "/api/inventory/update",
-            async (ManualUpdateRequest request, InventoryRepository repository, ILogger<InventoryRepository> logger) =>
+            async (ManualUpdateRequestDto request, InventoryRepository repository, ILogger<InventoryRepository> logger) =>
             {
                 logger.LogInformation(
                     "POST /api/inventory/update for {ItemName} ({Change})",

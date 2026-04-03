@@ -1,6 +1,6 @@
 namespace HomeStoq.Contracts;
 
-public record HistoryEntry
+public record HistoryEntryDto
 {
     public int Id { get; init; }
     public DateTime Timestamp { get; init; }
@@ -10,5 +10,5 @@ public record HistoryEntry
     public double? Price { get; init; }
     public double? TotalPrice { get; init; }
     public string? Currency { get; init; }
-    public string Source { get; init; } = string.Empty; // "Receipt", "Voice", "Manual"
+    public string Source { get; init; } = string.Empty; // "ReceiptDto", "Voice", "Manual"
 }

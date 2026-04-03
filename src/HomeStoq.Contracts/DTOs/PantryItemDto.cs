@@ -1,6 +1,6 @@
 namespace HomeStoq.Contracts;
 
-public record PantryItem
+public record PantryItemDto
 {
     public string ReceiptText { get; init; } = string.Empty;
     public string ExpandedName { get; init; } = string.Empty;

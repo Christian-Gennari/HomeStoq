@@ -47,10 +47,10 @@ RULES:
 9. Extract the EXACT unit price if visible.
 10. Respond ONLY with a JSON array.
 EXAMPLES:
-- Receipt text ""Gammaldags idealma"" → ExpandedName: ""Gammaldags Idealmakaroner"", ItemName: ""Gammaldags Idealmakaroner""
-- Receipt text ""Pasta w/arrabiata"" → ExpandedName: ""Pastasås Arrabiata"", ItemName: ""Pastasås Arrabiata""
-- Receipt text ""Ekologisk mjölk 1l"" → ExpandedName: ""Ekologisk Mjölk 1l"", ItemName: ""Ekologisk Mjölk 1l""
-- Receipt text ""Vegetariskt"" → ExpandedName: ""Vegetariskt"", ItemName: ""Vegetariskt"" ← WRONG, use actual product name from receipt
+- ReceiptDto text ""Gammaldags idealma"" → ExpandedName: ""Gammaldags Idealmakaroner"", ItemName: ""Gammaldags Idealmakaroner""
+- ReceiptDto text ""Pasta w/arrabiata"" → ExpandedName: ""Pastasås Arrabiata"", ItemName: ""Pastasås Arrabiata""
+- ReceiptDto text ""Ekologisk mjölk 1l"" → ExpandedName: ""Ekologisk Mjölk 1l"", ItemName: ""Ekologisk Mjölk 1l""
+- ReceiptDto text ""Vegetariskt"" → ExpandedName: ""Vegetariskt"", ItemName: ""Vegetariskt"" ← WRONG, use actual product name from receipt
 Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammaldags Idealmakaroner"", ""ItemName"": ""Gammaldags Idealmakaroner"", ""Quantity"": 1, ""Price"": 34.90, ""Category"": ""Skafferi"" }} ]";
         }
 
@@ -67,8 +67,8 @@ RULES:
 8. Extract the EXACT unit price if visible.
 9. Respond ONLY with a JSON array.
 EXAMPLES:
-- Receipt text ""Gammaldags idealma"" → ExpandedName: ""Gammaldags Idealmakaroner"", ItemName: ""Gammaldags Idealmakaroner""
-- Receipt text ""Skim Milk Org 1l"" → ExpandedName: ""Skimmed Milk Organic 1l"", ItemName: ""Skimmed Milk Organic 1l""
+- ReceiptDto text ""Gammaldags idealma"" → ExpandedName: ""Gammaldags Idealmakaroner"", ItemName: ""Gammaldags Idealmakaroner""
+- ReceiptDto text ""Skim Milk Org 1l"" → ExpandedName: ""Skimmed Milk Organic 1l"", ItemName: ""Skimmed Milk Organic 1l""
 Format: [ {{ ""ReceiptText"": ""Gammaldags idealma"", ""ExpandedName"": ""Gammaldags Idealmakaroner"", ""ItemName"": ""Gammaldags Idealmakaroner"", ""Quantity"": 1, ""Price"": 34.90, ""Category"": ""Skafferi"" }} ]";
     }
 

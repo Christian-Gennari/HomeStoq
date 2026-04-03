@@ -122,7 +122,7 @@ public class KeepListProcessor : IKeepListProcessor
             {
                 var response = await _httpClient.PostAsJsonAsync(
                     _apiUrl,
-                    new VoiceCommandRequest(text));
+                    new VoiceCommandRequestDto(text));
 
                 if (response.IsSuccessStatusCode)
                 {
