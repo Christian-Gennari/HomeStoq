@@ -1,7 +1,8 @@
+using System.ComponentModel;
 using Dapper;
 using HomeStoq.Contracts;
+using HomeStoq.Contracts.SharedUtils;
 using Microsoft.Data.Sqlite;
-using System.ComponentModel;
 
 namespace HomeStoq.App.Repositories;
 
@@ -13,9 +14,9 @@ public class InventoryRepository
     public InventoryRepository(ILogger<InventoryRepository> logger)
     {
         _logger = logger;
-        
+
         var dbPath = PathHelper.ResolveDatabasePath();
-        
+
         var directory = Path.GetDirectoryName(dbPath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
@@ -33,8 +34,12 @@ public class InventoryRepository
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            _logger.LogInformation("Initializing database at {ConnectionString}", _connectionString);
-            connection.Execute(@"
+            _logger.LogInformation(
+                "Initializing database at {ConnectionString}",
+                _connectionString
+            );
+            connection.Execute(
+                @"
                 CREATE TABLE IF NOT EXISTS Inventory (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ItemName TEXT UNIQUE NOT NULL,
@@ -73,14 +78,19 @@ public class InventoryRepository
                     CreatedAt TEXT NOT NULL,
                     ExpiresAt TEXT NOT NULL
                 );
-            ");
+            "
+            );
 
             // Migration check for ReceiptId and ExpandedName if History existed before
-            var historyColumns = connection.Query<string>("SELECT name FROM pragma_table_info('History')").Select(c => c.ToLower());
+            var historyColumns = connection
+                .Query<string>("SELECT name FROM pragma_table_info('History')")
+                .Select(c => c.ToLower());
             if (!historyColumns.Contains("receiptid"))
             {
                 _logger.LogInformation("Migrating History table: Adding ReceiptId column.");
-                connection.Execute("ALTER TABLE History ADD COLUMN ReceiptId INTEGER REFERENCES Receipts(Id)");
+                connection.Execute(
+                    "ALTER TABLE History ADD COLUMN ReceiptId INTEGER REFERENCES Receipts(Id)"
+                );
             }
             if (!historyColumns.Contains("expandedname"))
             {
@@ -102,7 +112,9 @@ public class InventoryRepository
         try
         {
             using var connection = new SqliteConnection(_connectionString);
-            var items = await connection.QueryAsync<InventoryItem>("SELECT * FROM Inventory ORDER BY ItemName");
+            var items = await connection.QueryAsync<InventoryItem>(
+                "SELECT * FROM Inventory ORDER BY ItemName"
+            );
             return items;
         }
         catch (Exception ex)
@@ -116,37 +128,54 @@ public class InventoryRepository
     {
         using var connection = new SqliteConnection(_connectionString);
         var now = DateTime.UtcNow.ToString("O");
-        return await connection.QuerySingleAsync<long>(@"
+        return await connection.QuerySingleAsync<long>(
+            @"
             INSERT INTO Receipts (Timestamp, StoreName, TotalAmountPaid)
             VALUES (@Timestamp, @StoreName, @TotalAmountPaid);
             SELECT last_insert_rowid();",
-            new { Timestamp = now, StoreName = storeName, TotalAmountPaid = totalAmount });
+            new
+            {
+                Timestamp = now,
+                StoreName = storeName,
+                TotalAmountPaid = totalAmount,
+            }
+        );
     }
 
     public async Task<IEnumerable<Receipt>> GetReceiptsAsync()
     {
         using var connection = new SqliteConnection(_connectionString);
-        return await connection.QueryAsync<Receipt>("SELECT * FROM Receipts ORDER BY Timestamp DESC");
+        return await connection.QueryAsync<Receipt>(
+            "SELECT * FROM Receipts ORDER BY Timestamp DESC"
+        );
     }
 
     public async Task<IEnumerable<HistoryEntry>> GetReceiptItemsAsync(long receiptId)
     {
         using var connection = new SqliteConnection(_connectionString);
         return await connection.QueryAsync<HistoryEntry>(
-            "SELECT * FROM History WHERE ReceiptId = @ReceiptId", new { ReceiptId = receiptId });
+            "SELECT * FROM History WHERE ReceiptId = @ReceiptId",
+            new { ReceiptId = receiptId }
+        );
     }
 
     public async Task UpdateInventoryItemAsync(
-        string itemName, 
-        double quantityChange, 
-        double? price = null, 
-        string? currency = null, 
-        string source = "Manual", 
-        string? category = null, 
+        string itemName,
+        double quantityChange,
+        double? price = null,
+        string? currency = null,
+        string source = "Manual",
+        string? category = null,
         long? receiptId = null,
-        string? expandedName = null)
+        string? expandedName = null
+    )
     {
-        _logger.LogInformation("Updating inventory: {ItemName} ({Change}) via {Source}", itemName, quantityChange, source);
+        _logger.LogInformation(
+            "Updating inventory: {ItemName} ({Change}) via {Source}",
+            itemName,
+            quantityChange,
+            source
+        );
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
         using var transaction = await connection.BeginTransactionAsync();
@@ -154,7 +183,10 @@ public class InventoryRepository
         try
         {
             var existingItem = await connection.QueryFirstOrDefaultAsync<InventoryItem>(
-                "SELECT * FROM Inventory WHERE ItemName = @ItemName COLLATE NOCASE", new { ItemName = itemName }, transaction);
+                "SELECT * FROM Inventory WHERE ItemName = @ItemName COLLATE NOCASE",
+                new { ItemName = itemName },
+                transaction
+            );
 
             var now = DateTime.UtcNow.ToString("O");
             var action = quantityChange >= 0 ? "Add" : "Remove";
@@ -162,18 +194,30 @@ public class InventoryRepository
 
             if (existingItem == null)
             {
-                if (quantityChange < 0) return;
+                if (quantityChange < 0)
+                    return;
 
-                await connection.ExecuteAsync(@"
+                await connection.ExecuteAsync(
+                    @"
                     INSERT INTO Inventory (ItemName, Quantity, Category, LastPrice, Currency, UpdatedAt)
                     VALUES (@ItemName, @Quantity, @Category, @LastPrice, @Currency, @UpdatedAt)",
-                    new { ItemName = itemName, Quantity = quantityChange, Category = category, LastPrice = price, Currency = currency, UpdatedAt = now },
-                    transaction);
+                    new
+                    {
+                        ItemName = itemName,
+                        Quantity = quantityChange,
+                        Category = category,
+                        LastPrice = price,
+                        Currency = currency,
+                        UpdatedAt = now,
+                    },
+                    transaction
+                );
             }
             else
             {
                 var newQuantity = Math.Max(0, existingItem.Quantity + quantityChange);
-                await connection.ExecuteAsync(@"
+                await connection.ExecuteAsync(
+                    @"
                     UPDATE Inventory 
                     SET Quantity = @Quantity, 
                         Category = COALESCE(@Category, Category),
@@ -181,27 +225,38 @@ public class InventoryRepository
                         Currency = COALESCE(@Currency, Currency), 
                         UpdatedAt = @UpdatedAt
                     WHERE ItemName = @ItemName",
-                    new { ItemName = itemName, Quantity = newQuantity, Category = category, LastPrice = price, Currency = currency, UpdatedAt = now },
-                    transaction);
+                    new
+                    {
+                        ItemName = itemName,
+                        Quantity = newQuantity,
+                        Category = category,
+                        LastPrice = price,
+                        Currency = currency,
+                        UpdatedAt = now,
+                    },
+                    transaction
+                );
             }
 
-            await connection.ExecuteAsync(@"
+            await connection.ExecuteAsync(
+                @"
                 INSERT INTO History (Timestamp, ItemName, ExpandedName, Action, Quantity, Price, TotalPrice, Currency, Source, ReceiptId)
                 VALUES (@Timestamp, @ItemName, @ExpandedName, @Action, @Quantity, @Price, @TotalPrice, @Currency, @Source, @ReceiptId)",
-                new 
-                { 
-                    Timestamp = now, 
+                new
+                {
+                    Timestamp = now,
                     ItemName = itemName,
                     ExpandedName = expandedName ?? itemName,
-                    Action = action, 
-                    Quantity = absQuantity, 
-                    Price = price, 
+                    Action = action,
+                    Quantity = absQuantity,
+                    Price = price,
                     TotalPrice = price.HasValue ? price.Value * absQuantity : (double?)null,
                     Currency = currency,
                     Source = source,
-                    ReceiptId = receiptId
+                    ReceiptId = receiptId,
                 },
-                transaction);
+                transaction
+            );
 
             await transaction.CommitAsync();
         }
@@ -219,7 +274,8 @@ public class InventoryRepository
         var cutoffDate = DateTime.UtcNow.AddDays(-days).ToString("O");
         return await connection.QueryAsync<HistoryEntry>(
             "SELECT * FROM History WHERE Timestamp >= @CutoffDate ORDER BY Timestamp DESC",
-            new { CutoffDate = cutoffDate });
+            new { CutoffDate = cutoffDate }
+        );
     }
 
     // AI Tool Methods
@@ -228,7 +284,9 @@ public class InventoryRepository
     {
         using var connection = new SqliteConnection(_connectionString);
         return await connection.QueryFirstOrDefaultAsync<double>(
-            "SELECT Quantity FROM Inventory WHERE ItemName = @ItemName COLLATE NOCASE", new { ItemName = itemName });
+            "SELECT Quantity FROM Inventory WHERE ItemName = @ItemName COLLATE NOCASE",
+            new { ItemName = itemName }
+        );
     }
 
     [Description("Gets the full list of items currently in the inventory and their quantities.")]
@@ -237,23 +295,32 @@ public class InventoryRepository
         return await GetInventoryAsync();
     }
 
-    [Description("Gets the consumption/purchase history for the last X days, optionally filtered by category.")]
-    public async Task<IEnumerable<HistoryEntry>> GetConsumptionHistory(int days, string? category = null)
+    [Description(
+        "Gets the consumption/purchase history for the last X days, optionally filtered by category."
+    )]
+    public async Task<IEnumerable<HistoryEntry>> GetConsumptionHistory(
+        int days,
+        string? category = null
+    )
     {
         using var connection = new SqliteConnection(_connectionString);
         var cutoffDate = DateTime.UtcNow.AddDays(-days).ToString("O");
         var query = "SELECT h.* FROM History h ";
         if (!string.IsNullOrEmpty(category))
         {
-            query += "JOIN Inventory i ON h.ItemName = i.ItemName WHERE i.Category = @Category AND h.Timestamp >= @CutoffDate ";
+            query +=
+                "JOIN Inventory i ON h.ItemName = i.ItemName WHERE i.Category = @Category AND h.Timestamp >= @CutoffDate ";
         }
         else
         {
             query += "WHERE h.Timestamp >= @CutoffDate ";
         }
         query += "ORDER BY h.Timestamp DESC";
-        
-        return await connection.QueryAsync<HistoryEntry>(query, new { CutoffDate = cutoffDate, Category = category });
+
+        return await connection.QueryAsync<HistoryEntry>(
+            query,
+            new { CutoffDate = cutoffDate, Category = category }
+        );
     }
 
     public async Task<string?> GetAiCacheAsync(string cacheKey)
@@ -262,16 +329,25 @@ public class InventoryRepository
         var now = DateTime.UtcNow.ToString("O");
         return await connection.QueryFirstOrDefaultAsync<string>(
             "SELECT Response FROM AiCache WHERE CacheKey = @CacheKey AND ExpiresAt > @Now",
-            new { CacheKey = cacheKey, Now = now });
+            new { CacheKey = cacheKey, Now = now }
+        );
     }
 
     public async Task SetAiCacheAsync(string cacheKey, string response, TimeSpan ttl)
     {
         using var connection = new SqliteConnection(_connectionString);
         var now = DateTime.UtcNow;
-        await connection.ExecuteAsync(@"
+        await connection.ExecuteAsync(
+            @"
             INSERT OR REPLACE INTO AiCache (CacheKey, Response, CreatedAt, ExpiresAt)
             VALUES (@CacheKey, @Response, @CreatedAt, @ExpiresAt)",
-            new { CacheKey = cacheKey, Response = response, CreatedAt = now.ToString("O"), ExpiresAt = now.Add(ttl).ToString("O") });
+            new
+            {
+                CacheKey = cacheKey,
+                Response = response,
+                CreatedAt = now.ToString("O"),
+                ExpiresAt = now.Add(ttl).ToString("O"),
+            }
+        );
     }
 }
