@@ -12,7 +12,6 @@ public class KeepListProcessor : IKeepListProcessor
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<KeepListProcessor> _logger;
-    private readonly Random _random = Random.Shared;
     private readonly string _apiUrl;
 
     public KeepListProcessor(HttpClient httpClient, ILogger<KeepListProcessor> logger)
@@ -70,10 +69,10 @@ public class KeepListProcessor : IKeepListProcessor
 
         // 3. Click to open/expand the note
         _logger.LogDebug("Opening list '{ListName}'...", listName);
-        await MoveMouseToElementAsync(page, listButton);
+        await BrowserUtils.MoveMouseToElementAsync(page, listButton);
         await listButton.ClickAsync(new() { Force = true });
         
-        await HumanDelayAsync(1500, 500);
+        await BrowserUtils.HumanDelayAsync(1500, 500);
 
         // 4. Process checkboxes
         var container = page.Locator("[role='dialog']").First;
@@ -126,9 +125,9 @@ public class KeepListProcessor : IKeepListProcessor
 
                 if (response.IsSuccessStatusCode)
                 {
-                    await MoveMouseToElementAsync(page, checkbox);
+                    await BrowserUtils.MoveMouseToElementAsync(page, checkbox);
                     await checkbox.ClickAsync();
-                    await HumanDelayAsync(800, 300);
+                    await BrowserUtils.HumanDelayAsync(800, 300);
                     _logger.LogInformation("  Processed and checked: {Text}", text);
                 }
                 else
@@ -168,9 +167,9 @@ public class KeepListProcessor : IKeepListProcessor
         if (await moreButton.IsVisibleAsync())
         {
             _logger.LogDebug("Clicking 'More' menu to clean up items...");
-            await MoveMouseToElementAsync(page, moreButton);
+            await BrowserUtils.MoveMouseToElementAsync(page, moreButton);
             await moreButton.ClickAsync();
-            await HumanDelayAsync(600, 200);
+            await BrowserUtils.HumanDelayAsync(600, 200);
 
             var deleteOption = page.GetByRole(AriaRole.Menuitem, new() { Name = "Delete ticked items" })
                 .Or(page.GetByRole(AriaRole.Menuitem, new() { Name = "Ta bort markerade objekt" }))
@@ -180,13 +179,13 @@ public class KeepListProcessor : IKeepListProcessor
             {
                 await deleteOption.ClickAsync();
                 _logger.LogInformation("  Cleaned up completed items from the list.");
-                await HumanDelayAsync(1200, 400);
+                await BrowserUtils.HumanDelayAsync(1200, 400);
             }
             else
             {
                 _logger.LogDebug("  'Delete ticked items' option not found in menu.");
                 await page.Keyboard.PressAsync("Escape");
-                await HumanDelayAsync(300, 100);
+                await BrowserUtils.HumanDelayAsync(300, 100);
             }
         }
         else
@@ -207,44 +206,13 @@ public class KeepListProcessor : IKeepListProcessor
         {
             await doneButton.ClickAsync();
             _logger.LogDebug("Closed expanded note.");
-            await HumanDelayAsync(500, 200);
+            await BrowserUtils.HumanDelayAsync(500, 200);
         }
         else
         {
             await page.Keyboard.PressAsync("Escape");
             _logger.LogDebug("Pressed Escape to close note.");
-            await HumanDelayAsync(500, 200);
+            await BrowserUtils.HumanDelayAsync(500, 200);
         }
-    }
-
-    private async Task HumanDelayAsync(int baseMs, int jitterMs = 500)
-    {
-        var delay = baseMs + _random.Next(-jitterMs, jitterMs);
-        delay = Math.Max(100, delay);
-        await Task.Delay(delay);
-    }
-
-    private async Task MoveMouseToElementAsync(IPage page, ILocator element)
-    {
-        var box = await element.BoundingBoxAsync();
-        if (box == null) return;
-
-        var startX = _random.Next(100, 300);
-        var startY = _random.Next(100, 300);
-        await page.Mouse.MoveAsync(startX, startY);
-
-        var steps = _random.Next(8, 15);
-        for (var i = 1; i <= steps; i++)
-        {
-            var t = (double)i / steps;
-            var ease = t * t * (3 - 2 * t);
-            var x = startX + (box.X + box.Width / 2 - startX) * ease + _random.Next(-5, 5);
-            var y = startY + (box.Y + box.Height / 2 - startY) * ease + _random.Next(-5, 5);
-            await page.Mouse.MoveAsync((float)x, (float)y);
-            await Task.Delay(_random.Next(8, 25));
-        }
-
-        await page.Mouse.MoveAsync((float)(box.X + box.Width / 2), (float)(box.Y + box.Height / 2));
-        await Task.Delay(_random.Next(100, 400));
     }
 }
