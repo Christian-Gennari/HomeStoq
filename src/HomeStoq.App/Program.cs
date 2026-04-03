@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using Google.GenAI;
 using HomeStoq.App.Endpoints;
+using Microsoft.EntityFrameworkCore;
 
 // Load environment variables from .env if present
 DotNetEnv.Env.Load(PathHelper.ResolveEnvFile());
@@ -33,6 +34,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add config.ini as a configuration source
 builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: true);
 
+// Register DbContext
+builder.Services.AddDbContext<HomeStoq.App.Data.PantryDbContext>(options =>
+    options.UseSqlite($"Data Source={PathHelper.ResolveDatabasePath()}"));
+
 // Register AI Client
 var apiKey = builder.Configuration["GEMINI_API_KEY"] ?? throw new InvalidOperationException("GEMINI_API_KEY not configured");
 var modelId = builder.Configuration["AI:Model"] ?? "gemini-3.1-flash-lite-preview";
@@ -43,10 +48,10 @@ builder.Services.AddSingleton<IChatClient>(sp =>
         .UseFunctionInvocation()
         .Build());
 
-builder.Services.AddSingleton<HomeStoq.App.Data.DbInitializer>();
+builder.Services.AddScoped<HomeStoq.App.Data.DbInitializer>();
 builder.Services.AddSingleton<PromptProvider>();
-builder.Services.AddSingleton<InventoryRepository>();
-builder.Services.AddSingleton<GeminiService>();
+builder.Services.AddScoped<InventoryRepository>();
+builder.Services.AddScoped<GeminiService>();
 builder.Services.AddHttpClient();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
