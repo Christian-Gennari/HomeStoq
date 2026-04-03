@@ -12,17 +12,25 @@ using Google.GenAI;
 // Load environment variables from .env if present
 DotNetEnv.Env.Load(PathHelper.ResolveEnvFile());
 
+// Apply HostUrl from config.ini before the web host builder reads ASPNETCORE_URLS
+// This ensures config.ini takes precedence over any existing environment variable
+var configIniPath = PathHelper.ResolveConfigIni();
+if (File.Exists(configIniPath))
+{
+    var hostUrl = System
+        .Text.RegularExpressions.Regex.Match(File.ReadAllText(configIniPath), @"HostUrl\s*=\s*(.+)")
+        .Groups[1]
+        .Value.Trim();
+    if (!string.IsNullOrEmpty(hostUrl))
+    {
+        Environment.SetEnvironmentVariable("ASPNETCORE_URLS", hostUrl);
+    }
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add config.ini as a configuration source
-builder.Configuration.AddIniFile(PathHelper.ResolveConfigIni(), optional: true, reloadOnChange: true);
-
-// Get the host URL from config.ini [API] HostUrl
-var hostUrl = builder.Configuration["API:HostUrl"];
-if (!string.IsNullOrEmpty(hostUrl))
-{
-    builder.WebHost.UseUrls(hostUrl);
-}
+builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: true);
 
 // Register AI Client
 var apiKey = builder.Configuration["GEMINI_API_KEY"] ?? throw new InvalidOperationException("GEMINI_API_KEY not configured");
