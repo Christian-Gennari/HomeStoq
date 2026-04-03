@@ -10,11 +10,11 @@ public class InventoryRepository
     private readonly string _connectionString;
     private readonly ILogger<InventoryRepository> _logger;
 
-    public InventoryRepository(IConfiguration configuration, ILogger<InventoryRepository> logger)
+    public InventoryRepository(ILogger<InventoryRepository> logger)
     {
         _logger = logger;
         
-        var dbPath = configuration["Database:Path"] ?? PathHelper.ResolveDatabasePath();
+        var dbPath = PathHelper.ResolveDatabasePath();
         
         var directory = Path.GetDirectoryName(dbPath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))

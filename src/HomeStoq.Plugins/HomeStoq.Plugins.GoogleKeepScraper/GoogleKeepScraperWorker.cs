@@ -34,7 +34,7 @@ public class GoogleKeepScraperWorker : BackgroundService
         var listNamesConfig = config["Voice:KeepListName"] ?? "inköpslistan";
         _listNames = listNamesConfig.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         
-        _apiUrl = config["API:BaseUrl"] ?? "http://localhost:5000/api/voice/command";
+        _apiUrl = "http://localhost:5000/api/voice/command";
         _profileDir = Path.GetFullPath("browser-profile");
         _pollIntervalSeconds = int.Parse(config["Scraper:PollIntervalSeconds"] ?? "45");
         _pollIntervalJitterSeconds = int.Parse(config["Scraper:PollIntervalJitterSeconds"] ?? "15");
