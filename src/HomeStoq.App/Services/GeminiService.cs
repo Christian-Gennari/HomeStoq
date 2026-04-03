@@ -1,4 +1,7 @@
+using System.ComponentModel;
 using System.Text.Json;
+using HomeStoq.App.Endpoints;
+using HomeStoq.App.Models;
 using HomeStoq.App.Repositories;
 using HomeStoq.Shared.DTOs;
 using Microsoft.Extensions.AI;
@@ -34,9 +37,31 @@ public class GeminiService
             AIFunctionFactory.Create(_repository.GetStockLevel),
             AIFunctionFactory.Create(_repository.GetFullInventory),
             AIFunctionFactory.Create(_repository.GetConsumptionHistory),
+            AIFunctionFactory.Create(GetSavedShoppingList),
         };
 
         _chatOptions = new ChatOptions { Tools = tools, ToolMode = ChatToolMode.Auto };
+    }
+
+    [Description("Gets the user's current saved shopping list if one exists. Returns the list name and all items.")]
+    public async Task<string?> GetSavedShoppingList()
+    {
+        var savedList = await _repository.GetSavedBuyListAsync();
+        if (savedList == null)
+        {
+            return _language == "Swedish" ? "Ingen sparad inköpslista finns just nu." : "No saved shopping list exists right now.";
+        }
+
+        var items = savedList.Items
+            .Where(i => !i.IsDismissed)
+            .Select(i => $"- {i.ItemName} x{i.Quantity}")
+            .ToList();
+
+        var result = _language == "Swedish" 
+            ? $"Sparad lista: \"{savedList.SavedName}\" med {items.Count} varor:\n{string.Join("\n", items)}"
+            : $"Saved list: \"{savedList.SavedName}\" with {items.Count} items:\n{string.Join("\n", items)}";
+
+        return result;
     }
 
     private static string NormalizeLanguage(string? language)
@@ -197,6 +222,118 @@ public class GeminiService
         return CleanJsonFromMarkdown(response.Text);
     }
 
+    public async Task<ShoppingBuddyResponse?> GenerateShoppingBuddyListAsync(string historyJson, string inventoryJson)
+    {
+        var systemPrompt = _promptProvider.GetShoppingBuddyPrompt(_language);
+
+        var userMessage = $@"Here is my pantry data:
+
+CURRENT INVENTORY:
+{inventoryJson}
+
+PURCHASE HISTORY (last 30 days):
+{historyJson}
+
+Generate a helpful shopping list with explanations.";
+
+        var response = await _chatClient.GetResponseAsync(
+            [new(ChatRole.System, systemPrompt), new(ChatRole.User, userMessage)]
+        );
+
+        var cleaned = CleanJsonFromMarkdown(response.Text);
+        if (string.IsNullOrEmpty(cleaned))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<ShoppingBuddyResponse>(
+                cleaned,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize shopping buddy response: {Response}", cleaned);
+            return null;
+        }
+    }
+
+    public async Task<ShoppingBuddyResponse?> GenerateShoppingBuddyListWithContextAsync(string historyJson, string inventoryJson, string userContext, string? previousSuggestionsJson = null)
+    {
+        var systemPrompt = _promptProvider.GetShoppingBuddyPrompt(_language);
+        var followUpPrompt = _promptProvider.GetShoppingBuddyFollowUpPrompt(_language, userContext);
+
+        var userMessage = $@"Here is my pantry data:
+
+CURRENT INVENTORY:
+{inventoryJson}
+
+PURCHASE HISTORY (last 30 days):
+{historyJson}
+
+{(previousSuggestionsJson != null ? $"PREVIOUS SUGGESTIONS:\n{previousSuggestionsJson}\n\n" : "")}
+
+{followUpPrompt}";
+
+        var response = await _chatClient.GetResponseAsync(
+            [new(ChatRole.System, systemPrompt), new(ChatRole.User, userMessage)]
+        );
+
+        var cleaned = CleanJsonFromMarkdown(response.Text);
+        if (string.IsNullOrEmpty(cleaned))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<ShoppingBuddyResponse>(
+                cleaned,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize shopping buddy follow-up response: {Response}", cleaned);
+            return null;
+        }
+    }
+
+    public async Task<ShoppingListChatResponse?> ChatWithShoppingListAsync(
+        string userMessage,
+        List<ChatMessageDto> conversationHistory,
+        List<BuyListItemDto> currentItems,
+        string inventoryJson,
+        string language)
+    {
+        var systemPrompt = _promptProvider.GetShoppingListChatPrompt(language);
+        
+        // Build conversation context
+        var conversationContext = string.Join("\n", conversationHistory.Select(m => $"{m.Role}: {m.Content}"));
+        var currentItemsJson = JsonSerializer.Serialize(currentItems);
+        
+        var fullPrompt = $"CONVERSATION HISTORY:\n{conversationContext}\n\nCURRENT SHOPPING LIST:\n{currentItemsJson}\n\nPANTRY INVENTORY:\n{inventoryJson}\n\nUSER MESSAGE: {userMessage}\n\nRespond with the JSON format specified in your instructions.";;
+
+        var response = await _chatClient.GetResponseAsync(
+            [new(ChatRole.System, systemPrompt), new(ChatRole.User, fullPrompt)]
+        );
+
+        var cleaned = CleanJsonFromMarkdown(response.Text);
+        if (string.IsNullOrEmpty(cleaned))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<ShoppingListChatResponse>(
+                cleaned,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize shopping list chat response: {Response}", cleaned);
+            return null;
+        }
+    }
+
     private static string? CleanJsonFromMarkdown(string? text)
     {
         if (string.IsNullOrEmpty(text))
@@ -212,3 +349,39 @@ public class GeminiService
         return cleaned.Trim();
     }
 }
+
+// DTO for shopping buddy response
+public class ShoppingBuddyResponse
+{
+    public string Greeting { get; set; } = string.Empty;
+    public List<ShoppingBuddySuggestion> Suggestions { get; set; } = new();
+    public string FollowUpQuestion { get; set; } = string.Empty;
+}
+
+public class ShoppingBuddySuggestion
+{
+    public string ItemName { get; set; } = string.Empty;
+    public double Quantity { get; set; }
+    public string Confidence { get; set; } = string.Empty;
+    public string Reasoning { get; set; } = string.Empty;
+    public string Group { get; set; } = string.Empty;
+}
+
+// NEW: Chat response for conversational shopping list
+public class ShoppingListChatResponse
+{
+    public string Reply { get; set; } = string.Empty;
+    public List<ChatActionItem> Actions { get; set; } = new();
+    public List<string> SuggestedReplies { get; set; } = new();
+    public bool RequiresConfirmation { get; set; }
+}
+
+public class ChatActionItem
+{
+    public string Type { get; set; } = string.Empty; // "add", "remove", "modify", "info"
+    public string? ItemName { get; set; }
+    public double Quantity { get; set; }
+    public string? Reasoning { get; set; }
+}
+
+// DTOs defined in ShoppingListEndpoints.cs to avoid circular references
