@@ -8,8 +8,6 @@ using HomeStoq.App.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using Google.GenAI;
-using Microsoft.Extensions.Options;
-using HomeStoq.App.Configuration;
 using HomeStoq.App.Endpoints;
 
 // Load environment variables from .env if present
@@ -34,12 +32,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add config.ini as a configuration source
 builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: true);
-
-builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
-builder.Services.Configure<GeminiOptions>(options => {
-    options.ApiKey = builder.Configuration["GEMINI_API_KEY"] ?? string.Empty;
-    options.Model = builder.Configuration["AI:Model"] ?? "gemini-3.1-flash-lite-preview";
-});
 
 // Register AI Client
 var apiKey = builder.Configuration["GEMINI_API_KEY"] ?? throw new InvalidOperationException("GEMINI_API_KEY not configured");

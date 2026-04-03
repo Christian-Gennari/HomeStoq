@@ -2,8 +2,6 @@ using System.Text.Json;
 using HomeStoq.App.Repositories;
 using HomeStoq.Contracts;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Options;
-using HomeStoq.App.Configuration;
 
 namespace HomeStoq.App.Services;
 
@@ -18,7 +16,7 @@ public class GeminiService
 
     public GeminiService(
         IChatClient chatClient,
-        IOptions<AppOptions> appOptions,
+        IConfiguration configuration,
         ILogger<GeminiService> logger,
         InventoryRepository repository,
         PromptProvider promptProvider
@@ -28,7 +26,7 @@ public class GeminiService
         _logger = logger;
         _repository = repository;
         _promptProvider = promptProvider;
-        _language = NormalizeLanguage(appOptions.Value.Language);
+        _language = NormalizeLanguage(configuration["App:Language"]);
 
         // Define tools for the AI
         var tools = new List<AITool>

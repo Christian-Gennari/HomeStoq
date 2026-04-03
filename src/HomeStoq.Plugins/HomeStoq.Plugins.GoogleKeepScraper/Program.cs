@@ -5,7 +5,6 @@ using HomeStoq.Plugins.GoogleKeepScraper;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
-using HomeStoq.Plugins.GoogleKeepScraper.Configuration;
 using HomeStoq.Plugins.GoogleKeepScraper.Services;
 
 // Load environment variables from .env if present
@@ -22,9 +21,6 @@ builder.Configuration.AddIniFile(
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: true);
 builder.Configuration.AddEnvironmentVariables();
-
-builder.Services.Configure<VoiceOptions>(builder.Configuration.GetSection("Voice"));
-builder.Services.Configure<ScraperOptions>(builder.Configuration.GetSection("Scraper"));
 
 builder.Services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromSeconds(30) });
 builder.Services.AddSingleton<IBrowserService, PlaywrightBrowserService>();

@@ -1,10 +1,9 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using HomeStoq.Plugins.GoogleKeepScraper.Configuration;
 using HomeStoq.Plugins.GoogleKeepScraper.Services;
 
 namespace HomeStoq.Plugins.GoogleKeepScraper;
@@ -25,21 +24,20 @@ public class GoogleKeepScraperWorker : BackgroundService
     public GoogleKeepScraperWorker(
         IBrowserService browserService,
         IKeepListProcessor keepListProcessor,
-        IOptions<VoiceOptions> voiceOptions,
-        IOptions<ScraperOptions> scraperOptions,
+        IConfiguration config,
         ILogger<GoogleKeepScraperWorker> logger)
     {
         _browserService = browserService;
         _keepListProcessor = keepListProcessor;
         _logger = logger;
 
-        var listNamesConfig = string.IsNullOrEmpty(voiceOptions.Value.KeepListName) ? "inköpslistan" : voiceOptions.Value.KeepListName;
+        var listNamesConfig = config["Voice:KeepListName"] ?? "inköpslistan";
         _listNames = listNamesConfig.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         
-        _pollIntervalSeconds = scraperOptions.Value.PollIntervalSeconds;
-        _pollIntervalJitterSeconds = scraperOptions.Value.PollIntervalJitterSeconds;
+        _pollIntervalSeconds = int.Parse(config["Scraper:PollIntervalSeconds"] ?? "45");
+        _pollIntervalJitterSeconds = int.Parse(config["Scraper:PollIntervalJitterSeconds"] ?? "15");
 
-        var activeHours = scraperOptions.Value.ActiveHours;
+        var activeHours = config["Scraper:ActiveHours"] ?? "07-23";
         var parts = activeHours.Split('-', StringSplitOptions.TrimEntries);
         if (parts.Length == 2 && int.TryParse(parts[0], out var start) && int.TryParse(parts[1], out var end))
         {
