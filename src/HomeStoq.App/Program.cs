@@ -48,6 +48,12 @@ builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
+// Eagerly initialize the database repository on startup
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<InventoryRepository>();
+}
+
 // Static files
 app.UseDefaultFiles();
 app.UseStaticFiles();

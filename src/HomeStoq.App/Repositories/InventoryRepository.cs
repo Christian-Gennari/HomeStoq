@@ -98,6 +98,23 @@ public class InventoryRepository
                 connection.Execute("ALTER TABLE History ADD COLUMN ExpandedName TEXT");
             }
 
+            var count = connection.QuerySingle<int>("SELECT COUNT(*) FROM Inventory");
+            if (count == 0)
+            {
+                _logger.LogInformation("Database is empty. Seeding with initial data.");
+                var seedFile = System.IO.Path.Combine(HomeStoq.Contracts.SharedUtils.PathHelper.RepoRoot, "data", "seed.sql");
+                if (System.IO.File.Exists(seedFile))
+                {
+                    var sql = System.IO.File.ReadAllText(seedFile);
+                    connection.Execute(sql);
+                    _logger.LogInformation("Database seeded successfully.");
+                }
+                else
+                {
+                    _logger.LogWarning($"Seed file not found at {seedFile}");
+                }
+            }
+
             _logger.LogInformation("Database tables initialized successfully.");
         }
         catch (Exception ex)
