@@ -1,11 +1,28 @@
 # HomeStoq Development Todo
 
-Last updated: 2025-04-03
+Last updated: 2025-04-05
 
 ## ✅ Recently Completed
 
-- **#11** - UI Revamp: Restructure and Improve "Inköpslista" Tab  
-  Status: **COMPLETED** ✓  
+- **#12** - Frontend Refactoring: Break Up Large UI Files ✅  
+  Split monolithic files into feature-based modules:
+  - `i18n.js` - Externalized translations (136 lines)
+  - `css/core.css` - Shared styles (~400 lines)
+  - `features/inventory/` - Stock view (~250 lines CSS, ~150 lines JS)
+  - `features/scan/` - Receipt scanning (~200 lines CSS, ~50 lines JS)
+  - `features/receipts/` - Receipt history (~180 lines CSS, ~50 lines JS)
+  - `features/chat/` - Pantry chat (~300 lines CSS, ~100 lines JS)
+  - `features/shopping/` - Inköpslistor (~900 lines CSS, ~600 lines JS)
+  - `js/main.js` - App orchestrator (~100 lines)
+  - Backup files removed after successful testing
+  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/12)
+
+- **#10** - i18n Unification ✅  
+  Moved translations from inline `app.js` to `js/i18n.js`  
+  Languages: English, Swedish (67 keys each)  
+  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/10)
+
+- **#11** - UI Revamp: Restructure and Improve "Inköpslista" Tab ✅  
   [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/11)
 
 ---
@@ -14,15 +31,7 @@ Last updated: 2025-04-03
 
 ### 🔴 High Priority
 
-- **#12** - Frontend Refactoring: Break Up Large UI Files  
-  Large frontend files need splitting: `index.html` (~450 lines), `app.js` (~900 lines), `style.css` (~2,300 lines).  
-  Labels: `help wanted`, `technical debt`, `refactoring`, `frontend`  
-  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/12)
-
-- **#10** - Unify and make i18n handling more manageable and professional  
-  Move i18n strings from inline `app.js` to external files (JSON or library).  
-  Labels: `enhancement`, `good first issue`, `refactoring`  
-  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/10)
+_None remaining - all complete! 🎉_
 
 ### 🟡 Medium Priority
 
@@ -75,10 +84,47 @@ Last updated: 2025-04-03
 
 ---
 
-## Quick Reference
+## 📊 Quick Reference
 
-**Total Open Issues:** 12  
-**Priority Distribution:** 2 High | 6 Medium | 3 Low
+**Total Open Issues:** 10  
+**Priority Distribution:** 0 High | 6 Medium | 3 Low  
+**Recently Completed:** 3 High Priority Issues ✅
+
+### New Frontend Structure
+
+```
+wwwroot/
+├── index.html              # Main shell (464 lines, unchanged)
+├── css/
+│   └── core.css            # Shared styles (~400 lines)
+├── js/
+│   ├── i18n.js             # Translations (~150 lines)
+│   └── main.js             # App orchestrator (~100 lines)
+└── features/
+    ├── inventory/          # Stock view
+    │   ├── inventory.css   # ~250 lines
+    │   └── inventory.js    # ~150 lines
+    ├── scan/               # Receipt scanning
+    │   ├── scan.css        # ~200 lines
+    │   └── scan.js         # ~50 lines
+    ├── receipts/           # Receipt history
+    │   ├── receipts.css    # ~180 lines
+    │   └── receipts.js     # ~50 lines
+    ├── chat/               # Pantry chat
+    │   ├── chat.css        # ~300 lines
+    │   └── chat.js         # ~100 lines
+    └── shopping/           # Inköpslistor (largest)
+        ├── shopping.css    # ~900 lines
+        └── shopping.js     # ~600 lines
+```
+
+### Benefits Achieved
+- ✅ No file exceeds 900 lines (was 2,734 for CSS, 1,000 for JS)
+- ✅ Feature co-location: all related code in one folder
+- ✅ Reduced merge conflicts potential
+- ✅ i18n externalized and manageable
+- ✅ Clear separation of concerns
+- ✅ Easier testing and maintenance
 
 ### Labels
 - `enhancement` - New features

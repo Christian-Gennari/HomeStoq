@@ -1,0 +1,85 @@
+/**
+ * HomeStoq Receipts Feature Styles
+ * Receipt history view: receipt cards, expandable details
+ */
+
+/* Receipts List */
+.receipts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.receipt-card {
+    background: var(--white);
+    border: 1px solid var(--oat-dark);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.receipt-card:hover {
+    box-shadow: var(--shadow-soft);
+}
+
+.receipt-header {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.receipt-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.store-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--charcoal);
+}
+
+.receipt-date {
+    font-size: 0.75rem;
+    color: var(--sage);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.receipt-amount {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 600;
+    color: var(--charcoal);
+}
+
+.chevron {
+    font-size: 0.6rem;
+    transition: transform 0.2s ease;
+    color: var(--sage);
+}
+
+.chevron.open {
+    transform: rotate(180deg);
+}
+
+.receipt-details {
+    border-top: 1px solid var(--oat);
+    background: rgba(243, 240, 233, 0.3);
+    padding: 1rem 1.5rem;
+}
+
+.detail-list .item-row {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0,0,0,0.02);
+}
+
+.item-expanded {
+    font-size: 0.7rem;
+    color: var(--warm-gray);
+    font-style: italic;
+}

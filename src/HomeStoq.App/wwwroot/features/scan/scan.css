@@ -1,0 +1,112 @@
+/**
+ * HomeStoq Scan Feature Styles
+ * Receipt scanning view: dropzone, file upload, scan results
+ */
+
+/* Scan Area */
+.scan-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.dropzone {
+    background: var(--white);
+    border: 2px dashed var(--oat-dark);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dropzone:hover {
+    border-color: var(--sage);
+    box-shadow: var(--shadow-soft);
+}
+
+.dropzone svg {
+    color: var(--sage);
+}
+
+.dropzone span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--charcoal);
+}
+
+.dropzone:hover span {
+    color: var(--sage-dark);
+}
+
+/* Scan Actions */
+.scan-actions {
+    margin-bottom: 2rem;
+}
+
+.scan-ready {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--white);
+    border: 1px solid var(--oat-dark);
+    border-radius: var(--radius);
+    margin-bottom: 1rem;
+}
+
+.scan-ready p {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--charcoal);
+}
+
+/* Scan Results */
+.scan-results {
+    margin-bottom: 2rem;
+}
+
+.scan-results .category-title {
+    margin-bottom: 1rem;
+}
+
+.scan-result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    border-radius: var(--radius);
+}
+
+.scan-result-row:hover {
+    background: rgba(255,255,255,0.6);
+}
+
+.item-meta-reason {
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .scan-area {
+        grid-template-columns: 1fr;
+    }
+    
+    .dropzone {
+        flex-direction: row;
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .scan-ready {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+}

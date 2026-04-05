@@ -13,7 +13,15 @@
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
-    <link rel="stylesheet" href="style.css">
+    <!-- Core Styles -->
+    <link rel="stylesheet" href="css/core.css">
+    
+    <!-- Feature Styles -->
+    <link rel="stylesheet" href="features/inventory/inventory.css">
+    <link rel="stylesheet" href="features/scan/scan.css">
+    <link rel="stylesheet" href="features/receipts/receipts.css">
+    <link rel="stylesheet" href="features/chat/chat.css">
+    <link rel="stylesheet" href="features/shopping/shopping.css">
 </head>
 <body x-data="pantryApp()">
     
@@ -459,6 +467,17 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- i18n Translations -->
+    <script src="js/i18n.js"></script>
+    
+    <!-- Feature Modules -->
+    <script src="features/inventory/inventory.js"></script>
+    <script src="features/scan/scan.js"></script>
+    <script src="features/receipts/receipts.js"></script>
+    <script src="features/chat/chat.js"></script>
+    <script src="features/shopping/shopping.js"></script>
+    
+    <!-- Main App Orchestrator -->
+    <script src="js/main.js"></script>
 </body>
 </html>

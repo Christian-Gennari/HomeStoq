@@ -1,0 +1,245 @@
+/**
+ * HomeStoq Inventory Feature Styles
+ * Stock/Skafferi view: dashboard pulse, item lists, quantity controls
+ */
+
+/* Dashboard Pulse */
+.pulse-bar {
+    background: var(--white);
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--oat-dark);
+    margin-bottom: 2.5rem;
+    display: flex;
+    gap: 3rem;
+    box-shadow: var(--shadow-soft);
+}
+
+.pulse-stat .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sage);
+    display: block;
+}
+
+.pulse-stat .value {
+    font-family: 'Fraunces', serif;
+    font-size: 1.75rem;
+    color: var(--charcoal);
+}
+
+/* Inventory Controls */
+.view-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.search-wrapper {
+    position: relative;
+    flex: 1;
+    max-width: 320px;
+}
+
+.search-input {
+    background: var(--white);
+    border: 1px solid var(--oat-dark);
+    border-radius: var(--radius);
+    padding: 0.6rem 2.5rem 0.6rem 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: var(--sage);
+}
+
+.search-clear {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--charcoal-light);
+    cursor: pointer;
+    font-size: 1.25rem;
+    padding: 0.25rem;
+    line-height: 1;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.search-clear:hover {
+    opacity: 1;
+}
+
+/* Masonry Grid Layout */
+.masonry-grid {
+    display: block;
+}
+
+@media (min-width: 768px) {
+    .masonry-grid {
+        column-count: 2;
+        column-gap: 3rem;
+    }
+}
+
+.category-group {
+    margin-bottom: 2.5rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.category-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--charcoal);
+    border-bottom: 2px solid var(--sage);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.item-list {
+    list-style: none;
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    border-radius: var(--radius);
+    transition: background 0.15s ease;
+}
+
+.item-row:hover {
+    background: rgba(255,255,255,0.6);
+}
+
+.item-row.low-stock {
+    background: rgba(212, 106, 78, 0.05);
+}
+
+.item-row.low-stock-warning {
+    background: rgba(212, 106, 78, 0.03);
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.low-stock-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--zest);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.low-stock-dot-warning {
+    width: 8px;
+    height: 8px;
+    background: #e8a030;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.item-name {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--charcoal);
+}
+
+.item-meta {
+    font-size: 0.75rem;
+    color: var(--warm-gray);
+}
+
+/* Quantity Pill */
+.qty-pill {
+    display: flex;
+    align-items: center;
+    background: var(--white);
+    border: 1px solid var(--oat-dark);
+    border-radius: 24px;
+    padding: 0.25rem 0.25rem;
+    gap: 0.5rem;
+    box-shadow: var(--shadow-sharp);
+}
+
+.qty-val {
+    min-width: 2rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--charcoal);
+}
+
+.qty-act {
+    background: var(--oat);
+    border: none;
+    color: var(--sage-dark);
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.4rem 0.6rem;
+    border-radius: 18px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.qty-act:hover {
+    background: var(--sage);
+    color: var(--white);
+}
+
+.qty-act:active {
+    transform: scale(0.95);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pulse-bar {
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        padding: 1rem;
+    }
+    
+    .pulse-stat {
+        flex: 1;
+        min-width: 80px;
+    }
+    
+    .view-controls {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .search-wrapper {
+        max-width: 100%;
+        width: 100%;
+    }
+    
+    .item-row {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .item-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
