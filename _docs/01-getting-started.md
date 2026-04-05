@@ -101,10 +101,8 @@ Your main settings file is `config.ini`. Here are the most important options:
 [App]
 Language=Swedish              # Swedish or English
 
-[Voice]
-KeepListName=inköpslistan     # Your Google Keep list name
-
 [GoogleKeepScraper]
+KeepListName=inköpslistan     # Your Google Keep list name
 ActiveHours=07-23             # When the scraper runs (24h format)
 BrowserMode=RemoteDebugging   # RemoteDebugging (default) or Playwright
 ```

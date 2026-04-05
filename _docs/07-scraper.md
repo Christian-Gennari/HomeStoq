@@ -286,7 +286,7 @@ Only for CDP mode. If Chrome crashes:
 
 3. **Check list name:**
    ```ini
-   [Voice]
+   [GoogleKeepScraper]
    KeepListName=inköpslistan
    ```
    Must match exactly (case-sensitive)

@@ -31,7 +31,7 @@ public class GoogleKeepScraperWorker : BackgroundService
         _keepListProcessor = keepListProcessor;
         _logger = logger;
 
-        var listNamesConfig = config["Voice:KeepListName"] ?? "inköpslistan";
+        var listNamesConfig = config["GoogleKeepScraper:KeepListName"] ?? "inköpslistan";
         _listNames = listNamesConfig.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         
         _pollIntervalSeconds = int.Parse(config["GoogleKeepScraper:PollIntervalSeconds"] ?? "45");

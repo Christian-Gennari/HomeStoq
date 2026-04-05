@@ -42,22 +42,21 @@ This file controls how HomeStoq behaves. It's safe to edit and doesn't contain s
 [App]
 Language=Swedish
 
-[Voice]
-KeepListName=inköpslistan, inköpslista
+[AI]
+Model=gemini-3.1-flash-lite-preview
 
 [API]
-BaseUrl=http://localhost:5000/api/voice/command
+# Optional: Override auto-derived API URL
+# BaseUrl=http://localhost/api/voice/command
 
 [GoogleKeepScraper]
-BrowserMode=RemoteDebugging
+KeepListName=inköpslistan, inköpslista
 ActiveHours=07-23
 PollIntervalSeconds=45
 PollIntervalJitterSeconds=15
-ChromeRelaunchAttempts=5
 HostUrl=http://*:80
-
-[AI]
-Model=gemini-3.1-flash-lite-preview
+BrowserMode=RemoteDebugging
+ChromeRelaunchAttempts=5
 ```
 
 ---
@@ -84,44 +83,31 @@ Language=Swedish
 
 ---
 
-### [Voice] — Voice Command Settings
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `KeepListName` | `inköpslistan` | Name(s) of Google Keep list(s) to monitor. Comma-separated for multiple lists. |
-
-**Example:**
-```ini
-[Voice]
-KeepListName=inköpslistan, HomeStoq, Shopping
-```
-
-**Usage:**
-When you say *"Hey Google, add 'slut på mjölk' to my [list name]"*, it must match exactly.
-
-**Tips:**
-- Use simple, memorable names
-- Swedish default works well with Google Nest in Sweden
-- Multiple lists checked in order
-
----
-
 ### [API] — API Endpoint Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `BaseUrl` | `http://localhost:5000/api/voice/command` | Where the scraper sends voice commands |
+| `BaseUrl` | *(auto-derived from HostUrl)* | Where the scraper sends voice commands. Only set if you need a custom URL. |
 
-**Example:**
+**Default Behavior:**
+By default, the API URL is automatically derived from `HostUrl` by replacing `*` with `localhost`.
+- `HostUrl=http://*:80` → `BaseUrl=http://localhost/api/voice/command`
+- `HostUrl=http://*:5000` → `BaseUrl=http://localhost:5000/api/voice/command`
+
+**When to Override:**
+- Running API on a different machine from the scraper
+- Docker networking scenarios (container names as hosts)
+- Advanced network configurations
+
+**Examples:**
 ```ini
 [API]
-BaseUrl=http://192.168.1.50:5000/api/voice/command
-```
+# Docker: API in container, scraper on host
+BaseUrl=http://homestoq:5000/api/voice/command
 
-**When to Change:**
-- If running API on different machine
-- If using different port
-- Docker networking scenarios
+# Different machine on network
+BaseUrl=http://192.168.1.50:8080/api/voice/command
+```
 
 ---
 
@@ -131,6 +117,7 @@ These settings control how the voice integration works.
 
 | Setting | Default | Range | Description |
 |---------|---------|-------|-------------|
+| `KeepListName` | `inköpslistan` | Any list name(s) | Name(s) of Google Keep list(s) to monitor. Comma-separated for multiple. |
 | `BrowserMode` | `RemoteDebugging` | `RemoteDebugging`, `Playwright` | Which browser connection to use |
 | `ActiveHours` | `07-23` | `00-24` format | When the scraper actively polls |
 | `PollIntervalSeconds` | `45` | 10-300 | Base time between checks |
@@ -138,9 +125,27 @@ These settings control how the voice integration works.
 | `ChromeRelaunchAttempts` | `5` | 1-20 | How many times to retry if Chrome crashes |
 | `HostUrl` | `http://*:80` | Valid URL | Where the web server binds |
 
-#### BrowserMode
+#### KeepListName
 
-**`RemoteDebugging`** (Recommended)
+The name(s) of the Google Keep list(s) the scraper will monitor for voice commands.
+When you say *"Hey Google, add 'slut på mjölk' to my [list name]"*, it must match exactly.
+
+**Examples:**
+```ini
+[GoogleKeepScraper]
+KeepListName=inköpslistan                    # Single list
+KeepListName=inköpslistan, Shopping          # Multiple lists
+KeepListName=HomeStoq, Groceries, Pantry     # Family setup
+```
+
+**Tips:**
+- Use simple, memorable names
+- Swedish default works well with Google Nest in Sweden
+- Multiple lists are checked in order
+
+---
+
+#### BrowserMode
 - Uses your real Chrome browser
 - Harder for Google to detect
 - Requires Chrome installed
@@ -269,7 +274,7 @@ You can override any config setting with environment variables (useful for Docke
 
 | Environment Variable | Overrides |
 |----------------------|-----------|
-| `KEEP_LIST_NAME` | `Voice:KeepListName` |
+| `KEEP_LIST_NAME` | `GoogleKeepScraper:KeepListName` |
 | `POLL_INTERVAL_SECONDS` | `GoogleKeepScraper:PollIntervalSeconds` |
 | `POLL_INTERVAL_JITTER_SECONDS` | `GoogleKeepScraper:PollIntervalJitterSeconds` |
 | `DATABASE_PATH` | Database file location |
@@ -292,10 +297,8 @@ services:
 If multiple people use HomeStoq:
 
 ```ini
-[Voice]
-KeepListName=inköpslistan, HomeStoq, Family Shopping
-
 [GoogleKeepScraper]
+KeepListName=inköpslistan, HomeStoq, Family Shopping
 ActiveHours=06-23    # Earlier start for morning people
 PollIntervalSeconds=30   # Faster response
 ```

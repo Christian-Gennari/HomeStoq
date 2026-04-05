@@ -1,6 +1,7 @@
 using Microsoft.Playwright;
 using HomeStoq.Shared.DTOs;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -14,11 +15,26 @@ public class KeepListProcessor : IKeepListProcessor
     private readonly ILogger<KeepListProcessor> _logger;
     private readonly string _apiUrl;
 
-    public KeepListProcessor(HttpClient httpClient, ILogger<KeepListProcessor> logger)
+    public KeepListProcessor(HttpClient httpClient, ILogger<KeepListProcessor> logger, IConfiguration config)
     {
         _httpClient = httpClient;
         _logger = logger;
-        _apiUrl = "http://localhost:5000/api/voice/command";
+        
+        // Use explicit BaseUrl if configured, otherwise derive from HostUrl
+        var explicitBaseUrl = config["API:BaseUrl"];
+        if (!string.IsNullOrWhiteSpace(explicitBaseUrl))
+        {
+            _apiUrl = explicitBaseUrl;
+            _logger.LogDebug("Using explicit API BaseUrl: {Url}", _apiUrl);
+        }
+        else
+        {
+            // Derive from HostUrl: replace * with localhost and append /api/voice/command
+            var hostUrl = config["GoogleKeepScraper:HostUrl"] ?? "http://*:80";
+            var apiBase = hostUrl.Replace("*", "localhost").TrimEnd('/');
+            _apiUrl = $"{apiBase}/api/voice/command";
+            _logger.LogDebug("Derived API URL from HostUrl: {Url}", _apiUrl);
+        }
     }
 
     public async Task ProcessListsAsync(IPage page, string[] listNames)
