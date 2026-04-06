@@ -143,6 +143,7 @@
 }
 
 .low-stock-dot {
+    display: block;
     width: 8px;
     height: 8px;
     background: var(--zest);
@@ -151,6 +152,7 @@
 }
 
 .low-stock-dot-warning {
+    display: block;
     width: 8px;
     height: 8px;
     background: #e8a030;
@@ -238,8 +240,8 @@
     }
     
     .item-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
     }
 }
