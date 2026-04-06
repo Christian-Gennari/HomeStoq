@@ -3,6 +3,7 @@ using HomeStoq.Shared.DTOs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -68,7 +69,7 @@ public class KeepListProcessor : IKeepListProcessor
         else
         {
             // 2. Fallback: Try sidebar navigation (Labels)
-            var sidebar = page.Locator("nav").First;
+            var sidebar = page.GetByRole(AriaRole.Navigation).First;
             var sidebarLabel = sidebar.GetByText(listName, new() { Exact = true }).First;
             if (await sidebarLabel.IsVisibleAsync())
             {
@@ -91,46 +92,46 @@ public class KeepListProcessor : IKeepListProcessor
         await BrowserUtils.HumanDelayAsync(1500, 500);
 
         // 4. Process checkboxes
-        var container = page.Locator("[role='dialog']").First;
+        var container = page.GetByRole(AriaRole.Dialog).First;
         if (!await container.IsVisibleAsync())
         {
             _logger.LogWarning("Expanded note container not found for '{ListName}', trying global checkboxes", listName);
             container = page.Locator("body");
         }
 
-        var allCheckboxes = container.GetByRole(AriaRole.Checkbox);
-        var totalCount = await allCheckboxes.CountAsync();
+        const int maxIterations = 50;
+        var iterations = 0;
+        var processedCount = 0;
 
-        if (totalCount == 0)
+        while (iterations < maxIterations)
         {
-            _logger.LogDebug("No checkboxes found in '{ListName}'", listName);
-            await CloseExpandedNoteAsync(page);
-            return;
-        }
+            iterations++;
 
-        var uncheckedCount = 0;
-        for (var i = 0; i < totalCount; i++)
-        {
-            var checkbox = allCheckboxes.Nth(i);
-            var isChecked = await checkbox.IsCheckedAsync();
+            var checkboxes = await container.GetByRole(AriaRole.Checkbox).AllAsync();
 
-            if (isChecked)
-                continue;
+            int uncheckedIndex = -1;
+            for (var i = 0; i < checkboxes.Count; i++)
+            {
+                if (!await checkboxes[i].IsCheckedAsync())
+                {
+                    uncheckedIndex = i;
+                    break;
+                }
+            }
 
-            uncheckedCount++;
+            if (uncheckedIndex == -1)
+                break;
 
+            var checkbox = container.GetByRole(AriaRole.Checkbox).Nth(uncheckedIndex);
             var listItem = checkbox.Locator("..").Locator("..");
-            var text = await listItem.InnerTextAsync();
+            var text = (await listItem.InnerTextAsync())?.Trim();
 
             if (string.IsNullOrWhiteSpace(text))
             {
-                var html = await listItem.InnerHTMLAsync();
-                _logger.LogDebug("Item {Index}: HTML='{Html}'", i, html[..Math.Min(200, html.Length)]);
-                _logger.LogWarning("Skipping item {Index} with empty text", i);
+                _logger.LogWarning("Skipping item at index {Index} with empty text", uncheckedIndex);
                 continue;
             }
 
-            text = text.Trim();
             _logger.LogInformation("Processing: {Text}", text);
 
             try
@@ -145,6 +146,7 @@ public class KeepListProcessor : IKeepListProcessor
                     await checkbox.ClickAsync();
                     await BrowserUtils.HumanDelayAsync(800, 300);
                     _logger.LogInformation("  Processed and checked: {Text}", text);
+                    processedCount++;
                 }
                 else
                 {
@@ -158,13 +160,18 @@ public class KeepListProcessor : IKeepListProcessor
             }
         }
 
-        if (uncheckedCount == 0)
+        if (iterations >= maxIterations)
+        {
+            _logger.LogWarning("Max iterations ({Max}) reached, stopping to prevent infinite loop", maxIterations);
+        }
+
+        if (processedCount == 0)
         {
             _logger.LogDebug("No unchecked items in '{ListName}'", listName);
         }
         else
         {
-            _logger.LogInformation("Processed {Count} unchecked item(s) in '{ListName}'", uncheckedCount, listName);
+            _logger.LogInformation("Processed {Count} unchecked item(s) in '{ListName}'", processedCount, listName);
         }
 
         // 5. Delete ticked items to keep the list clean

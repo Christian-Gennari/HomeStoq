@@ -1,6 +1,6 @@
 # HomeStoq Development Todo
 
-Last updated: 2025-04-05
+Last updated: 2026-04-06
 
 ## ✅ Recently Completed
 
@@ -31,7 +31,12 @@ Last updated: 2025-04-05
 
 ### 🔴 High Priority
 
-_None remaining - all complete! 🎉_
+- **#13** - Scraper Batch Processing Fails Due to Stale Element References  
+  Scraper only processes 1 item per poll instead of all unchecked items.  
+  Stale DOM references after Google Keep moves checked items to bottom.  
+  Fix: Re-query checkboxes each iteration + accessibility-based selectors.  
+  Labels: `bug`, `scraper`, `performance`  
+  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/13)
 
 ### 🟡 Medium Priority
 
@@ -87,7 +92,7 @@ _None remaining - all complete! 🎉_
 ## 📊 Quick Reference
 
 **Total Open Issues:** 10  
-**Priority Distribution:** 0 High | 6 Medium | 3 Low  
+**Priority Distribution:** 1 High | 6 Medium | 3 Low  
 **Recently Completed:** 3 High Priority Issues ✅
 
 ### New Frontend Structure
