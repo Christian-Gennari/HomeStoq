@@ -1,6 +1,6 @@
 # HomeStoq Development Todo
 
-Last updated: 2026-04-06
+Last updated: 2026-04-07
 
 ## ✅ Recently Completed
 
@@ -44,6 +44,18 @@ Last updated: 2026-04-06
 _None remaining - all complete! 🎉_
 
 ### 🟡 Medium Priority
+
+- **#15** - AI Resilience: Retry Logic and Model Fallback Chain  
+  Implement automatic retry with intelligent fallback when primary AI model fails.  
+  Includes exponential backoff, failure classification, and cross-model fallback chain.  
+  Labels: `enhancement`, `ai`, `reliability`, `resilience`  
+  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/15)
+
+- **#14** - Investigate OpenRouter Free Tier for AI Cost Optimization  
+  Evaluate OpenRouter's free models as cost-effective alternative to direct Gemini API.  
+  Test text-only models for Swedish support, JSON reliability, and latency.  
+  Labels: `enhancement`, `ai`, `cost-optimization`, `research`  
+  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/14)
 
 - **#6** - Historical Analytics Dashboard  
   Add "Trends" tab with consumption charts, spending analysis, and item statistics.  
@@ -96,8 +108,8 @@ _None remaining - all complete! 🎉_
 
 ## 📊 Quick Reference
 
-**Total Open Issues:** 9  
-**Priority Distribution:** 0 High | 6 Medium | 3 Low  
+**Total Open Issues:** 11  
+**Priority Distribution:** 0 High | 8 Medium | 3 Low  
 **Recently Completed:** 4 High Priority Issues ✅
 
 ### New Frontend Structure
@@ -145,6 +157,11 @@ wwwroot/
 - `testing` - Test coverage
 - `devops` - Deployment/ops
 - `good first issue` - Beginner-friendly
+- `ai` - Artificial intelligence / ML
+- `reliability` - System reliability and resilience
+- `resilience` - Fault tolerance and recovery
+- `cost-optimization` - Reducing operational costs
+- `research` - Investigation and exploration tasks
 
 ---
 
