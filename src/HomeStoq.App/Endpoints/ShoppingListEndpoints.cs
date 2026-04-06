@@ -340,6 +340,7 @@ public static class ShoppingListEndpoints
                 checkedItems = l.CheckedItems,
                 items = l.Items.Where(i => !i.IsDismissed).Select(i => new
                 {
+                    id = i.Id,
                     itemName = i.ItemName,
                     quantity = i.Quantity
                 }).ToList()
