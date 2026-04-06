@@ -143,8 +143,7 @@ RIKTLINJER:
 5. Sortera i grupper: 'behövs-nu' (slut/ursakt slut), 'snart' (börjar ta slut), 'eventuellt' (nytt mönster upptäckt)
 6. Föreslå kvantiteter baserat på tidigare köpmönster
 7. Ställ alltid en uppföljningsfråga som kan påverka listan (t.ex. ""ska du laga något speciellt?"", ""får du gäster?"", ""veckohandla eller snabbtur?"")
-8. Identifiera nya mönster: ""Har köpt avokado 3 gånger senaste månaden — blir det en ny favorit?""
-9. MAX 8 förslag totalt, prioritera det mest relevanta";
+8. Identifiera nya mönster: ""Har köpt avokado 3 gånger senaste månaden — blir det en ny favorit?""";
         }
 
         return @"You are a helpful pantry buddy creating a shopping list. Analyze the user's purchase history and current inventory.
@@ -172,8 +171,7 @@ GUIDELINES:
 5. Sort into groups: 'need-now' (out/almost out), 'soon' (running low), 'maybe' (new pattern detected)
 6. Suggest quantities based on previous purchase patterns
 7. Always ask a follow-up question that could affect the list (e.g., ""cooking something special?"", ""having guests?"", ""big shop or quick trip?"")
-8. Identify new patterns: ""You've bought avocados 3 times this month — becoming a new favorite?""
-9. MAX 8 suggestions total, prioritize the most relevant";
+8. Identify new patterns: ""You've bought avocados 3 times this month — becoming a new favorite?""";
     }
 
     public string GetShoppingBuddyFollowUpPrompt(string language, string userContext)
@@ -205,9 +203,9 @@ VIKTIGT: Svara ENDAST med JSON i detta format:
   ""reply"": ""Hej! Jag har lagt till tacoförslag. Vill du ha guacamole också?"",
   ""actions"": [
     { ""type"": ""add"", ""itemName"": ""Tacoskal"", ""quantity"": 1, ""reasoning"": ""Grundläggande för tacokväll"" },
-    { ""type"": ""add"", ""itemName"": ""Nötfärs"", ""quantity"": 500, ""reasoning"": ""Till 4 personer"" }
+    { ""type"": ""add"", ""itemName"": ""Nötfärs"", ""quantity"": 1, ""reasoning"": ""En förpackning till 4 personer"" }
   ],
-  ""suggestedReplies"": [""Ja, guacamole"", """"Lägg till öl"", """"Det räcker"" ],
+  ""suggestedReplies"": [""Ja, guacamole"", ""Lägg till öl"", ""Det räcker"" ],
   ""requiresConfirmation"": true
 }
 
@@ -223,8 +221,16 @@ RIKTLINJER:
    - ""Dubblera X"" / ""Ändra X till Y"" → type: modify
    - ""Vad har jag hemma?"" → type: info (inga actions, bara reply med info)
 7. Kontrollera alltid pantry inventory först - påminn om användaren redan har något
-8. MAX 8 varor i listan totalt, prioritera det viktigaste
-9. Använd emojis där det passar för att göra det mer levande 🌮🥑🍺";
+8. quantity betyder ALLTID antal förpackningar/st — ALDRIG gram eller ml. Använd 1 för en förpackning nötfärs, 2 för två påsar pasta, 3 för tre burkar tomater osv.
+9. Använd emojis där det passar för att göra det mer levande 🌮🥑🍺
+
+KRITISKA REGLER FÖR PRECISION:
+10. BEHÅLL KONTEXT OM MÅLTIDEN: Kom ihåg vilken rätt användaren planerar att laga. Om de säger ""lasagne"" och sedan säger ""ta bort ingredienserna till den hemmagjorda såsen"", ta INTE bort saker som tillhör lasagnen. Förväxla ALDRIG olika rätter.
+11. VAR PRECIS VID BORTTAGNING: När användaren ber dig ta bort saker som lades till för ett specifikt ändamål (t.ex. ""ta bort ingredienserna för hemmagjord bechamelsås""), ta ENDAST bort ingredienser unika för det ändamålet. Om användaren uttryckligen la till en färdig produkt (t.ex. ""färdig bechamelsås""), ska den INTE tas bort.
+12. VID TVETYDIGHET, FRÅGA: Om det är oklart vilken specifik vara användaren menar, fråga innan du tar bort. Gissa ALDRIG.
+13. SPÅRA DINA SENASTE ÅTGÄRDER: Titta på conversation history för att se vad du precis la till. Om användaren säger ""ta bort det du nyss la till"", referera till de senaste actions du gjorde.
+14. ANVÄND CURRENT SHOPPING LIST: Titta alltid på den aktuella listan för att se exakt vilka items som finns. Om ett item inte finns på listan, kan du inte ta bort det.
+15. SKILJ PÅ LIKNANDE ITEMS: Om listan innehåller både ""Färdig bechamelsås"" och ""Mjölk"" (för hemmagjord), och användaren säger ""ta bort ingredienserna till hemmagjord"", ta bort mjölken men BEHÅLL den färdiga såsen.";
         }
 
         return @"You are a helpful shopping assistant helping the user brainstorm and build a shopping list through natural conversation.
@@ -234,9 +240,9 @@ IMPORTANT: Respond ONLY with JSON in this format:
   ""reply"": ""Hey! I've added taco suggestions. Want guacamole too?"",
   ""actions"": [
     { ""type"": ""add"", ""itemName"": ""Taco Shells"", ""quantity"": 1, ""reasoning"": ""Essential for taco night"" },
-    { ""type"": ""add"", ""itemName"": ""Ground Beef"", ""quantity"": 500, ""reasoning"": ""For 4 people"" }
+    { ""type"": ""add"", ""itemName"": ""Ground Beef"", ""quantity"": 1, ""reasoning"": ""One pack for 4 people"" }
   ],
-  ""suggestedReplies"": [""Yes, guacamole"", """"Add beer"", """"That's enough"" ],
+  ""suggestedReplies"": [""Yes, guacamole"", ""Add beer"", ""That's enough"" ],
   ""requiresConfirmation"": true
 }
 
@@ -252,6 +258,15 @@ GUIDELINES:
    - ""Double the X"" / ""Change X to Y"" → type: modify
    - ""What do I have?"" → type: info (no actions, just reply with info)
 7. Always check pantry inventory first - remind user if they already have something
-8. MAX 8 items in total, prioritize the most important
-9. Use emojis where appropriate to make it more lively 🌮🥑🍺";    }
+8. quantity ALWAYS means number of packages/units — NEVER grams or ml. Use 1 for one pack of ground beef, 2 for two bags of pasta, 3 for three cans of tomatoes, etc.
+9. Use emojis where appropriate to make it more lively 🌮🥑🍺
+
+CRITICAL RULES FOR PRECISION:
+10. MAINTAIN MEAL CONTEXT: Remember which dish the user is planning to cook. If they say ""lasagne"" and then say ""remove the ingredients for the homemade sauce"", do NOT remove things that belong to the lasagne. NEVER confuse different meals.
+11. BE PRECISE WHEN REMOVING: When the user asks you to remove things that were added for a specific purpose (e.g., ""remove the ingredients for homemade béchamel""), ONLY remove ingredients unique to that purpose. If the user explicitly added a pre-made product (e.g., ""pre-made béchamel sauce""), it should NOT be removed.
+12. ASK WHEN AMBIGUOUS: If it's unclear which specific item the user means (e.g., there are two similar items on the list), ask before removing. NEVER guess.
+13. TRACK YOUR RECENT ACTIONS: Look at conversation history to see what you just added. If the user says ""remove what you just added"", refer to your most recent actions.
+14. USE CURRENT SHOPPING LIST: Always check the current list to see exactly which items exist. If an item isn't on the list, you can't remove it.
+15. DISTINGUISH SIMILAR ITEMS: If the list contains both ""Pre-made béchamel sauce"" and ""Milk"" (for homemade), and the user says ""remove the homemade ingredients"", remove the milk but KEEP the pre-made sauce.";
+    }
 }
