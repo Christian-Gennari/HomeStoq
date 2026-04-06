@@ -1375,3 +1375,47 @@
     padding: 0.75rem 0.5rem;
   }
 }
+
+/* ===== DESKTOP SIDE-BY-SIDE LAYOUT (≥1024px) ===== */
+@media (min-width: 1024px) {
+  
+  /* Widen container for desktop */
+  .shopping-clean {
+    max-width: 1400px;
+    padding: 0 2rem;
+  }
+  
+  /* Side-by-side layout */
+  .compose-split-panel {
+    flex-direction: row;
+    height: calc(100vh - 180px);
+    min-height: 500px;
+    gap: 1.5rem;
+  }
+  
+  /* Chat section - 40% width */
+  .compose-split-panel .chat-section {
+    flex: 0 0 40%;
+    min-height: unset;
+    height: auto;
+    max-height: none;
+  }
+  
+  /* List section - 60% width */
+  .compose-split-panel .list-section {
+    flex: 0 0 60%;
+    min-height: unset;
+    height: auto;
+    max-height: none;
+  }
+  
+  /* Adjust compose-list for horizontal layout */
+  .compose-list {
+    max-height: none;
+  }
+  
+  /* Ensure chat messages scroll properly */
+  .chat-messages {
+    max-height: none;
+  }
+}
