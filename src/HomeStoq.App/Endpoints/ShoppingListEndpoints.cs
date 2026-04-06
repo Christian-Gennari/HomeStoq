@@ -637,6 +637,25 @@ public static class ShoppingListEndpoints
             return Results.Ok(new { deleted = true });
         });
 
+        // POST /api/shopping-list/{id}/items/clear - Clear all items from a list (for editing)
+        app.MapPost("/api/shopping-list/{id}/items/clear", async (
+            long id,
+            InventoryRepository repository,
+            ILogger<GeminiService> logger) =>
+        {
+            logger.LogInformation("POST /api/shopping-list/{Id}/items/clear requested.", id);
+
+            var buyList = await repository.GetBuyListByIdAsync(id);
+            if (buyList == null)
+            {
+                return Results.NotFound("Shopping list not found.");
+            }
+
+            await repository.ClearBuyListItemsAsync(id);
+            
+            return Results.Ok(new { cleared = true });
+        });
+
         return app;
     }
 }
