@@ -62,8 +62,8 @@ function createShoppingFeature() {
                 } catch (e) {
                     localStorage.removeItem('homestoq_compose_draft');
                 }
-            } else {
-                // No draft - add initial greeting
+            } else if (this.composeList.messages.length === 0) {
+                // No draft - add initial greeting only if messages array is empty
                 const greeting = this.language === "Swedish" 
                     ? "Hej! Säg vad du behöver köpa, så hjälper jag dig."
                     : "Hi! Tell me what you need to buy, and I'll help you.";
