@@ -542,7 +542,7 @@ public static class ShoppingListEndpoints
             if (request.AutoName || string.IsNullOrWhiteSpace(request.CustomName))
             {
                 var date = DateTime.Now.ToString("yyyy-MM-dd");
-                savedName = $"{date} Shopping ({activeItems} items)";
+                savedName = $"{date} Shopping";
             }
             else
             {
