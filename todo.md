@@ -4,6 +4,16 @@ Last updated: 2026-04-06
 
 ## ✅ Recently Completed
 
+- **#13** - Scraper Batch Processing Fails Due to Stale Element References ✅  
+  Fixed scraper only processing 1 item per poll instead of all unchecked items.  
+  Changes:
+  - Replaced static `for` loop with re-querying `while` loop
+  - Re-query checkboxes each iteration to avoid stale element references
+  - Added 50-iteration safety limit to prevent infinite loops
+  - Converted CSS selectors to accessibility-based selectors (`GetByRole`)
+  - Fixed `KeepListProcessor.cs` checkbox processing loop (lines 101-175)
+  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/13)
+
 - **#12** - Frontend Refactoring: Break Up Large UI Files ✅  
   Split monolithic files into feature-based modules:
   - `i18n.js` - Externalized translations (136 lines)
@@ -31,12 +41,7 @@ Last updated: 2026-04-06
 
 ### 🔴 High Priority
 
-- **#13** - Scraper Batch Processing Fails Due to Stale Element References  
-  Scraper only processes 1 item per poll instead of all unchecked items.  
-  Stale DOM references after Google Keep moves checked items to bottom.  
-  Fix: Re-query checkboxes each iteration + accessibility-based selectors.  
-  Labels: `bug`, `scraper`, `performance`  
-  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/13)
+_None remaining - all complete! 🎉_
 
 ### 🟡 Medium Priority
 
@@ -91,9 +96,9 @@ Last updated: 2026-04-06
 
 ## 📊 Quick Reference
 
-**Total Open Issues:** 10  
-**Priority Distribution:** 1 High | 6 Medium | 3 Low  
-**Recently Completed:** 3 High Priority Issues ✅
+**Total Open Issues:** 9  
+**Priority Distribution:** 0 High | 6 Medium | 3 Low  
+**Recently Completed:** 4 High Priority Issues ✅
 
 ### New Frontend Structure
 
