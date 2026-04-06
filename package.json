@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "dotnet build src/HomeStoq.Shared && concurrently --names \"API,SCRAPER\" --prefix-colors \"blue,green\" \"npm run api\" \"npm run scraper\"",
     "dev:docker": "concurrently --names \"API,SCRAPER\" --prefix-colors \"blue,green\" \"npm run api:docker\" \"npm run scraper\"",
-    "api": "dotnet run --project src/HomeStoq.App",
+    "api": "dotnet build && dotnet run --project src/HomeStoq.App",
     "api:docker": "docker compose up",
     "scraper": "dotnet run --project src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper",
     "stop": "docker compose down",
