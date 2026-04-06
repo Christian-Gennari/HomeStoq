@@ -933,7 +933,6 @@
 .shopping-row.checked {
   background: var(--oat);
   opacity: 0.7;
-  order: 999;
 }
 
 .shopping-row.checked .shopping-text {
