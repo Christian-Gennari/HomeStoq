@@ -388,10 +388,12 @@ public class InventoryRepository
                 Id = l.Id,
                 CreatedAt = l.CreatedAt,
                 Status = l.Status,
+                SavedName = l.SavedName,
                 TotalItems = l.TotalItems,
                 CheckedItems = l.CheckedItems,
                 GeneratedContext = l.GeneratedContext,
-                UserContext = l.UserContext
+                UserContext = l.UserContext,
+                Items = l.Items.Where(i => !i.IsDismissed).ToList()
             })
             .ToListAsync();
     }
@@ -471,7 +473,7 @@ public class InventoryRepository
     {
         return await _context.BuyLists
             .Include(l => l.Items)
-            .Where(l => l.IsSaved)
+            .Where(l => l.IsSaved && l.Status != BuyListStatus.Completed && l.Status != BuyListStatus.Cancelled)
             .OrderByDescending(l => l.UpdatedAt)
             .ToListAsync();
     }
