@@ -342,7 +342,7 @@ public static class ShoppingListEndpoints
                 {
                     itemName = i.ItemName,
                     quantity = i.Quantity
-                }).Take(3).ToList() // Preview first 3 items
+                }).ToList()
             }).ToList());
         });
 
