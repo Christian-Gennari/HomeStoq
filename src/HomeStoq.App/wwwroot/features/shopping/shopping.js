@@ -253,13 +253,13 @@ function createShoppingFeature() {
             // AI provides categories automatically when adding items via chat
             // This is a fallback for items without AI-assigned categories
             const keywords = {
-                'Frukt/Grönt': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron', 'majs', 'gurka', 'paprika'],
-                'Mejeri': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde', 'yoghurt'],
-                'Kött/Fisk': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'nötfärs', 'fläsk', 'fisk', 'lax', 'korv', 'köttbullar', 'bacon', 'skinka'],
-                'Bageri': ['bread', 'bröd', 'fralla', 'baguette', 'bulle', 'kaka', 'tårta'],
-                'Skafferi': ['pasta', 'rice', 'ris', 'mjöl', 'socker', 'salt', 'krydda', 'krossade tomater', 'salsa', 'tacoskal', 'tortilla', 'olja', 'vinäger', 'ketchup', 'senap'],
-                'Frysvaror': ['frozen', 'fryst', 'glass', 'pizza', 'färdigmat', 'ärtor', 'hallon', 'blåbär'],
-                'Hushåll': ['soap', 'paper', 'tvål', 'papper', 'rengöring', 'schampo', 'tandkräm', 'diskmedel', 'tvättmedel']
+                'Frukt/Grönt': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron', 'majs', 'gurka', 'paprika', 'sockerärt', 'vitlök', 'ingefära', 'chili', 'lime', 'äggplanta', 'zucchini', 'squash', 'spenat', 'kål', 'blomkål', 'broccoli', 'ärtor', 'bönor', 'linser'],
+                'Mejeri': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde', 'yoghurt', 'filmjölk', 'keso', 'margarin', 'mozzarella', 'parmesan', 'cheddar', 'brie', 'camembert', 'feta', 'halloumi'],
+                'Kött/Fisk': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'nötfärs', 'fläsk', 'fisk', 'lax', 'korv', 'köttbullar', 'bacon', 'skinka', 'salami', 'skaldjur', 'räkor', 'musslor', 'kalkon', 'lamm', 'oxfilé', 'fläskfilé', 'schnitzel', 'färs'],
+                'Bageri': ['bread', 'bröd', 'fralla', 'baguette', 'bulle', 'kaka', 'tårta', 'kaffebröd', 'kanelbulle', 'croissant', 'bagel', 'knäckebröd', 'tunnbröd', 'pitabröd', 'tortilla', 'wrap'],
+                'Skafferi': ['pasta', 'lasagne', 'plattor', 'nudlar', 'nudel', 'spaghetti', 'makaroner', 'gnocchi', 'ravioli', 'tortellini', 'cannelloni', 'fettuccine', 'penne', 'fusilli', 'ris', 'mjöl', 'socker', 'salt', 'krydda', 'krossade tomater', 'salsa', 'tacoskal', 'tortilla', 'olja', 'vinäger', 'ketchup', 'senap', 'bönor', 'kikärtor', 'linser', 'majs', 'soppa', 'buljong', 'couscous', 'quinoa', 'bulgur', 'havregryn', 'müsli', 'cornflakes', 'kaffe', 'te', 'kakao', 'juice', 'läsk', 'välling'],
+                'Frysvaror': ['frozen', 'fryst', 'glass', 'pizza', 'färdigmat', 'ärtor', 'hallon', 'blåbär', 'jordgubbar', 'grönsaker', 'fisk', 'räkor', 'köttbullar', 'nuggets', 'pommes', 'tårta', 'glass', 'sorbet'],
+                'Hushåll': ['soap', 'paper', 'tvål', 'papper', 'rengöring', 'schampo', 'tandkräm', 'diskmedel', 'tvättmedel', 'sköljmedel', 'pappershanddukar', 'toalettpapper', 'sopsäckar', 'plastpåsar', 'folie', 'bakplåtspapper', 'tändstickor', 'ljus', 'batteri']
             };
             
             this.composeList.items.forEach(item => {
@@ -582,13 +582,13 @@ function createShoppingFeature() {
             
             // Use AI-provided category if available, otherwise fall back to keywords
             const keywords = {
-                'Frukt/Grönt': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron', 'majs', 'gurka', 'paprika'],
-                'Mejeri': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde', 'yoghurt'],
-                'Kött/Fisk': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'nötfärs', 'fläsk', 'fisk', 'lax', 'korv', 'köttbullar', 'bacon', 'skinka'],
-                'Bageri': ['bread', 'bröd', 'fralla', 'baguette', 'bulle', 'kaka', 'tårta'],
-                'Skafferi': ['pasta', 'rice', 'ris', 'mjöl', 'socker', 'salt', 'krydda', 'krossade tomater', 'salsa', 'tacoskal', 'tortilla', 'olja', 'vinäger', 'ketchup', 'senap'],
-                'Frysvaror': ['frozen', 'fryst', 'glass', 'pizza', 'färdigmat', 'ärtor', 'hallon', 'blåbär'],
-                'Hushåll': ['soap', 'paper', 'tvål', 'papper', 'rengöring', 'schampo', 'tandkräm', 'diskmedel', 'tvättmedel']
+                'Frukt/Grönt': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron', 'majs', 'gurka', 'paprika', 'sockerärt', 'vitlök', 'ingefära', 'chili', 'lime', 'äggplanta', 'zucchini', 'squash', 'spenat', 'kål', 'blomkål', 'broccoli', 'ärtor', 'bönor', 'linser'],
+                'Mejeri': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde', 'yoghurt', 'filmjölk', 'keso', 'margarin', 'mozzarella', 'parmesan', 'cheddar', 'brie', 'camembert', 'feta', 'halloumi'],
+                'Kött/Fisk': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'nötfärs', 'fläsk', 'fisk', 'lax', 'korv', 'köttbullar', 'bacon', 'skinka', 'salami', 'skaldjur', 'räkor', 'musslor', 'kalkon', 'lamm', 'oxfilé', 'fläskfilé', 'schnitzel', 'färs'],
+                'Bageri': ['bread', 'bröd', 'fralla', 'baguette', 'bulle', 'kaka', 'tårta', 'kaffebröd', 'kanelbulle', 'croissant', 'bagel', 'knäckebröd', 'tunnbröd', 'pitabröd', 'tortilla', 'wrap'],
+                'Skafferi': ['pasta', 'lasagne', 'plattor', 'nudlar', 'nudel', 'spaghetti', 'makaroner', 'gnocchi', 'ravioli', 'tortellini', 'cannelloni', 'fettuccine', 'penne', 'fusilli', 'ris', 'mjöl', 'socker', 'salt', 'krydda', 'krossade tomater', 'salsa', 'tacoskal', 'tortilla', 'olja', 'vinäger', 'ketchup', 'senap', 'bönor', 'kikärtor', 'linser', 'majs', 'soppa', 'buljong', 'couscous', 'quinoa', 'bulgur', 'havregryn', 'müsli', 'cornflakes', 'kaffe', 'te', 'kakao', 'juice', 'läsk', 'välling'],
+                'Frysvaror': ['frozen', 'fryst', 'glass', 'pizza', 'färdigmat', 'ärtor', 'hallon', 'blåbär', 'jordgubbar', 'grönsaker', 'fisk', 'räkor', 'köttbullar', 'nuggets', 'pommes', 'tårta', 'glass', 'sorbet'],
+                'Hushåll': ['soap', 'paper', 'tvål', 'papper', 'rengöring', 'schampo', 'tandkräm', 'diskmedel', 'tvättmedel', 'sköljmedel', 'pappershanddukar', 'toalettpapper', 'sopsäckar', 'plastpåsar', 'folie', 'bakplåtspapper', 'tändstickor', 'ljus', 'batteri']
             };
             
             return this.activeShoppingList.items.map((item, originalIndex) => {
