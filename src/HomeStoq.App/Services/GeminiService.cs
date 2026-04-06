@@ -400,6 +400,7 @@ public class ChatActionItem
     public string Type { get; set; } = string.Empty; // "add", "remove", "modify", "info"
     public string? ItemName { get; set; }
     public double Quantity { get; set; }
+    public string? Category { get; set; }
     public string? Reasoning { get; set; }
 }
 

@@ -37,16 +37,15 @@ function createShoppingFeature() {
         // Expand-in-place saved list
         expandedSavedListId: null,
         
-        // Categories
-        categories: ['Produce', 'Dairy', 'Meat & Fish', 'Bakery', 'Pantry', 'Frozen', 'Household', 'Other'],
+        // Categories (Swedish names to match AI output)
+        categories: ['Mejeri', 'Frukt/Grönt', 'Skafferi', 'Kött/Fisk', 'Bageri', 'Frysvaror', 'Hushåll', 'Övrigt'],
         categoryEmojis: {
-            'Produce': '🥬', 'Dairy': '🥛', 'Meat & Fish': '🥩', 'Bakery': '🍞',
-            'Pantry': '🥫', 'Frozen': '🧊', 'Household': '🧽', 'Other': '📦'
+            'Mejeri': '🥛', 'Frukt/Grönt': '🥬', 'Skafferi': '🥫', 'Kött/Fisk': '🥩',
+            'Bageri': '🍞', 'Frysvaror': '🧊', 'Hushåll': '🧽', 'Övrigt': '📦'
         },
-        swedishCategories: {
-            'Produce': 'Frukt & Grönt', 'Dairy': 'Mejeri', 'Meat & Fish': 'Kött & Fisk',
-            'Bakery': 'Bageri', 'Pantry': 'Skafferi', 'Frozen': 'Fryst',
-            'Household': 'Hushåll', 'Other': 'Övrigt'
+        categoryDisplayNames: {
+            'Mejeri': 'Mejeri', 'Frukt/Grönt': 'Frukt & Grönt', 'Skafferi': 'Skafferi', 'Kött/Fisk': 'Kött & Fisk',
+            'Bageri': 'Bageri', 'Frysvaror': 'Frysvaror', 'Hushåll': 'Hushåll', 'Övrigt': 'Övrigt'
         },
         
         // === LIFECYCLE ===
@@ -251,18 +250,20 @@ function createShoppingFeature() {
         },
         
         categorizeComposeItems() {
+            // AI provides categories automatically when adding items via chat
+            // This is a fallback for items without AI-assigned categories
             const keywords = {
-                'Produce': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron'],
-                'Dairy': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde'],
-                'Meat & Fish': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'fläsk', 'fisk', 'lax', 'korv'],
-                'Bakery': ['bread', 'bröd', 'fralla', 'baguette', 'bulle'],
-                'Pantry': ['pasta', 'rice', 'pasta', 'ris', 'mjöl', 'socker', 'salt', 'krydda'],
-                'Frozen': ['frozen', 'fryst', 'glass', 'pizza'],
-                'Household': ['soap', 'paper', 'tvål', 'papper', 'rengöring']
+                'Frukt/Grönt': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron', 'majs', 'gurka', 'paprika'],
+                'Mejeri': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde', 'yoghurt'],
+                'Kött/Fisk': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'nötfärs', 'fläsk', 'fisk', 'lax', 'korv', 'köttbullar', 'bacon', 'skinka'],
+                'Bageri': ['bread', 'bröd', 'fralla', 'baguette', 'bulle', 'kaka', 'tårta'],
+                'Skafferi': ['pasta', 'rice', 'ris', 'mjöl', 'socker', 'salt', 'krydda', 'krossade tomater', 'salsa', 'tacoskal', 'tortilla', 'olja', 'vinäger', 'ketchup', 'senap'],
+                'Frysvaror': ['frozen', 'fryst', 'glass', 'pizza', 'färdigmat', 'ärtor', 'hallon', 'blåbär'],
+                'Hushåll': ['soap', 'paper', 'tvål', 'papper', 'rengöring', 'schampo', 'tandkräm', 'diskmedel', 'tvättmedel']
             };
             
             this.composeList.items.forEach(item => {
-                if (item.category) return;
+                if (item.category) return; // AI already provided category
                 const name = item.itemName.toLowerCase();
                 for (const [category, words] of Object.entries(keywords)) {
                     if (words.some(word => name.includes(word))) {
@@ -270,7 +271,7 @@ function createShoppingFeature() {
                         break;
                     }
                 }
-                if (!item.category) item.category = 'Other';
+                if (!item.category) item.category = 'Övrigt'; // Default to Other
             });
         },
         
@@ -279,9 +280,8 @@ function createShoppingFeature() {
         },
         
         getCategoryDisplayName(category) {
-            return this.language === 'Swedish' 
-                ? (this.swedishCategories[category] || category)
-                : category;
+            // Categories are already in Swedish, just use display names for any formatting
+            return this.categoryDisplayNames[category] || category;
         },
         
         async toggleComposeItemCheck(itemId) {
@@ -580,14 +580,15 @@ function createShoppingFeature() {
         getShoppingItemsByCategory(category) {
             if (!this.activeShoppingList) return [];
             
+            // Use AI-provided category if available, otherwise fall back to keywords
             const keywords = {
-                'Produce': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron'],
-                'Dairy': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde'],
-                'Meat & Fish': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'fläsk', 'fisk', 'lax', 'korv'],
-                'Bakery': ['bread', 'bröd', 'fralla', 'baguette', 'bulle'],
-                'Pantry': ['pasta', 'rice', 'pasta', 'ris', 'mjöl', 'socker', 'salt', 'krydda'],
-                'Frozen': ['frozen', 'fryst', 'glass', 'pizza'],
-                'Household': ['soap', 'paper', 'tvål', 'papper', 'rengöring']
+                'Frukt/Grönt': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron', 'majs', 'gurka', 'paprika'],
+                'Mejeri': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde', 'yoghurt'],
+                'Kött/Fisk': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'nötfärs', 'fläsk', 'fisk', 'lax', 'korv', 'köttbullar', 'bacon', 'skinka'],
+                'Bageri': ['bread', 'bröd', 'fralla', 'baguette', 'bulle', 'kaka', 'tårta'],
+                'Skafferi': ['pasta', 'rice', 'ris', 'mjöl', 'socker', 'salt', 'krydda', 'krossade tomater', 'salsa', 'tacoskal', 'tortilla', 'olja', 'vinäger', 'ketchup', 'senap'],
+                'Frysvaror': ['frozen', 'fryst', 'glass', 'pizza', 'färdigmat', 'ärtor', 'hallon', 'blåbär'],
+                'Hushåll': ['soap', 'paper', 'tvål', 'papper', 'rengöring', 'schampo', 'tandkräm', 'diskmedel', 'tvättmedel']
             };
             
             return this.activeShoppingList.items.map((item, originalIndex) => {
@@ -600,7 +601,7 @@ function createShoppingFeature() {
                             break;
                         }
                     }
-                    if (!itemCategory) itemCategory = 'Other';
+                    if (!itemCategory) itemCategory = 'Övrigt';
                 }
                 return { ...item, originalIndex, category: itemCategory };
             }).filter(item => item.category === category);

@@ -305,7 +305,7 @@ public class InventoryRepository
         return buyList;
     }
 
-    public async Task<BuyListItem> AddItemToBuyListAsync(long buyListId, string itemName, double quantity, string source, string? aiReasoning = null, bool isChecked = true)
+    public async Task<BuyListItem> AddItemToBuyListAsync(long buyListId, string itemName, double quantity, string source, string? aiReasoning = null, bool isChecked = true, string? category = null)
     {
         var now = DateTime.UtcNow;
         var item = new BuyListItem
@@ -317,6 +317,7 @@ public class InventoryRepository
             AIOriginalReasoning = aiReasoning,
             IsChecked = isChecked,
             IsDismissed = false,
+            Category = category,  // NEW: Store AI-provided category
             CreatedAt = now
         };
         _context.BuyListItems.Add(item);

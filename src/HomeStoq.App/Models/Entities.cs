@@ -98,6 +98,7 @@ public class BuyListItem
     public string? Note { get; set; }
     public string Source { get; set; } = string.Empty;
     public string? AIOriginalReasoning { get; set; }
+    public string? Category { get; set; }  // AI-assigned category: Mejeri, Frukt/Grönt, Skafferi, etc.
     public bool IsChecked { get; set; }
     public bool IsDismissed { get; set; }
     public DateTime? DismissedAt { get; set; }

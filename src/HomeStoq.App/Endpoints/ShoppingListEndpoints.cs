@@ -447,7 +447,8 @@ public static class ShoppingListEndpoints
                     quantity = i.Quantity,
                     isChecked = i.IsChecked,
                     isDismissed = i.IsDismissed,
-                    note = i.Note
+                    note = i.Note,
+                    category = i.Category
                 }).ToList()
             });
         });
@@ -476,7 +477,7 @@ public static class ShoppingListEndpoints
                     {
                         case "add":
                             await repository.AddItemToBuyListAsync(
-                                id, action.ItemName!, action.Quantity, "ai-chat", action.Reasoning, true
+                                id, action.ItemName!, action.Quantity, "ai-chat", action.Reasoning, true, action.Category
                             );
                             break;
                         case "remove":
@@ -683,6 +684,7 @@ public class ChatAction
     public string Type { get; set; } = string.Empty; // "add", "remove", "modify", "info"
     public string? ItemName { get; set; }
     public double Quantity { get; set; }
+    public string? Category { get; set; }
     public string? Reasoning { get; set; }
 }
 
@@ -703,5 +705,6 @@ public class BuyListItemDto
     public bool IsChecked { get; set; }
     public bool IsDismissed { get; set; }
     public string? Source { get; set; }
+    public string? Category { get; set; }
     public DateTime? AddedAt { get; set; }
 }
