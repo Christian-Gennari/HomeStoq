@@ -62,7 +62,9 @@ function pantryApp() {
                 console.log("View changed to:", value);
                 if (value === "inventory" && this.refreshInventory) this.refreshInventory();
                 if (value === "receipts_history" && this.loadReceipts) this.loadReceipts();
-                if (value === "shopping" && this.loadCurrentBuyList) this.loadCurrentBuyList();
+                if (value === "shopping" && this.initShoppingFeature) {
+                    this.initShoppingFeature();
+                }
             });
             
             console.log("HomeStoq app initialized");

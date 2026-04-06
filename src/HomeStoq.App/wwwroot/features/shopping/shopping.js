@@ -1,157 +1,183 @@
 /**
- * HomeStoq Shopping Feature
- * Inköpslistor/Shopping Lists - Alpine.js factory function
+ * HomeStoq Shopping Feature - Clean Separation
+ * 
+ * Three distinct views:
+ * 1. Ny lista (Compose) - Build list with AI help
+ * 2. Sparade (Saved) - Browse saved lists + Archive
+ * 3. Shopping Mode - Read-only checking (tap saved list to enter)
+ * 4. Edit Mode - Manual editing (no AI)
  */
 
 function createShoppingFeature() {
     return {
-        // State
-        shopSubtab: 'create',
+        // === STATE ===
+        shopSubtab: 'create', // 'create' or 'saved'
         savedLists: [],
-        buyList: {
+        archivedLists: [],
+        
+        // Current list being composed (Ny lista)
+        composeList: {
             id: null,
-            status: null,
-            savedName: "",
-            messages: [],
             items: [],
-            pendingActions: [],
-            suggestedReplies: [],
-            isLoading: false,
-            sessionMode: 'brainstorming',
+            messages: [],
             chatInput: "",
-            customName: "",
+            isLoading: false,
+            savedName: "",
         },
         
-        // Switch subtabs
-        switchShopSubtab(tab) {
-            this.shopSubtab = tab;
-            if (tab === 'view') {
-                this.loadSavedLists();
+        // Shopping mode state (read-only view)
+        shoppingMode: false,
+        activeShoppingList: null, // The list being shopped
+        
+        // Edit mode state
+        editMode: false,
+        editingList: null,
+        editingItems: [],
+        
+        // Expand-in-place saved list
+        expandedSavedListId: null,
+        
+        // Categories
+        categories: ['Produce', 'Dairy', 'Meat & Fish', 'Bakery', 'Pantry', 'Frozen', 'Household', 'Other'],
+        categoryEmojis: {
+            'Produce': '🥬', 'Dairy': '🥛', 'Meat & Fish': '🥩', 'Bakery': '🍞',
+            'Pantry': '🥫', 'Frozen': '🧊', 'Household': '🧽', 'Other': '📦'
+        },
+        swedishCategories: {
+            'Produce': 'Frukt & Grönt', 'Dairy': 'Mejeri', 'Meat & Fish': 'Kött & Fisk',
+            'Bakery': 'Bageri', 'Pantry': 'Skafferi', 'Frozen': 'Fryst',
+            'Household': 'Hushåll', 'Other': 'Övrigt'
+        },
+        
+        // === LIFECYCLE ===
+        
+        async initShoppingFeature() {
+            const draft = localStorage.getItem('homestoq_compose_draft');
+            if (draft) {
+                try {
+                    const parsed = JSON.parse(draft);
+                    this.composeList.id = parsed.id || null;
+                    this.composeList.items = parsed.items || [];
+                    this.composeList.messages = parsed.messages || [];
+                    this.categorizeComposeItems();
+                } catch (e) {
+                    localStorage.removeItem('homestoq_compose_draft');
+                }
             }
+            
+            await this.loadSavedLists();
+            await this.loadArchivedLists();
         },
         
-        // Reset buy list state
-        resetBuyList() {
-            this.buyList.id = null;
-            this.buyList.status = null;
-            this.buyList.savedName = "";
-            this.buyList.messages = [];
-            this.buyList.items = [];
-            this.buyList.pendingActions = [];
-            this.buyList.suggestedReplies = [];
-            this.buyList.sessionMode = 'brainstorming';
-            this.buyList.chatInput = "";
-            this.buyList.customName = "";
+        // === DRAFT MANAGEMENT ===
+        
+        saveComposeDraft() {
+            const draft = {
+                id: this.composeList.id,
+                items: this.composeList.items,
+                messages: this.composeList.messages.slice(-5),
+            };
+            localStorage.setItem('homestoq_compose_draft', JSON.stringify(draft));
         },
         
-        // Start a new list with greeting
-        async startNewList() {
-            this.resetBuyList();
+        clearComposeDraft() {
+            localStorage.removeItem('homestoq_compose_draft');
+        },
+        
+        // === NY LISTA (COMPOSE) ===
+        
+        resetComposeList() {
+            this.composeList.id = null;
+            this.composeList.items = [];
+            this.composeList.messages = [];
+            this.composeList.chatInput = "";
+            this.composeList.savedName = "";
+            this.clearComposeDraft();
+        },
+        
+        startNewList() {
+            // If has unsaved items, warn
+            if (this.composeList.items.length > 0) {
+                if (!confirm(this.language === 'Swedish' 
+                    ? 'Du har osparade varor. Rensa och börja om?'
+                    : 'You have unsaved items. Clear and start over?')) {
+                    return;
+                }
+            }
+            
+            this.resetComposeList();
             
             const greeting = this.language === "Swedish" 
-                ? "Hej! Jag kan hjälpa dig skapa din inköpslista. Vill du att jag föreslår varor baserat på dina tidigare mönster, eller vill du starta från scratch?"
-                : "Hey! I can help you create your shopping list. Would you like me to suggest items based on your pantry patterns, or start from scratch?";
+                ? "Hej! Säg vad du behöver köpa, så hjälper jag dig."
+                : "Hi! Tell me what you need to buy, and I'll help you.";
             
-            this.buyList.messages.push({
+            this.composeList.messages.push({
                 role: "assistant",
                 content: greeting,
-                timestamp: new Date().toISOString(),
-                actions: []
+                timestamp: new Date().toISOString()
             });
-            
-            this.buyList.suggestedReplies = this.language === "Swedish"
-                ? ["Föreslå baserat på mönster", "Starta tom", "Jag har en plan"]
-                : ["Suggest based on patterns", "Start empty", "I have a plan"];
         },
         
-        // Load current buy list from API
-        async loadCurrentBuyList() {
-            try {
-                const res = await fetch("/api/shopping-list/current");
-                if (!res.ok) throw new Error("Failed to load buy list");
-                const data = await res.json();
-                
-                if (data.hasList) {
-                    this.buyList.id = data.id;
-                    this.buyList.status = data.status;
-                    this.buyList.items = data.items || [];
-                    if (data.messages) {
-                        this.buyList.messages = data.messages;
-                    }
-                } else {
-                    this.resetBuyList();
-                }
-            } catch (e) {
-                console.error("Failed to load buy list", e);
-            }
-        },
-        
-        // Send chat message to AI
         async sendChatMessage(message = null) {
-            const msg = message || this.buyList.chatInput;
-            if (!msg || !msg.trim() || this.buyList.isLoading) return;
+            const msg = message || this.composeList.chatInput;
+            if (!msg || !msg.trim() || this.composeList.isLoading) return;
             
-            if (!message) {
-                this.buyList.chatInput = "";
-            }
+            if (!message) this.composeList.chatInput = "";
             
-            this.buyList.messages.push({
+            this.composeList.messages.push({
                 role: "user",
                 content: msg,
                 timestamp: new Date().toISOString()
             });
             
-            this.buyList.isLoading = true;
-            this.buyList.suggestedReplies = [];
+            this.composeList.isLoading = true;
             
             try {
-                if (!this.buyList.id) {
-                    const createRes = await fetch("/api/shopping-list/generate", { method: "POST" });
+                if (!this.composeList.id) {
+                    const createRes = await fetch("/api/shopping-list/create", { method: "POST" });
                     if (!createRes.ok) throw new Error("Failed to create list");
                     const createData = await createRes.json();
-                    this.buyList.id = createData.id;
-                    this.buyList.items = createData.items || [];
+                    this.composeList.id = createData.id;
+                    this.composeList.items = [];
                 }
                 
-                const res = await fetch(`/api/shopping-list/${this.buyList.id}/chat`, {
+                const res = await fetch(`/api/shopping-list/${this.composeList.id}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        message: msg,
-                        language: this.language
-                    }),
+                    body: JSON.stringify({ message: msg, language: this.language }),
                 });
                 
                 if (!res.ok) throw new Error("Chat failed");
                 const data = await res.json();
                 
-                this.buyList.messages.push({
+                // Auto-accept actions immediately — items are written to DB via /confirm
+                if (data.actions && data.actions.length > 0) {
+                    await this.applyComposeActions(data.actions);
+                    // composeList.items is now set by applyComposeActions() — don't overwrite below
+                } else {
+                    // No actions (info reply) — use the snapshot from /chat
+                    this.composeList.items = data.currentItems || this.composeList.items;
+                }
+                
+                this.composeList.messages.push({
                     role: "assistant",
                     content: data.reply,
-                    timestamp: new Date().toISOString(),
-                    actions: data.actions || [],
-                    requiresConfirmation: data.requiresConfirmation
+                    timestamp: new Date().toISOString()
                 });
-                
-                this.buyList.pendingActions = data.actions || [];
-                this.buyList.suggestedReplies = data.suggestedReplies || [];
-                this.buyList.items = data.currentItems || this.buyList.items;
-                
-                if (!data.requiresConfirmation && data.actions && data.actions.length > 0) {
-                    await this.applyActions(data.actions);
-                }
+                this.categorizeComposeItems();
+                this.saveComposeDraft();
                 
             } catch (e) {
                 console.error("Chat failed", e);
-                this.buyList.messages.push({
+                this.composeList.messages.push({
                     role: "assistant",
                     content: this.language === "Swedish" 
-                        ? "Tyvärr, jag kunde inte processa det. Försök igen."
-                        : "Sorry, I couldn't process that. Please try again.",
+                        ? "Något gick fel. Försök igen."
+                        : "Something went wrong. Please try again.",
                     timestamp: new Date().toISOString()
                 });
             } finally {
-                this.buyList.isLoading = false;
+                this.composeList.isLoading = false;
             }
             
             this.$nextTick(() => {
@@ -160,235 +186,429 @@ function createShoppingFeature() {
             });
         },
         
-        // Confirm or reject pending actions
-        async confirmActions(accept) {
-            if (!this.buyList.pendingActions.length) return;
-            
+        async applyComposeActions(actions) {
             try {
-                const res = await fetch(`/api/shopping-list/${this.buyList.id}/confirm`, {
+                const res = await fetch(`/api/shopping-list/${this.composeList.id}/confirm`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        accept: accept,
-                        actions: this.buyList.pendingActions
-                    }),
-                });
-                
-                if (!res.ok) throw new Error("Confirmation failed");
-                const data = await res.json();
-                
-                this.buyList.items = data.currentItems || this.buyList.items;
-                this.buyList.pendingActions = [];
-                
-                if (accept) {
-                    this.buyList.messages.push({
-                        role: "assistant",
-                        content: this.language === "Swedish" ? "✓ Ändringar tillagda!" : "✓ Changes applied!",
-                        timestamp: new Date().toISOString()
-                    });
-                } else {
-                    this.buyList.messages.push({
-                        role: "assistant",
-                        content: this.language === "Swedish" ? "Okej, jag struntade i det." : "Okay, I ignored that.",
-                        timestamp: new Date().toISOString()
-                    });
-                }
-            } catch (e) {
-                console.error("Confirm actions failed", e);
-            }
-        },
-        
-        // Silently apply actions without confirmation
-        async applyActions(actions) {
-            try {
-                const res = await fetch(`/api/shopping-list/${this.buyList.id}/confirm`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        accept: true,
-                        actions: actions
-                    }),
+                    body: JSON.stringify({ accept: true, actions: actions }),
                 });
                 
                 if (res.ok) {
                     const data = await res.json();
-                    this.buyList.items = data.currentItems || this.buyList.items;
+                    this.composeList.items = data.currentItems || this.composeList.items;
                 }
             } catch (e) {
                 console.error("Apply actions failed", e);
             }
         },
         
-        // Save the current list
-        async saveList(autoName) {
-            if (!this.buyList.id || !this.buyList.items.length) return;
-            
-            const name = autoName ? null : (this.buyList.customName || null);
-            
+        async undoLastAdd() {
+            // Remove last added items (simplified - just reload)
+            await this.loadCurrentComposeList();
+            this.showUndoToast = false;
+        },
+        
+        async loadCurrentComposeList() {
             try {
-                const res = await fetch(`/api/shopping-list/${this.buyList.id}/save`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        autoName: autoName,
-                        customName: name
-                    }),
-                });
-                
-                if (!res.ok) throw new Error("Save failed");
+                const res = await fetch("/api/shopping-list/current");
+                if (!res.ok) throw new Error("Failed to load");
                 const data = await res.json();
                 
-                this.buyList.savedName = data.name;
-                this.buyList.status = "saved";
-                this.buyList.sessionMode = "reviewing";
+                if (data.hasList) {
+                    this.composeList.id = data.id;
+                    this.composeList.items = data.items || [];
+                    this.categorizeComposeItems();
+                }
+            } catch (e) {
+                console.error("Failed to load compose list", e);
+            }
+        },
+        
+        categorizeComposeItems() {
+            const keywords = {
+                'Produce': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron'],
+                'Dairy': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde'],
+                'Meat & Fish': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'fläsk', 'fisk', 'lax', 'korv'],
+                'Bakery': ['bread', 'bröd', 'fralla', 'baguette', 'bulle'],
+                'Pantry': ['pasta', 'rice', 'pasta', 'ris', 'mjöl', 'socker', 'salt', 'krydda'],
+                'Frozen': ['frozen', 'fryst', 'glass', 'pizza'],
+                'Household': ['soap', 'paper', 'tvål', 'papper', 'rengöring']
+            };
+            
+            this.composeList.items.forEach(item => {
+                if (item.category) return;
+                const name = item.itemName.toLowerCase();
+                for (const [category, words] of Object.entries(keywords)) {
+                    if (words.some(word => name.includes(word))) {
+                        item.category = category;
+                        break;
+                    }
+                }
+                if (!item.category) item.category = 'Other';
+            });
+        },
+        
+        getComposeItemsByCategory(category) {
+            return this.composeList.items.filter(i => !i.isDismissed && i.category === category);
+        },
+        
+        getCategoryDisplayName(category) {
+            return this.language === 'Swedish' 
+                ? (this.swedishCategories[category] || category)
+                : category;
+        },
+        
+        async toggleComposeItemCheck(itemId) {
+            const item = this.composeList.items.find(i => i.id === itemId);
+            if (!item) return;
+            item.isChecked = !item.isChecked;
+            this.saveComposeDraft();
+        },
+        
+        async changeComposeQuantity(itemId, delta) {
+            const item = this.composeList.items.find(i => i.id === itemId);
+            if (!item) return;
+            item.quantity = Math.max(1, item.quantity + delta);
+            this.saveComposeDraft();
+        },
+        
+        async removeComposeItem(itemId) {
+            const item = this.composeList.items.find(i => i.id === itemId);
+            if (item) item.isDismissed = true;
+            this.saveComposeDraft();
+        },
+        
+        async saveComposeList() {
+            if (!this.composeList.id) {
+                if (this.addToast) {
+                    this.addToast(
+                        this.language === 'Swedish' ? 'Ingen lista att spara' : 'No list to save',
+                        "error"
+                    );
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/shopping-list/${this.composeList.id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    this.composeList.items = data.items || [];
+                }
+            } catch (e) {
+                console.error("Failed to fetch fresh items before save", e);
+            }
+
+            const activeItems = this.composeList.items.filter(i => !i.isDismissed);
+            if (activeItems.length === 0) {
+                if (this.addToast) {
+                    this.addToast(
+                        this.language === 'Swedish' ? 'Listan är tom, inget att spara' : 'List is empty, nothing to save',
+                        "error"
+                    );
+                }
+                return;
+            }
+            
+            const name = this.composeList.savedName?.trim() || null;
+            
+            try {
+                const res = await fetch(`/api/shopping-list/${this.composeList.id}/save`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ autoName: !name, customName: name }),
+                });
+                
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`Save failed: ${res.status} - ${errorText}`);
+                }
+                
+                this.clearComposeDraft();
+                this.resetComposeList();
+                await this.loadSavedLists();
                 
                 if (this.addToast) {
                     this.addToast(
-                        this.language === "Swedish" 
-                            ? `✓ Listan sparad som "${data.name}"`
-                            : `✓ List saved as "${data.name}"`,
+                        this.language === 'Swedish' ? '✓ Listan sparad' : '✓ List saved',
                         "success"
                     );
                 }
+                
+                // Switch to saved view
+                this.shopSubtab = 'saved';
+                
             } catch (e) {
                 console.error("Save failed", e);
                 if (this.addToast) {
-                    this.addToast("Failed to save list", "error");
+                    this.addToast(
+                        this.language === 'Swedish' ? 'Kunde inte spara listan' : 'Failed to save list',
+                        "error"
+                    );
                 }
             }
         },
         
-        // Remove item from list
-        async removeItem(itemId) {
-            const item = this.buyList.items.find(i => i.id === itemId);
-            if (!item) return;
-            
-            try {
-                const res = await fetch(`/api/shopping-list/${this.buyList.id}/items/${itemId}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ isDismissed: true }),
-                });
-                
-                if (res.ok) {
-                    item.isDismissed = true;
-                }
-            } catch (e) {
-                console.error("Remove failed", e);
-            }
-        },
-        
-        // Copy list to clipboard
-        copyList() {
-            const items = this.buyList.items.filter(i => !i.isDismissed);
+        copyComposeList() {
+            const items = this.composeList.items.filter(i => !i.isDismissed);
             const text = items.map(i => `- ${i.itemName} x${i.quantity}`).join("\n");
             navigator.clipboard.writeText(text);
             if (this.addToast) {
-                this.addToast(this.t("shop.copied"), "success");
+                this.addToast(this.language === 'Swedish' ? '📋 Kopierad' : '📋 Copied', "success");
             }
         },
         
-        // Load all saved lists
+        // === SPARADE (SAVED LISTS) ===
+        
         async loadSavedLists() {
             try {
                 const res = await fetch("/api/shopping-list/saved/all");
-                if (!res.ok) throw new Error("Failed to load saved lists");
-                this.savedLists = await res.json();
+                if (!res.ok) throw new Error("Failed to load");
+                const lists = await res.json();
+                // Filter out completed/cancelled lists as safety measure (backend should already exclude them)
+                this.savedLists = lists.filter(l => l.status !== 'completed' && l.status !== 'cancelled');
             } catch (e) {
                 console.error("Failed to load saved lists", e);
-                this.savedLists = [];
             }
         },
         
-        // Use a saved list (copy to clipboard)
-        async useSavedList(listId) {
-            const list = this.savedLists.find(l => l.id === listId);
-            if (!list) return;
-
-            const text = list.items.map(i => `- ${i.itemName} x${i.quantity}`).join("\n");
-            navigator.clipboard.writeText(text);
+        async loadArchivedLists() {
+            // For now, archive is just saved lists marked as archived
+            // In practice, this will be lists that were "completed"
+            try {
+                const res = await fetch("/api/shopping-list/history");
+                if (!res.ok) throw new Error("Failed to load");
+                const lists = await res.json();
+                this.archivedLists = lists.filter(l => l.status === 'completed' || l.status === 'archived');
+            } catch (e) {
+                this.archivedLists = [];
+            }
+        },
+        
+        // === SHOPPING MODE (Read-only + Check) ===
+        
+        enterShoppingMode(list) {
+            // If compose has unsaved items, warn
+            if (this.composeList.items.length > 0) {
+                if (!confirm(this.language === 'Swedish'
+                    ? 'Du har osparade varor i "Ny lista". Byta till denna lista?'
+                    : 'You have unsaved items in "New List". Switch to this list?')) {
+                    return;
+                }
+            }
+            
+            this.activeShoppingList = {
+                ...list,
+                items: list.items.map(i => ({
+                    ...i,
+                    isChecked: false // Reset checks for new shopping trip
+                }))
+            };
+            this.shoppingMode = true;
+        },
+        
+        exitShoppingMode() {
+            this.shoppingMode = false;
+            this.activeShoppingList = null;
+        },
+        
+        toggleShoppingCheck(itemIndex) {
+            if (!this.activeShoppingList) return;
+            const item = this.activeShoppingList.items[itemIndex];
+            item.isChecked = !item.isChecked;
+        },
+        
+        async completeShoppingTrip() {
+            if (!this.activeShoppingList) return;
+            
+            // Archive the list (mark as completed)
+            try {
+                await fetch(`/api/shopping-list/${this.activeShoppingList.id}/complete`, { method: "POST" });
+            } catch (e) {
+                console.error("Failed to complete list", e);
+            }
+            
+            this.exitShoppingMode();
+            await this.loadSavedLists();
+            await this.loadArchivedLists();
             
             if (this.addToast) {
                 this.addToast(
-                    this.language === 'Swedish' 
-                        ? `✓ "${list.name}" kopierad till urklipp`
-                        : `✓ "${list.name}" copied to clipboard`,
+                    this.language === 'Swedish' ? '✓ Handlat klart!' : '✓ Shopping done!',
                     "success"
                 );
             }
         },
         
-        // Edit a saved list (load into create mode)
-        async editSavedList(listId) {
-            const list = this.savedLists.find(l => l.id === listId);
-            if (!list) return;
-
-            this.shopSubtab = 'create';
-            
-            this.buyList.id = listId;
-            this.buyList.savedName = list.name;
-            this.buyList.status = 'saved';
-            this.buyList.items = list.items.map(i => ({
-                id: i.id || Date.now() + Math.random(),
-                itemName: i.itemName,
-                quantity: i.quantity,
-                isChecked: true,
-                isDismissed: false
-            }));
-            
-            this.buyList.messages = [{
-                role: 'assistant',
-                content: this.language === 'Swedish'
-                    ? `Jag har laddat "${list.name}". Du kan nu redigera den eller lägga till fler varor.`
-                    : `I've loaded "${list.name}". You can now edit it or add more items.`,
-                timestamp: new Date().toISOString()
-            }];
+        resetShoppingChecks() {
+            if (!this.activeShoppingList) return;
+            this.activeShoppingList.items.forEach(i => i.isChecked = false);
         },
         
-        // Delete a saved list
-        async deleteSavedList(listId) {
-            const list = this.savedLists.find(l => l.id === listId);
-            if (!list) return;
-
-            const confirmed = confirm(
-                this.language === 'Swedish'
-                    ? `Är du säker på att du vill ta bort "${list.name}"?`
-                    : `Are you sure you want to delete "${list.name}"?`
-            );
-
-            if (!confirmed) return;
-
+        // === EDIT MODE (Manual, no AI) ===
+        
+        enterEditMode(list) {
+            // If compose has unsaved items, warn
+            if (this.composeList.items.length > 0) {
+                if (!confirm(this.language === 'Swedish'
+                    ? 'Du har osparade varor. Fortsätta ändå?'
+                    : 'You have unsaved items. Continue anyway?')) {
+                    return;
+                }
+            }
+            
+            this.editingList = list;
+            this.editingItems = list.items.map(i => ({
+                name: i.itemName,
+                quantity: i.quantity,
+                id: i.id || Date.now() + Math.random()
+            }));
+            this.editMode = true;
+            this.shoppingMode = false; // Exit shopping if in it
+        },
+        
+        exitEditMode() {
+            this.editMode = false;
+            this.editingList = null;
+            this.editingItems = [];
+        },
+        
+        addEditItem() {
+            this.editingItems.push({
+                name: '',
+                quantity: 1,
+                id: Date.now() + Math.random()
+            });
+            
+            // Focus the new input
+            this.$nextTick(() => {
+                const inputs = document.querySelectorAll('.edit-item-input');
+                if (inputs.length > 0) {
+                    inputs[inputs.length - 1].focus();
+                }
+            });
+        },
+        
+        removeEditItem(index) {
+            this.editingItems.splice(index, 1);
+        },
+        
+        async saveEditChanges() {
+            if (!this.editingList) return;
+            
+            // Filter out empty items
+            const validItems = this.editingItems.filter(i => i.name.trim());
+            
+            if (validItems.length === 0) {
+                if (this.addToast) {
+                    this.addToast(
+                        this.language === 'Swedish' ? 'Listan är tom' : 'List is empty',
+                        "error"
+                    );
+                }
+                return;
+            }
+            
             try {
-                const res = await fetch(`/api/shopping-list/${listId}`, {
-                    method: "DELETE"
-                });
+                // Clear existing items and add new ones
+                await fetch(`/api/shopping-list/${this.editingList.id}/items/clear`, { method: "POST" });
                 
-                if (!res.ok) throw new Error("Delete failed");
+                for (const item of validItems) {
+                    await fetch(`/api/shopping-list/${this.editingList.id}/items`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ itemName: item.name, quantity: item.quantity }),
+                    });
+                }
                 
-                this.savedLists = this.savedLists.filter(l => l.id !== listId);
+                this.exitEditMode();
+                await this.loadSavedLists();
                 
                 if (this.addToast) {
                     this.addToast(
-                        this.language === 'Swedish'
-                            ? `✓ "${list.name}" borttagen`
-                            : `✓ "${list.name}" deleted`,
+                        this.language === 'Swedish' ? '✓ Ändringar sparade' : '✓ Changes saved',
+                        "success"
+                    );
+                }
+                
+            } catch (e) {
+                console.error("Save edit failed", e);
+            }
+        },
+        
+        // === SHARED ===
+        
+        async deleteSavedList(listId, isArchived = false) {
+            const list = isArchived 
+                ? this.archivedLists.find(l => l.id === listId)
+                : this.savedLists.find(l => l.id === listId);
+            if (!list) return;
+            
+            if (!confirm(this.language === 'Swedish' 
+                ? `Ta bort "${list.name}"?` 
+                : `Delete "${list.name}"?`)) return;
+            
+            try {
+                const res = await fetch(`/api/shopping-list/${listId}`, { method: "DELETE" });
+                if (!res.ok) throw new Error("Delete failed");
+                
+                if (isArchived) {
+                    this.archivedLists = this.archivedLists.filter(l => l.id !== listId);
+                } else {
+                    this.savedLists = this.savedLists.filter(l => l.id !== listId);
+                }
+                
+                if (this.addToast) {
+                    this.addToast(
+                        this.language === 'Swedish' ? '✓ Borttagen' : '✓ Deleted',
                         "success"
                     );
                 }
             } catch (e) {
                 console.error("Delete failed", e);
-                if (this.addToast) {
-                    this.addToast(
-                        this.language === 'Swedish'
-                            ? "Kunde inte ta bort listan"
-                            : "Could not delete list",
-                        "error"
-                    );
+            }
+        },
+        
+        getShoppingItemsByCategory(category) {
+            if (!this.activeShoppingList) return [];
+            
+            const keywords = {
+                'Produce': ['apple', 'banana', 'grape', 'tomato', 'potato', 'grönsak', 'frukt', 'äpple', 'banan', 'apelsin', 'tomat', 'potatis', 'lök', 'morot', 'sallad', 'avokado', 'citron'],
+                'Dairy': ['milk', 'cheese', 'yogurt', 'butter', 'egg', 'mjölk', 'ost', 'smör', 'ägg', 'grädde'],
+                'Meat & Fish': ['chicken', 'beef', 'fish', 'kyckling', 'nötkött', 'fläsk', 'fisk', 'lax', 'korv'],
+                'Bakery': ['bread', 'bröd', 'fralla', 'baguette', 'bulle'],
+                'Pantry': ['pasta', 'rice', 'pasta', 'ris', 'mjöl', 'socker', 'salt', 'krydda'],
+                'Frozen': ['frozen', 'fryst', 'glass', 'pizza'],
+                'Household': ['soap', 'paper', 'tvål', 'papper', 'rengöring']
+            };
+            
+            return this.activeShoppingList.items.map((item, originalIndex) => {
+                let itemCategory = item.category;
+                if (!itemCategory) {
+                    const name = item.itemName.toLowerCase();
+                    for (const [cat, words] of Object.entries(keywords)) {
+                        if (words.some(word => name.includes(word))) {
+                            itemCategory = cat;
+                            break;
+                        }
+                    }
+                    if (!itemCategory) itemCategory = 'Other';
                 }
+                return { ...item, originalIndex, category: itemCategory };
+            }).filter(item => item.category === category);
+        },
+        
+        switchShopSubtab(tab) {
+            this.shopSubtab = tab;
+            this.expandedSavedListId = null; // Collapse any expanded cards
+            if (tab === 'saved') {
+                this.loadSavedLists();
+                this.loadArchivedLists();
             }
         }
     };
 }
 
-// Export for main app
+// Export
 window.createShoppingFeature = createShoppingFeature;
