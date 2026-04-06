@@ -51,6 +51,25 @@ public static class ShoppingListEndpoints
             });
         });
 
+        // POST /api/shopping-list/create - Create a blank list session (no AI, no pre-populated items)
+        app.MapPost("/api/shopping-list/create", async (
+            InventoryRepository repository,
+            ILogger<GeminiService> logger) =>
+        {
+            logger.LogInformation("POST /api/shopping-list/create requested.");
+
+            // Cancel/clear any existing draft
+            var existingList = await repository.GetDraftOrActiveBuyListAsync();
+            if (existingList != null && existingList.Status == BuyListStatus.Draft)
+            {
+                await repository.ClearBuyListItemsAsync(existingList.Id);
+                return Results.Ok(new { id = existingList.Id });
+            }
+
+            var buyList = await repository.CreateBuyListAsync("", null);
+            return Results.Ok(new { id = buyList.Id });
+        });
+
         // POST /api/shopping-list/generate - Generate new AI suggestions
         app.MapPost("/api/shopping-list/generate", async (
             InventoryRepository repository,
@@ -314,11 +333,16 @@ public static class ShoppingListEndpoints
             return Results.Ok(history.Select(l => new
             {
                 id = l.Id,
+                name = l.SavedName ?? $"{l.CreatedAt:yyyy-MM-dd} {l.GeneratedContext}",
                 createdAt = l.CreatedAt,
                 status = l.Status.ToString().ToLower(),
-                totalItems = l.TotalItems,
+                itemCount = l.TotalItems,
                 checkedItems = l.CheckedItems,
-                context = l.GeneratedContext
+                items = l.Items.Where(i => !i.IsDismissed).Select(i => new
+                {
+                    itemName = i.ItemName,
+                    quantity = i.Quantity
+                }).Take(3).ToList() // Preview first 3 items
             }).ToList());
         });
 
@@ -338,10 +362,15 @@ public static class ShoppingListEndpoints
                 return Results.NotFound("Shopping list not found.");
             }
 
-            // Load conversation history as DTOs (avoid circular references)
+            // Load conversation history with actions (avoid circular references)
             var messageDtos = buyList.Messages
                 .OrderBy(m => m.Timestamp)
-                .Select(m => new ChatMessageDto { Role = m.Role, Content = m.Content })
+                .Select(m => new ChatMessageDto 
+                { 
+                    Role = m.Role, 
+                    Content = m.Content,
+                    ActionsJson = m.ActionsJson
+                })
                 .ToList();
 
             // Get inventory for context
@@ -358,7 +387,9 @@ public static class ShoppingListEndpoints
                     Quantity = i.Quantity, 
                     Note = i.Note,
                     IsChecked = i.IsChecked,
-                    IsDismissed = i.IsDismissed
+                    IsDismissed = i.IsDismissed,
+                    Source = i.Source,
+                    AddedAt = i.CreatedAt
                 })
                 .ToList();
 
@@ -498,13 +529,18 @@ public static class ShoppingListEndpoints
                 return Results.NotFound("Shopping list not found.");
             }
 
+            var activeItems = buyList.Items.Count(i => !i.IsDismissed);
+            if (activeItems == 0)
+            {
+                return Results.BadRequest("Cannot save an empty list.");
+            }
+
             // Generate auto name if requested
             string savedName;
             if (request.AutoName || string.IsNullOrWhiteSpace(request.CustomName))
             {
                 var date = DateTime.Now.ToString("yyyy-MM-dd");
-                var itemCount = buyList.Items.Count(i => !i.IsDismissed);
-                savedName = $"{date} Shopping ({itemCount} items)";
+                savedName = $"{date} Shopping ({activeItems} items)";
             }
             else
             {
@@ -571,12 +607,13 @@ public static class ShoppingListEndpoints
                 name = l.SavedName,
                 createdAt = l.CreatedAt,
                 updatedAt = l.UpdatedAt,
+                status = l.Status.ToString().ToLower(),
                 itemCount = l.Items.Count(i => !i.IsDismissed),
                 items = l.Items.Where(i => !i.IsDismissed).Select(i => new
                 {
                     itemName = i.ItemName,
                     quantity = i.Quantity
-                }).Take(3).ToList() // Preview first 3 items
+                }).ToList()
             }).ToList());
         });
 
@@ -654,6 +691,7 @@ public class ChatMessageDto
 {
     public string Role { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
+    public string? ActionsJson { get; set; }
 }
 
 public class BuyListItemDto
@@ -664,4 +702,6 @@ public class BuyListItemDto
     public string? Note { get; set; }
     public bool IsChecked { get; set; }
     public bool IsDismissed { get; set; }
+    public string? Source { get; set; }
+    public DateTime? AddedAt { get; set; }
 }
