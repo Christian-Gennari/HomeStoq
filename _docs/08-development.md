@@ -17,7 +17,8 @@ HomeStoq/
 │   │   ├── Endpoints/                   # API endpoint modules
 │   │   │   ├── InventoryEndpoints.cs
 │   │   │   ├── ReceiptEndpoints.cs
-│   │   │   └── AiEndpoints.cs
+│   │   │   ├── AiEndpoints.cs
+│   │   │   └── ShoppingListEndpoints.cs # Shopping Buddy API
 │   │   ├── Services/
 │   │   │   ├── GeminiService.cs        # All AI interactions
 │   │   │   └── PromptProvider.cs       # AI prompt templates
@@ -30,8 +31,14 @@ HomeStoq/
 │   │   │   └── DbInitializer.cs        # Seed data
 │   │   └── wwwroot/                    # Frontend files
 │   │       ├── index.html
-│   │       ├── app.js
-│   │       └── style.css
+│   │       ├── js/                     # Main logic and i18n
+│   │       ├── css/                    # Shared styles
+│   │       └── features/               # Modularized feature folders
+│   │           ├── inventory/          # JS, CSS for stock view
+│   │           ├── scan/               # JS, CSS for receipt scanning
+│   │           ├── receipts/           # JS, CSS for receipt history
+│   │           ├── chat/               # JS, CSS for pantry chat
+│   │           └── shopping/           # JS, CSS for Shopping Buddy
 │   ├── HomeStoq.Shared/                 # Shared library
 │   │   ├── DTOs/                        # Data Transfer Objects
 │   │   └── Utils/

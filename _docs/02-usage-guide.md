@@ -141,29 +141,33 @@ Sometimes you just need to check or fix something quickly.
 
 ---
 
-## 💡 Workflow 5: The Next Shop (Smart List)
+## 📋 Workflow 5: The Next Shop (Shopping Buddy)
 
-Before shopping, generate a smart list.
+Before shopping, use the **Shopping Buddy** to build your list.
 
-### How
+### How to Use It
 
-1. **Go to the List tab**
-2. **Tap "Generate List"**
-3. **Review suggestions** — each has a reason
+1. **Go to the Shopping tab**
+2. **Choose your starting point:**
+   - 🤖 **"Generate Suggestions"** — Let the AI analyze your habits and current stock to suggest what you need.
+   - 💬 **"Chat with Buddy"** — Tell the AI what you're planning: "I'm making lasagna this weekend" or "We need staples for the week."
+3. **Refine your list:**
+   - The AI will suggest items (e.g., "I've added minced meat and pasta to your list").
+   - It cross-references your inventory: "You already have onions, so I didn't add those."
+   - You can add/remove items manually or through chat.
+4. **Save and Shop:**
+   - Once ready, tap **"Save List"** to keep it for later.
+   - When at the store, enter **"Shopping Mode"** to check off items as you buy them.
 
-### What You See
+### Why It's Better Than a Static List
 
-Example suggestions:
+- **Context-Aware:** Knows what you have and what you typically buy.
+- **Recipe Planning:** "I'm making tacos" → AI adds tortillas, salsa, and beef.
+- **Conversational:** Just talk to it like a helper.
+- **Persistent:** Save lists for different purposes (Weekly staples, Party prep, etc.).
 
-| Item | Suggested | Reason |
-|------|-----------|--------|
-| Mjölk | 2L | "You usually buy milk every 4 days, and it's been 5 days" |
-| Ägg | 12 | "You bought 12 eggs 2 weeks ago and typically use 6/week" |
-| Kaffe | 500g | "Running low (only 50g left) and buy every 2 weeks" |
+> 💡 **Tip:** Tell the Shopping Buddy your meal plans for the week, and it will handle the ingredient check for you.
 
-The AI looks at your **last 30 days of history** plus **current stock levels** to predict what you'll need.
-
-> 💡 **Tip:** The more receipts you scan, the smarter these suggestions get.
 
 ---
 

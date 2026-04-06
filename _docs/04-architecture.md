@@ -120,6 +120,7 @@ HomeStoq uses Google's Gemini AI for:
 |------|-----------------|
 | **Receipt OCR** | Reads receipt images, extracts items, prices, stores |
 | **Voice Parsing** | Understands "slut på mjölk" → decrease milk by 1 |
+| **Shopping Buddy** | Conversational assistant that builds and manages your shopping list |
 | **Shopping Suggestions** | Analyzes 30 days of history, predicts needs |
 | **Pantry Chat** | Answers questions about inventory |
 
@@ -174,6 +175,24 @@ HomeStoq uses Google's Gemini AI for:
 8. Scraper marks item done in Keep, cleans up
 ```
 
+### Shopping Buddy (Conversational List Building)
+
+```
+1. You type "I'm making lasagne" in the Shopping tab
+        ↓
+2. Browser sends to API: /api/shopping-list/{id}/chat
+        ↓
+3. API sends message to Gemini with current inventory context
+        ↓
+4. Gemini suggests items (Pasta sheets, Béchamel, Minced meat)
+        ↓
+5. Gemini checks inventory: "You have pasta, but you need meat and sauce"
+        ↓
+6. Gemini returns suggestions + conversational reply
+        ↓
+7. You confirm, items added to your active shopping list
+```
+
 ### Chat Query
 
 ```
@@ -198,11 +217,11 @@ HomeStoq uses Google's Gemini AI for:
 
 ## The Frontend (What You See)
 
-Built with simplicity in mind:
+Built with simplicity and modularity in mind:
 
 - **No build step** — Just HTML, CSS, JavaScript files
 - **Alpine.js** — Lightweight reactivity (2KB)
-- **No framework bloat** — Fast to load, easy to modify
+- **Feature-based structure** — Each major feature (Inventory, Shopping, Scan, etc.) has its own CSS and JS module in `wwwroot/features/`.
 
 ### Views
 
@@ -211,9 +230,9 @@ Built with simplicity in mind:
 | **Stock** | Current inventory, manual adjustments, search |
 | **Scan** | Receipt upload and processing |
 | **Receipts** | History of all scanned receipts |
-| **List** | AI-generated shopping suggestions |
+| **Shopping** | AI-powered Shopping Buddy, conversational list building, and history |
 
-Plus a **Chat slide-over** accessible from any tab.
+Plus a **Chat slide-over** accessible from any tab for general pantry queries.
 
 ---
 

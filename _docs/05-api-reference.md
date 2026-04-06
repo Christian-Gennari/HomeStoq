@@ -19,7 +19,9 @@ This document describes all API endpoints available in HomeStoq. It's intended f
 | `POST` | `/api/receipts/scan` | Scan a receipt image |
 | `GET` | `/api/receipts` | List all receipts |
 | `GET` | `/api/receipts/{id}/items` | Get items from a receipt |
-| `GET` | `/api/insights/shopping-list` | Generate shopping suggestions |
+| `GET` | `/api/shopping-list/current` | Get current active shopping list |
+| `POST` | `/api/shopping-list/generate` | Generate AI shopping suggestions |
+| `POST` | `/api/shopping-list/{id}/chat` | Conversational Shopping Buddy |
 | `POST` | `/api/voice/command` | Process voice command (scraper → API) |
 | `POST` | `/api/chat` | AI chat with function calling |
 
@@ -210,33 +212,118 @@ Get individual items from a specific receipt.
 
 ---
 
-### GET /api/insights/shopping-list
+## Shopping List API (Shopping Buddy)
 
-Generate AI shopping suggestions based on 30-day consumption history.
+The Shopping List API powers the "Shopping Buddy" feature, allowing for conversational list building, tracking what you've bought, and managing saved lists.
+
+### GET /api/shopping-list/current
+
+Get the current draft or active shopping list.
 
 **Response:**
 ```json
-[
-  {
-    "itemName": "Mjölk",
-    "suggestedQuantity": 2,
-    "reason": "You usually buy milk every 4 days, and it's been 5 days",
-    "confidence": 0.85
-  }
-]
+{
+  "hasList": true,
+  "id": 123,
+  "status": "draft",
+  "greeting": "Hi! Ready to build your list?",
+  "items": [
+    {
+      "id": 456,
+      "itemName": "Mjölk",
+      "quantity": 2,
+      "isChecked": false,
+      "source": "ai-suggestion"
+    }
+  ]
+}
 ```
 
-**Fields:**
-- `itemName` — Item to buy
-- `suggestedQuantity` — How much to get
-- `reason` — Human-readable explanation
-- `confidence` — AI certainty (0-1)
+---
 
-**Behavior:**
-- Analyzes last 30 days of History
-- Cross-references with current inventory
-- Suggests items you might run out of soon
-- Caches result for 1 hour
+### POST /api/shopping-list/generate
+
+Generate fresh AI shopping suggestions based on your 30-day consumption history and current stock.
+
+**Response:** Same as `GET /api/shopping-list/current`.
+
+---
+
+### POST /api/shopping-list/{id}/chat
+
+Chat with the Shopping Buddy to add/remove items or plan meals.
+
+**Request:**
+```json
+{
+  "message": "I want to make spaghetti bolognese",
+  "language": "Swedish"
+}
+```
+
+**Response:**
+```json
+{
+  "reply": "Great choice! I've added minced meat and pasta to your list. You already have onions and tomatoes.",
+  "actions": [
+    { "type": "add", "itemName": "Köttfärs", "quantity": 1, "category": "Kött" },
+    { "type": "add", "itemName": "Spaghetti", "quantity": 1, "category": "Skafferi" }
+  ],
+  "currentItems": [...]
+}
+```
+
+---
+
+### POST /api/shopping-list/{id}/confirm
+
+Confirm or reject actions suggested by the Shopping Buddy.
+
+**Request:**
+```json
+{
+  "accept": true,
+  "actions": [...]
+}
+```
+
+---
+
+### POST /api/shopping-list/{id}/commit
+
+Transition a list from `draft` to `active` (starting the shopping trip).
+
+---
+
+### POST /api/shopping-list/{id}/complete
+
+Finish a shopping trip and move the list to history.
+
+---
+
+### GET /api/shopping-list/history
+
+Get a list of past shopping trips.
+
+---
+
+### GET /api/shopping-list/saved/all
+
+Get all lists that have been explicitly saved by the user.
+
+---
+
+### POST /api/shopping-list/{id}/save
+
+Save a list with a custom or auto-generated name.
+
+**Request:**
+```json
+{
+  "autoName": false,
+  "customName": "Weekly Staples"
+}
+```
 
 ---
 

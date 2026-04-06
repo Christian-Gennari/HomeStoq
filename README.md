@@ -16,7 +16,7 @@ HomeStoq is a **local-first pantry management system** that makes grocery tracki
 - 📸 **Scan receipts** — Take a photo, AI extracts items automatically
 - 🗣️ **Voice commands** — "Hey Google, we're out of milk" → inventory updated
 - 🤖 **Ask your pantry** — "How much coffee left?" → instant answer
-- 📝 **Smart lists** — AI suggests what to buy based on your habits
+- 📝 **Shopping Buddy** — Conversational AI that helps you build lists, plan meals, and suggests what to buy based on your habits
 
 Everything runs on **your hardware**, **your network**. No cloud subscriptions, no data mining.
 
@@ -45,15 +45,12 @@ curl http://localhost
 ## How It Works
 
 ```
-┌─────────────┐     voice      ┌──────────────┐     API      ┌─────────────┐
-│  Google     │ ─────────────→ │   Scraper    │ ───────────→ │  HomeStoq   │
-│   Keep      │   "out of eggs" │   (CDP)      │   command   │    API       │
-└─────────────┘                └──────────────┘             └──────┬──────┘
-                                                                    │
-                          ┌─────────────┐                           │
-                          │   SQLite    │←──────────────────────────┘
-                          │  Database   │     update inventory
-                          └─────────────┘
+You
+├─→ Phone camera ──→ Receipt scan ──→┐
+├─→ Voice to Google ──→ Keep list ──→┼──→ HomeStoq Core ──→ Database
+└─→ Browser ──→ Web UI ─────────────→┘        ↑
+                                              │
+                                         Scraper (keeps in sync)
 ```
 
 **The magic:** The scraper connects to your *real* Chrome browser (not a fake one), making it virtually invisible to Google's bot detection.
@@ -66,7 +63,7 @@ curl http://localhost
 |-----------|-------------|--------------|
 | **Grocery run** | Scan receipt with phone | Items appear in inventory automatically |
 | **Empty milk carton** | Tell Google "slut på mjölk" | Stock decreases by 1 |
-| **Before shopping** | Click "Generate List" | AI suggests what you need |
+| **Before shopping** | Chat with Shopping Buddy | AI helps you build a list and plan meals |
 | **Wondering what's left** | Ask chat "How much coffee?" | Instant answer from your data |
 
 📖 **[Usage Guide](_docs/02-usage-guide.md)** for detailed workflows

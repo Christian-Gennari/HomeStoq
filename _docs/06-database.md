@@ -11,7 +11,7 @@ HomeStoq uses **SQLite** — a file-based database that requires zero setup. Thi
 
 ## Overview
 
-Four tables store all data:
+Seven tables store all data:
 
 ```
 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
@@ -21,11 +21,19 @@ Four tables store all data:
 └─────────────┘       └─────────────┘       └─────────────┘
                               ↑
                               │
-                       ┌─────────────┐
-                       │   AiCache   │
-                       │  (AI res.   │
-                       │   caching)  │
-                       └─────────────┘
+                       ┌─────────────┐       ┌─────────────┐
+                       │   AiCache   │       │  BuyLists   │
+                       │  (AI res.   │       │  (Shopping  │
+                       │   caching)  │       │    Buddy)   │
+                       └─────────────┘       └──────┬──────┘
+                                                    │
+                                             ┌──────┴──────┐
+                                             │ BuyListItems│
+                                             └─────────────┘
+                                                    │
+                                             ┌──────┴──────┐
+                                             │ BuyListMsg  │
+                                             └─────────────┘
 ```
 
 ---
@@ -157,6 +165,53 @@ Four tables store all data:
 - Receipt OCR: 24 hours (receipts rarely change)
 - Voice parsing: 1 hour (less common repeat)
 - Shopping suggestions: 1 hour (based on changing data)
+
+---
+
+## Table: BuyLists
+
+**Purpose:** Shopping list sessions, including saved lists and current drafts.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `Id` | INTEGER | Primary Key |
+| `CreatedAt` | TEXT | When the list was created |
+| `Status` | INTEGER | Status: `Draft` (0), `Active` (1), `Completed` (2), `Cancelled` (3), `Saved` (4) |
+| `GeneratedContext` | TEXT | AI-generated greeting or context |
+| `UserContext` | TEXT | User's specific needs for this session |
+| `IsSaved` | BOOLEAN | Whether the user explicitly saved this list |
+| `SavedName` | TEXT | Custom name for saved lists |
+
+---
+
+## Table: BuyListItems
+
+**Purpose:** Individual items within a shopping list.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `Id` | INTEGER | Primary Key |
+| `BuyListId` | INTEGER | Foreign Key → BuyLists.Id |
+| `ItemName` | TEXT | Name of the item |
+| `Quantity` | REAL | How many to buy |
+| `Category` | TEXT | AI-assigned category |
+| `IsChecked` | BOOLEAN | Whether it's been "checked off" while shopping |
+| `IsDismissed` | BOOLEAN | Whether it was removed from the list |
+
+---
+
+## Table: BuyListMessages
+
+**Purpose:** Conversation history for the "Shopping Buddy" chat.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `Id` | INTEGER | Primary Key |
+| `BuyListId` | INTEGER | Foreign Key → BuyLists.Id |
+| `Role` | TEXT | `user`, `assistant`, or `system` |
+| `Content` | TEXT | The message text |
+| `ActionsJson` | TEXT | JSON log of actions taken (e.g., "added Milk") |
+| `Timestamp` | TEXT | When the message was sent |
 
 ---
 
