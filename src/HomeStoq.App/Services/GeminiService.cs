@@ -306,8 +306,27 @@ PURCHASE HISTORY (last 30 days):
     {
         var systemPrompt = _promptProvider.GetShoppingListChatPrompt(language);
         
-        // Build conversation context
-        var conversationContext = string.Join("\n", conversationHistory.Select(m => $"{m.Role}: {m.Content}"));
+        // Build conversation context with action tracking
+        var conversationContext = string.Join("\n", conversationHistory.Select(m =>
+        {
+            var line = $"{m.Role}: {m.Content}";
+            if (m.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(m.ActionsJson))
+            {
+                try
+                {
+                    var actions = JsonSerializer.Deserialize<List<ChatActionItem>>(m.ActionsJson,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (actions != null && actions.Count > 0)
+                    {
+                        var actionSummary = string.Join(", ", actions.Select(a =>
+                            $"{a.Type}: {a.ItemName} x{a.Quantity}"));
+                        line += $"\n[ACTIONS TAKEN: {actionSummary}]";
+                    }
+                }
+                catch { }
+            }
+            return line;
+        }));
         var currentItemsJson = JsonSerializer.Serialize(currentItems);
         
         var fullPrompt = $"CONVERSATION HISTORY:\n{conversationContext}\n\nCURRENT SHOPPING LIST:\n{currentItemsJson}\n\nPANTRY INVENTORY:\n{inventoryJson}\n\nUSER MESSAGE: {userMessage}\n\nRespond with the JSON format specified in your instructions.";;
