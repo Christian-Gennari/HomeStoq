@@ -613,6 +613,7 @@ public static class ShoppingListEndpoints
                 itemCount = l.Items.Count(i => !i.IsDismissed),
                 items = l.Items.Where(i => !i.IsDismissed).Select(i => new
                 {
+                    id = i.Id,
                     itemName = i.ItemName,
                     quantity = i.Quantity
                 }).ToList()
