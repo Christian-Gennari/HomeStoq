@@ -244,10 +244,14 @@
                             
                             <!-- List Section -->
                             <div class="list-section">
-                                <!-- Empty list placeholder -->
-                                <div x-show="composeList.items.filter(i => !i.isDismissed).length === 0" class="list-empty-placeholder">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-                                    <p x-text="language === 'Swedish' ? 'Din lista dyker upp här' : 'Your list appears here'"></p>
+                                <!-- Empty list welcome -->
+                                <div x-show="composeList.items.filter(i => !i.isDismissed).length === 0" class="compose-empty" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                                    <span class="compose-icon">🛒</span>
+                                    <h3 x-text="language === 'Swedish' ? 'Vad ska vi handla idag?' : 'What are we shopping for today?'"></h3>
+                                    <p x-text="language === 'Swedish' ? 'Berätta vad du behöver i chatten, så hjälper jag dig att bygga en smart inköpslista!' : 'Tell me what you need in the chat, and I\'ll help you build a smart shopping list!'" style="color: var(--warm-gray); font-size: 1rem; line-height: 1.6; max-width: 280px; margin: 0 auto 2rem;"></p>
+                                    <div class="compose-hints" style="display: flex; flex-direction: column; gap: 0.5rem; align-items: center; opacity: 0.7;">
+                                        <small x-text="language === 'Swedish' ? '💡 Prova: "Jag ska göra lasagne" eller "Mjölk, ägg och bröd"' : '💡 Try: "I\'m making lasagne" or "Milk, eggs and bread"'" style="font-size: 0.85rem; color: var(--warm-gray);"></small>
+                                    </div>
                                 </div>
 
                                 <!-- Categorized List -->

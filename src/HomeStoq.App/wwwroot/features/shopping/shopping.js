@@ -63,6 +63,17 @@ function createShoppingFeature() {
                 } catch (e) {
                     localStorage.removeItem('homestoq_compose_draft');
                 }
+            } else {
+                // No draft - add initial greeting
+                const greeting = this.language === "Swedish" 
+                    ? "Hej! Säg vad du behöver köpa, så hjälper jag dig."
+                    : "Hi! Tell me what you need to buy, and I'll help you.";
+                
+                this.composeList.messages.push({
+                    role: "assistant",
+                    content: greeting,
+                    timestamp: new Date().toISOString()
+                });
             }
             
             await this.loadSavedLists();
