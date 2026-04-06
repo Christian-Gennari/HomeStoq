@@ -106,6 +106,20 @@ function createShoppingFeature() {
             this.clearComposeDraft();
         },
         
+        clearAndGreet() {
+            this.resetComposeList();
+            
+            const greeting = this.language === "Swedish" 
+                ? "Hej! Säg vad du behöver köpa, så hjälper jag dig."
+                : "Hi! Tell me what you need to buy, and I'll help you.";
+            
+            this.composeList.messages.push({
+                role: "assistant",
+                content: greeting,
+                timestamp: new Date().toISOString()
+            });
+        },
+        
         startNewList() {
             // If has unsaved items, warn
             if (this.composeList.items.length > 0) {
