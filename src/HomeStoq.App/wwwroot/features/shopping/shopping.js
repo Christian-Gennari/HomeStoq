@@ -400,15 +400,6 @@ function createShoppingFeature() {
         // === SHOPPING MODE (Read-only + Check) ===
         
         enterShoppingMode(list) {
-            // If compose has unsaved items, warn
-            if (this.composeList.items.length > 0) {
-                if (!confirm(this.language === 'Swedish'
-                    ? 'Du har osparade varor i "Ny lista". Byta till denna lista?'
-                    : 'You have unsaved items in "New List". Switch to this list?')) {
-                    return;
-                }
-            }
-            
             this.activeShoppingList = {
                 ...list,
                 items: list.items.map(i => ({
@@ -460,15 +451,6 @@ function createShoppingFeature() {
         // === EDIT MODE (Manual, no AI) ===
         
         enterEditMode(list) {
-            // If compose has unsaved items, warn
-            if (this.composeList.items.length > 0) {
-                if (!confirm(this.language === 'Swedish'
-                    ? 'Du har osparade varor. Fortsätta ändå?'
-                    : 'You have unsaved items. Continue anyway?')) {
-                    return;
-                }
-            }
-            
             this.editingList = list;
             this.editingItems = list.items.map(i => ({
                 name: i.itemName,
