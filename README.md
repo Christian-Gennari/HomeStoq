@@ -15,19 +15,16 @@ HomeStoq is a pantry management system that runs on your home network. It tracks
 # 1. Setup
 npm run setup
 # Edit .env and add your GEMINI_API_KEY
+# Optional: Add GOOGLE_USERNAME/PASSWORD for auto-login
 
-# 2. Start
+# 2. Start (Full Docker Stack)
 npm run dev
 
-# 3. Open browser
-curl http://localhost:5050
+# 3. Open dashboard
+http://localhost:5050
 ```
 
-First time: Chrome opens automatically — log into Google Keep once.
-
-> Default port is `5050` to avoid permission issues. Change in `config.ini` if needed.
-
-📖 **[Getting Started Guide](_docs/01-getting-started.md)**
+> **First time?** If you didn't provide credentials in `.env`, open `http://localhost:6080` to log into Google Keep inside the scraper container.
 
 ---
 
@@ -42,21 +39,20 @@ First time: Chrome opens automatically — log into Google Keep once.
 └────────┬────────┴────────┬────────┴────────────┬────────────┘
          │                 │                     │
          ▼                 ▼                     ▼
-    ┌────────────────────────────────────────────────────┐
-    │           HomeStoq Core (ASP.NET Core)             │
-    │  - AI extracts receipt items (Gemini Vision)       │
-    │  - Parses voice commands from Keep list            │
-    │  - Chat interface for questions & shopping lists   │
-    └─────────────────────┬──────────────────────────────┘
-                          │
-                          ▼
-              ┌───────────────────────┐
-              │  SQLite Database      │
-              │  (local storage)      │
-              └───────────────────────┘
+    ┌──────────────────────────┐      ┌──────────────────────────┐
+    │   HomeStoq App (Docker)  │◄─────┤  Keep Scraper (Docker)   │
+    │  - AI Receipt Processing │      │  - Xvfb Virtual Display  │
+    │  - Chat & Shopping Lists │      │  - Anti-detection Headed │
+    └────────────┬─────────────┘      └─────────────┬────────────┘
+                 │                                  │
+                 ▼                                  ▼
+    ┌──────────────────────────┐      ┌──────────────────────────┐
+    │     SQLite Database      │      │     Chrome Profile       │
+    │    (Persistent Vol)      │      │    (Persistent Vol)      │
+    └──────────────────────────┘      └──────────────────────────┘
 ```
 
-**Voice integration:** The scraper monitors your Google Keep shopping list. When you say "Hey Google, add milk to my shopping list", it extracts the item and updates your inventory. Since it uses your actual Chrome browser via Chrome DevTools Protocol, it avoids bot detection.
+**Anti-Detection Engine:** The scraper runs a real, "Headed" Chrome instance inside a virtual desktop (Xvfb). This makes the automation indistinguishable from a human user. It supports **Automatic Login** via environment variables and provides a **noVNC web interface** (port 6080) for manual 2FA verification.
 
 ---
 

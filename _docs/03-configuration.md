@@ -4,7 +4,7 @@
 [README](../README.md) | [Getting Started](01-getting-started.md) | [Usage Guide](02-usage-guide.md) | Configuration | [Architecture](04-architecture.md)
 
 HomeStoq is configured through two files:
-- **`.env`** — Secrets (API keys)
+- **`.env`** — Secrets (API keys, credentials)
 - **`config.ini`** — Behavior settings
 
 ---
@@ -16,18 +16,26 @@ This file contains sensitive information. Never commit it to git.
 ```bash
 # .env
 GEMINI_API_KEY=your_api_key_here
+
+# Google Keep Credentials (Optional)
+GOOGLE_USERNAME=your_email@gmail.com
+GOOGLE_PASSWORD=your_password
 ```
 
 ### Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GEMINI_API_KEY` | **Yes** | Your Google AI Studio API key. Get one at [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| `GEMINI_API_KEY` | **Yes** | Your Google AI Studio API key. |
+| `GOOGLE_USERNAME` | No | Your Google account email for the scraper. |
+| `GOOGLE_PASSWORD` | No | Your Google account password (or App Password). |
 
 ### Example
 
 ```bash
 GEMINI_API_KEY=AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GOOGLE_USERNAME=homestoq.pantry@gmail.com
+GOOGLE_PASSWORD=my-secure-password
 ```
 
 ---
@@ -129,8 +137,9 @@ These settings control how the voice integration works.
 
 | Setting | Default | Range | Description |
 |---------|---------|-------|-------------|
-| `KeepListName` | `inköpslistan` | Any list name(s) | Name(s) of Google Keep list(s) to monitor. Comma-separated for multiple. |
+| `KeepListName` | `inköpslistan` | Any list name(s) | Name(s) of Google Keep list(s) to monitor. |
 | `BrowserMode` | `RemoteDebugging` | `RemoteDebugging`, `Playwright` | Which browser connection to use |
+| `Headless` | `false` | `true`, `false` | Run in headless mode (not recommended for anti-detection) |
 | `ActiveHours` | `07-23` | `00-24` format | When the scraper actively polls |
 | `PollIntervalSeconds` | `45` | 10-300 | Base time between checks |
 | `PollIntervalJitterSeconds` | `15` | 0-60 | Random variance added to interval |

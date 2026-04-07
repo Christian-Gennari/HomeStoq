@@ -30,27 +30,41 @@ Without the scraper, you'd have to manually check Google Keep and type updates i
 ## Two Browser Modes
 
 The scraper can connect to browsers in two ways:
+## Two Browser Modes
 
 ### Mode 1: Remote Debugging (Recommended)
 
 Connects to your **real Chrome browser** via Chrome DevTools Protocol (CDP).
 
 **How it works:**
-1. Scraper launches Chrome with `--remote-debugging-port=9222`
-2. Connects to Chrome's debug interface
-3. Navigates to Google Keep
-4. Checks your lists periodically
+1. Scraper launches Chrome with `--remote-debugging-port=9222`.
+2. Connects to Chrome's debug interface.
+3. In Docker, this runs inside a **Virtual Desktop (Xvfb)** to allow "Headed" mode.
 
 **Why it's better:**
-- Uses your actual browser profile and cookies
-- Shares your real IP address reputation
-- Nearly invisible to Google's bot detection
-- No need for anti-detection tricks
+- Uses real browser fingerprints.
+- Avoids Google's "automated software" detection by running in full **Headed mode** (even in Docker).
 
-**Requirements:**
-- Google Chrome must be installed
-- First run: log into Google Keep once
-- Profile saved to: `%LocalAppData%/HomeStoq/chrome-profile`
+---
+
+## Dockerized Scraping with Xvfb
+
+When running in Docker, HomeStoq uses a specialized setup to avoid bot detection while remaining headless on your server:
+
+1.  **Xvfb (X Virtual Framebuffer):** Creates a "virtual monitor" in the container's memory.
+2.  **Headed Chrome:** Chrome runs in its normal, visible mode (`Headless=false`) inside this virtual monitor.
+3.  **Automatic Login:** If `GOOGLE_USERNAME` and `GOOGLE_PASSWORD` are in your `.env`, the scraper will automatically type them into the login form.
+4.  **noVNC (Remote View):** A web-based VNC client is provided on port **6080**.
+
+### How to use noVNC for 2FA
+
+If your Google account requires 2FA or shows a CAPTCHA:
+
+1. Start HomeStoq: `npm run dev`
+2. Open `http://localhost:6080` in your browser.
+3. You will see the Chrome window running inside the container.
+4. Use your mouse and keyboard to complete the 2FA process.
+5. Once logged in, the session is saved to the `chrome-profile` volume.
 
 **Configuration:**
 ```ini

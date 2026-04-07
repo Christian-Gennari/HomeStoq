@@ -63,47 +63,39 @@ HomeStoq/
 
 ---
 
-## Building from Source
+## Building & Development
 
-### Prerequisites
+HomeStoq is designed to be developed entirely within Docker. This ensures a consistent environment and removes the need for local .NET installations.
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [Node.js](https://nodejs.org/) (for npm scripts)
-- [Google Chrome](https://www.google.com/chrome/) (optional, for CDP mode)
-
-### Build Commands
+### Build & Run (Docker)
 
 ```bash
-# Build entire solution
-dotnet build HomeStoq.sln
-
-# Build just the API
-dotnet build src/HomeStoq.App/HomeStoq.App.csproj
-
-# Build just the scraper
-dotnet build src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/HomeStoq.Plugins.GoogleKeepScraper.csproj
-
-# Clean build artifacts
-dotnet clean
-npm run clean  # Also removes node_modules
-```
-
-### Run Commands
-
-```bash
-# Run both API and scraper
+# Start the full stack with hot-reloading
 npm run dev
 
-# Run just the API
-dotnet run --project src/HomeStoq.App
-# Or: npm run api
+# Rebuild all containers from scratch
+npm run docker:build
 
-# Run just the scraper
-dotnet run --project src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper
-# Or: npm run scraper
+# Stop all containers
+npm run docker:down
 
-# Run in Docker
-npm run api:docker
+# Clean the environment (removes volumes and builds)
+npm run docker:clean
+```
+
+**Hot Reloading:** Both the main App and the Scraper use `dotnet watch` inside their containers. Any changes to C#, CSS, or JS files will trigger an automatic reload.
+
+### Build & Run (Local - Not Recommended)
+
+```bash
+# Start API + Scraper locally
+npm run dev:local
+
+# Start just the API
+npm run api:local
+
+# Start just the scraper
+npm run scraper:local
 ```
 
 ---

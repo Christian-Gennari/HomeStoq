@@ -12,15 +12,10 @@
 Before we start, make sure you have:
 
 - A computer that can run 24/7 (Raspberry Pi, old laptop, NAS, or server)
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) installed
+- **Docker and Docker Compose** installed
 - [Node.js](https://nodejs.org/) installed (for our helper scripts)
-- [Google Chrome](https://www.google.com/chrome/) installed (recommended)
 - A [Google AI Studio](https://aistudio.google.com/) API key (free tier works fine)
 - A Google account (preferably a dedicated one just for HomeStoq)
-
-**Optional:**
-- Docker (if you prefer containers)
-- A Google Nest Mini or similar (for voice commands)
 
 ---
 
@@ -41,21 +36,18 @@ Our setup script checks prerequisites and creates your configuration files:
 npm run setup
 ```
 
-This will:
-- Check that .NET 10 and Node.js are installed
-- Create a `.env` file for your secrets
-- Verify Chrome is available (for CDP mode)
+### Step 3: Add Your Credentials
 
-### Step 3: Add Your API Key
-
-Open `.env` in your favorite text editor and add your Gemini API key:
+Open `.env` in your favorite text editor and add your Gemini API key. Optionally, add your Google credentials for automatic scraper login:
 
 ```bash
 # .env
 GEMINI_API_KEY=your_key_here
-```
 
-Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey) (it's free).
+# Optional: Scraper auto-login
+GOOGLE_USERNAME=your_email@gmail.com
+GOOGLE_PASSWORD=your_password
+```
 
 ### Step 4: Start Everything
 
@@ -63,19 +55,20 @@ Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey) (it
 npm run dev
 ```
 
-You'll see:
-```
-[INFO] Using Remote Debugging browser mode (default, secure)
-[INFO] Chrome will be launched automatically with remote debugging enabled
-```
+This will build and start the Docker containers.
 
-**A Chrome window will open.** This is expected! Log into Google Keep with your dedicated account.
+### Step 5: Log into Google Keep (If needed)
 
-### Step 5: Verify It Works
+If you didn't provide Google credentials in Step 3, or if you have 2FA enabled:
 
-1. Open `http://localhost` in your browser
-2. You should see the HomeStoq dashboard
-3. Try adding an item manually with the "+ Add Item" button
+1. Open `http://localhost:6080` in your browser.
+2. You will see a virtual desktop inside the scraper container.
+3. Log into Google Keep manually in the browser window shown there.
+
+### Step 6: Verify It Works
+
+1. Open `http://localhost:5050` in your browser.
+2. You should see the HomeStoq dashboard.
 
 🎉 **You're done!** HomeStoq is now running.
 
