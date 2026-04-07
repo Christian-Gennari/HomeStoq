@@ -1,28 +1,15 @@
-# HomeStoq 🏠🍎
+# HomeStoq
 
-**Your AI-powered pantry assistant that just works.**
+HomeStoq is a pantry management system that runs on your home network. It tracks what you have, what you need, and updates automatically through receipt scanning and voice commands.
 
-Track groceries by scanning receipts, managing inventory with your voice, and getting smart shopping suggestions — all running privately on your home network.
+**The problem it solves:** Manually tracking groceries is tedious and you forget what's in the pantry. HomeStoq automates this by extracting items from receipt photos and listening to your existing voice assistant.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 [![.NET 10](https://img.shields.io/badge/.NET-10-blue)](https://dotnet.microsoft.com/)
 
 ---
 
-## What is HomeStoq?
-
-HomeStoq is a **local-first pantry management system** that makes grocery tracking effortless:
-
-- 📸 **Scan receipts** — Take a photo, AI extracts items automatically
-- 🗣️ **Voice commands** — "Hey Google, we're out of milk" → inventory updated
-- 🤖 **Ask your pantry** — "How much coffee left?" → instant answer
-- 📝 **Shopping Buddy** — Conversational AI that helps you build lists, plan meals, and suggests what to buy based on your habits
-
-Everything runs on **your hardware**, **your network**. No cloud subscriptions, no data mining.
-
----
-
-## Quick Start (5 minutes)
+## Quick Start
 
 ```bash
 # 1. Setup
@@ -36,37 +23,51 @@ npm run dev
 curl http://localhost:5050
 ```
 
-**First time only:** Chrome opens automatically — log into Google Keep once. Done!
+First time: Chrome opens automatically — log into Google Keep once.
 
-> **Note:** Default port is `5050` to avoid permission issues with port 80. Change in `config.ini` if needed.
+> Default port is `5050` to avoid permission issues. Change in `config.ini` if needed.
 
-📖 **[Full Getting Started Guide](_docs/01-getting-started.md)**
+📖 **[Getting Started Guide](_docs/01-getting-started.md)**
 
 ---
 
 ## How It Works
 
 ```
-You
-├─→ Phone camera ──→ Receipt scan ──→┐
-├─→ Voice to Google ──→ Keep list ──→┼──→ HomeStoq Core ──→ Database
-└─→ Browser ──→ Web UI ─────────────→┘        ↑
-                                              │
-                                         Scraper (keeps in sync)
+┌─────────────────────────────────────────────────────────────┐
+│  Input Methods                                              │
+├─────────────────┬─────────────────┬─────────────────────────┤
+│  Phone camera   │  Voice command  │  Web browser            │
+│  (receipt)      │  (Google Keep)  │  (manual/chat)          │
+└────────┬────────┴────────┬────────┴────────────┬────────────┘
+         │                 │                     │
+         ▼                 ▼                     ▼
+    ┌────────────────────────────────────────────────────┐
+    │           HomeStoq Core (ASP.NET Core)             │
+    │  - AI extracts receipt items (Gemini Vision)       │
+    │  - Parses voice commands from Keep list            │
+    │  - Chat interface for questions & shopping lists   │
+    └─────────────────────┬──────────────────────────────┘
+                          │
+                          ▼
+              ┌───────────────────────┐
+              │  SQLite Database      │
+              │  (local storage)      │
+              └───────────────────────┘
 ```
 
-**The magic:** The scraper connects to your *real* Chrome browser (not a fake one), making it virtually invisible to Google's bot detection.
+**Voice integration:** The scraper monitors your Google Keep shopping list. When you say "Hey Google, add milk to my shopping list", it extracts the item and updates your inventory. Since it uses your actual Chrome browser via Chrome DevTools Protocol, it avoids bot detection.
 
 ---
 
-## Everyday Use
+## Use Cases
 
-| Situation | What You Do | What Happens |
-|-----------|-------------|--------------|
-| **Grocery run** | Scan receipt with phone | Items appear in inventory automatically |
-| **Empty milk carton** | Tell Google "slut på mjölk" | Stock decreases by 1 |
-| **Before shopping** | Chat with Shopping Buddy | AI helps you build a list and plan meals |
-| **Wondering what's left** | Ask chat "How much coffee?" | Instant answer from your data |
+| Situation | Action | Result |
+|-----------|--------|--------|
+| After shopping | Scan receipt photo | Items added to inventory |
+| Running low | "Hey Google, we're out of coffee" | Stock decreases |
+| Before shopping | Chat: "What should I buy?" | AI suggests based on habits |
+| Checking stock | Ask: "How much rice is left?" | Instant quantity |
 
 📖 **[Usage Guide](_docs/02-usage-guide.md)** for detailed workflows
 
@@ -74,37 +75,38 @@ You
 
 ## Documentation
 
-| Guide | What's Inside |
-|-------|---------------|
-| [01 - Getting Started](_docs/01-getting-started.md) | Installation, first setup, troubleshooting |
-| [02 - Usage Guide](_docs/02-usage-guide.md) | Daily workflows, tips, voice commands |
-| [03 - Configuration](_docs/03-configuration.md) | All config.ini options explained |
-| [04 - Architecture](_docs/04-architecture.md) | How the system fits together |
-| [05 - API Reference](_docs/05-api-reference.md) | Endpoints for developers |
-| [06 - Database](_docs/06-database.md) | Schema and data model |
-| [07 - Scraper Deep-Dive](_docs/07-scraper.md) | CDP mode, anti-detection, troubleshooting |
-| [08 - Development](_docs/08-development.md) | Building, extending, contributing |
+| Guide | Contents |
+|-------|----------|
+| [01 - Getting Started](_docs/01-getting-started.md) | Installation, setup, troubleshooting |
+| [02 - Usage Guide](_docs/02-usage-guide.md) | Daily workflows, voice commands |
+| [03 - Configuration](_docs/03-configuration.md) | All config.ini options |
+| [04 - Architecture](_docs/04-architecture.md) | System design |
+| [05 - API Reference](_docs/05-api-reference.md) | Endpoints |
+| [06 - Database](_docs/06-database.md) | Schema |
+| [07 - Scraper Deep-Dive](_docs/07-scraper.md) | CDP mode, anti-detection |
+| [08 - Development](_docs/08-development.md) | Building and contributing |
 
 ---
 
-## Tech Stack (For the Curious)
+## Tech Stack
 
-- **Backend:** ASP.NET Core 10 with Minimal APIs
+- **Backend:** ASP.NET Core 10 (Minimal APIs)
 - **Frontend:** Vanilla HTML/CSS/JS + Alpine.js
-- **Database:** SQLite with Entity Framework
+- **Database:** SQLite + Entity Framework
 - **AI:** Google Gemini (vision + chat)
-- **Voice Bridge:** Chrome DevTools Protocol (your real browser)
-- **Platform:** Docker (Alpine) or bare metal
+- **Browser Automation:** Chrome DevTools Protocol
+- **Deployment:** Docker or bare metal
 
 ---
 
 ## Roadmap
 
-See [GitHub Issues](https://github.com/Christian-Gennari/HomeStoq/issues) for planned features:
-- Push notifications when voice commands process
-- Historical analytics dashboard
-- Mobile-optimized receipt scanning
-- Scraper health dashboard
+Planned features in [GitHub Issues](https://github.com/Christian-Gennari/HomeStoq/issues):
+
+- Push notifications for voice command processing
+- Analytics dashboard (historical trends)
+- Mobile-optimized receipt scanning UI
+- Scraper health monitoring
 
 ---
 
@@ -112,4 +114,4 @@ See [GitHub Issues](https://github.com/Christian-Gennari/HomeStoq/issues) for pl
 
 MIT License — see [LICENSE.md](LICENSE.md)
 
-Built with ☕ in Sweden by [Christian Gennari](https://dev.cgennari.com)
+Built in Sweden by [Christian Gennari](https://dev.cgennari.com)
