@@ -4,3 +4,5 @@ obj/
 data/homestoq.db
 browser-profile/
 node_modules/
+data/homestoq.db-shm
+data/homestoq.db-wal
