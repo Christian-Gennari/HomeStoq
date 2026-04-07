@@ -33,9 +33,6 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Create index.html redirect for noVNC auto-connect page
-RUN echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=vnc_auto.html"></head><body>Redirecting to noVNC...</body></html>' > /usr/share/novnc/index.html
-
 # Install Xvfb, VNC and other dependencies
 RUN apt-get update && apt-get install -y \
     xvfb \
@@ -43,6 +40,9 @@ RUN apt-get update && apt-get install -y \
     novnc \
     websockify \
     && rm -rf /var/lib/apt/lists/*
+
+# Create index.html redirect for noVNC auto-connect page
+RUN echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=vnc_auto.html"></head><body>Redirecting to noVNC...</body></html>' > /usr/share/novnc/index.html
 
 # Create profile directory
 RUN mkdir -p /app/browser-profile && chown -R 1000:1000 /app/browser-profile
