@@ -20,7 +20,7 @@ var configIniPath = PathHelper.ResolveConfigIni();
 if (File.Exists(configIniPath))
 {
     var hostUrl = System
-        .Text.RegularExpressions.Regex.Match(File.ReadAllText(configIniPath), @"HostUrl\s*=\s*(.+)")
+        .Text.RegularExpressions.Regex.Match(File.ReadAllText(configIniPath), @"^\s*HostUrl\s*=\s*(.+)", System.Text.RegularExpressions.RegexOptions.Multiline)
         .Groups[1]
         .Value.Trim();
     if (!string.IsNullOrEmpty(hostUrl))

@@ -176,12 +176,12 @@ BrowserMode=RemoteDebugging   # RemoteDebugging (default) or Playwright
 
 ### "Permission denied" or "port already in use"
 
-**Problem:** HomeStoq can't bind to port 5000 or 80.
+**Problem:** HomeStoq can't bind to port (default is 5050).
 
 **Solutions:**
-1. Change `HostUrl` in `config.ini`: `HostUrl=http://*:8080`
+1. Change `HostUrl` in `config.ini`: `HostUrl=http://*:8080` (or any available port)
 2. On Linux/Mac: run with `sudo` for ports below 1024
-3. Check what's using the port: `lsof -i :5000`
+3. Check what's using the port: `lsof -i :5050`
 
 ---
 

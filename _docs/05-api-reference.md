@@ -5,7 +5,7 @@
 
 This document describes all API endpoints available in HomeStoq. It's intended for developers integrating with or extending the system.
 
-**Base URL:** `http://localhost:5000/api` (or your configured `HostUrl`)
+**Base URL:** `http://localhost:5050/api` (or your configured `HostUrl`)
 
 ---
 

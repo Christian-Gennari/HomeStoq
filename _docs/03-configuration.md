@@ -41,20 +41,20 @@ This file controls how HomeStoq behaves. It's safe to edit and doesn't contain s
 ```ini
 [App]
 Language=Swedish
+HostUrl=http://*:5050    # Server binding URL (used by API and scraper)
 
 [AI]
 Model=gemini-3.1-flash-lite-preview
 
 [API]
 # Optional: Override auto-derived API URL
-# BaseUrl=http://localhost/api/voice/command
+# BaseUrl=http://localhost:5050/api/voice/command
 
 [GoogleKeepScraper]
 KeepListName=inköpslistan, inköpslista
 ActiveHours=07-23
 PollIntervalSeconds=45
 PollIntervalJitterSeconds=15
-HostUrl=http://*:80
 BrowserMode=RemoteDebugging
 ChromeRelaunchAttempts=5
 ```
@@ -68,11 +68,13 @@ ChromeRelaunchAttempts=5
 | Setting | Default | Options | Description |
 |---------|---------|---------|-------------|
 | `Language` | `English` | `English`, `Swedish` | Language for all AI interactions (voice parsing, receipt OCR, chat, shopping suggestions) |
+| `HostUrl` | `http://*:5050` | Valid URL | Server binding URL. Controls where the web server listens. Scraper uses this to derive API callback URL. |
 
-**Example:**
+**Examples:**
 ```ini
 [App]
 Language=Swedish
+HostUrl=http://*:5050
 ```
 
 **Impact:**
@@ -80,6 +82,16 @@ Language=Swedish
 - Receipt items named in Swedish ("Mjölk" not "Milk")
 - Chat responses in Swedish
 - Shopping list suggestions in Swedish
+- Server binds to port 5050 (change port to avoid permission issues)
+
+**HostUrl Common scenarios:**
+- `localhost:5050` — Testing only
+- `*:5050` — Development/production (all network interfaces)
+- `*:80` — Requires admin/root privileges
+- Specific IP — Multi-homed servers
+
+**Docker:**
+Always use `http://*:PORT` in Docker (never `localhost` or specific IPs).
 
 ---
 
@@ -91,8 +103,8 @@ Language=Swedish
 
 **Default Behavior:**
 By default, the API URL is automatically derived from `HostUrl` by replacing `*` with `localhost`.
-- `HostUrl=http://*:80` → `BaseUrl=http://localhost/api/voice/command`
-- `HostUrl=http://*:5000` → `BaseUrl=http://localhost:5000/api/voice/command`
+- `HostUrl=http://*:5050` → `BaseUrl=http://localhost:5050/api/voice/command`
+- `HostUrl=http://*:8080` → `BaseUrl=http://localhost:8080/api/voice/command`
 
 **When to Override:**
 - Running API on a different machine from the scraper
@@ -103,10 +115,10 @@ By default, the API URL is automatically derived from `HostUrl` by replacing `*`
 ```ini
 [API]
 # Docker: API in container, scraper on host
-BaseUrl=http://homestoq:5000/api/voice/command
+BaseUrl=http://homestoq:5050/api/voice/command
 
 # Different machine on network
-BaseUrl=http://192.168.1.50:8080/api/voice/command
+BaseUrl=http://192.168.1.50:5050/api/voice/command
 ```
 
 ---
@@ -123,7 +135,8 @@ These settings control how the voice integration works.
 | `PollIntervalSeconds` | `45` | 10-300 | Base time between checks |
 | `PollIntervalJitterSeconds` | `15` | 0-60 | Random variance added to interval |
 | `ChromeRelaunchAttempts` | `5` | 1-20 | How many times to retry if Chrome crashes |
-| `HostUrl` | `http://*:80` | Valid URL | Where the web server binds |
+
+> **Note:** `HostUrl` is now configured in the `[App]` section. The scraper inherits this setting to derive its API callback URL.
 
 #### KeepListName
 
@@ -216,26 +229,30 @@ ChromeRelaunchAttempts=5
 - Waits progressively longer between attempts (10s, 20s, 40s...)
 - Gives up after this many attempts
 
-#### HostUrl
+#### HostUrl (configured in [App] section)
 
-Controls where the web server listens.
+Controls where the web server listens. This setting has been moved to the `[App]` section to reflect that it's a global application setting, not specific to the scraper.
 
 **Examples:**
 ```ini
-HostUrl=http://localhost:5000     # Local only
-HostUrl=http://*:5000             # All interfaces, port 5000
-HostUrl=http://*:80               # All interfaces, port 80 (default)
-HostUrl=http://192.168.1.50:8080  # Specific IP
+[App]
+HostUrl=http://localhost:5050     # Local only
+HostUrl=http://*:5050             # All interfaces, port 5050 (default)
+HostUrl=http://*:80               # All interfaces, port 80 (requires admin)
+HostUrl=http://192.168.1.50:5050  # Specific IP
 ```
 
 **Common scenarios:**
-- `localhost` — Testing only
-- `*:5000` — Development with specific port
-- `*:80` — Production (easy to remember, no port needed)
+- `localhost:5050` — Testing only
+- `*:5050` — Development/production (default, no admin required)
+- `*:80` — Requires admin/root privileges (not recommended)
 - Specific IP — Multi-homed servers
 
 **Docker:**
 Always use `http://*:PORT` in Docker (never `localhost` or specific IPs).
+
+**Why port 5050?**
+Port 80 requires administrator/root privileges on most systems. Port 5050 is used by default to avoid permission issues while being easy to remember.
 
 ---
 

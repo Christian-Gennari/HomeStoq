@@ -31,7 +31,7 @@ public class KeepListProcessor : IKeepListProcessor
         else
         {
             // Derive from HostUrl: replace * with localhost and append /api/voice/command
-            var hostUrl = config["GoogleKeepScraper:HostUrl"] ?? "http://*:80";
+            var hostUrl = config["App:HostUrl"] ?? "http://*:5050";
             var apiBase = hostUrl.Replace("*", "localhost").TrimEnd('/');
             _apiUrl = $"{apiBase}/api/voice/command";
             _logger.LogDebug("Derived API URL from HostUrl: {Url}", _apiUrl);

@@ -33,10 +33,12 @@ npm run setup
 npm run dev
 
 # 3. Open browser
-curl http://localhost
+curl http://localhost:5050
 ```
 
 **First time only:** Chrome opens automatically — log into Google Keep once. Done!
+
+> **Note:** Default port is `5050` to avoid permission issues with port 80. Change in `config.ini` if needed.
 
 📖 **[Full Getting Started Guide](_docs/01-getting-started.md)**
 
