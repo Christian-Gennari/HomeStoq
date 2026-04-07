@@ -1,0 +1,15 @@
+**/.git
+**/.bin
+**/.obj
+**/bin
+**/obj
+**/node_modules
+**/.vs
+**/.vscode
+**/.idea
+**/out
+**/chrome-profile
+**/browser-profile
+data/*.db
+data/*.db-journal
+.env

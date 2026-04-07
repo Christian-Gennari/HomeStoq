@@ -3,7 +3,7 @@ services:
     build: .
     container_name: homestoq
     ports:
-      - "80:5000"
+      - "5050:5050"
     volumes:
       - ./config.ini:/app/config.ini:ro
       - ./data:/app/data
@@ -30,7 +30,6 @@ services:
     environment:
       - GOOGLE_USERNAME=${GOOGLE_USERNAME}
       - GOOGLE_PASSWORD=${GOOGLE_PASSWORD}
-      - GOOGLEKEEPSCRAPER__HOSTURL=http://homestoq:5000 # Point to the other container
     ports:
       - "6080:6080" # noVNC web interface
     restart: unless-stopped

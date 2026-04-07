@@ -30,11 +30,19 @@ public class KeepListProcessor : IKeepListProcessor
         }
         else
         {
-            // Derive from HostUrl: replace * with localhost and append /api/voice/command
+            // Derive from HostUrl
             var hostUrl = config["App:HostUrl"] ?? "http://*:5050";
-            var apiBase = hostUrl.Replace("*", "localhost").TrimEnd('/');
-            _apiUrl = $"{apiBase}/api/voice/command";
-            _logger.LogDebug("Derived API URL from HostUrl: {Url}", _apiUrl);
+            
+            // Detect if running in Docker
+            bool isDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+            string host = isDocker ? "homestoq" : "localhost";
+
+            // Extract port from HostUrl (e.g. http://*:5050 -> 5050)
+            var match = System.Text.RegularExpressions.Regex.Match(hostUrl, @":(\d+)");
+            string port = match.Success ? match.Groups[1].Value : "5050";
+
+            _apiUrl = $"http://{host}:{port}/api/voice/command";
+            _logger.LogDebug("Derived API URL: {Url} (Docker: {IsDocker})", _apiUrl, isDocker);
         }
     }
 
