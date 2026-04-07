@@ -34,8 +34,8 @@ http://localhost:5050
 ┌─────────────────────────────────────────────────────────────┐
 │  Input Methods                                              │
 ├─────────────────┬─────────────────┬─────────────────────────┤
-│  Phone camera   │  Voice command  │  Web browser            │
-│  (receipt)      │  (Google Keep)  │  (manual/chat)          │
+│  Phone camera   │  Web browser    │  Voice command          │
+│  (receipt)      │  (manual/chat)  │  (Google Keep)          │
 └────────┬────────┴────────┬────────┴────────────┬────────────┘
          │                 │                     │
          ▼                 ▼                     ▼
