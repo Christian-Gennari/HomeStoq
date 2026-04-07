@@ -294,24 +294,69 @@ Model=gemini-2.5-pro
 
 ---
 
-## Environment Variable Overrides
+## Docker Configuration
 
-You can override any config setting with environment variables (useful for Docker):
+HomeStoq Docker containers read all configuration from `config.ini`. This ensures a single source of truth across all deployments.
 
-| Environment Variable | Overrides |
-|----------------------|-----------|
-| `KEEP_LIST_NAME` | `GoogleKeepScraper:KeepListName` |
-| `POLL_INTERVAL_SECONDS` | `GoogleKeepScraper:PollIntervalSeconds` |
-| `POLL_INTERVAL_JITTER_SECONDS` | `GoogleKeepScraper:PollIntervalJitterSeconds` |
-| `DATABASE_PATH` | Database file location |
+**What's configured in config.ini:**
+- Server port and binding (`App:HostUrl`)
+- Browser mode and settings (`GoogleKeepScraper:BrowserMode`, `Headless`)
+- All scraper timing and behavior settings
+- AI model selection
 
-**Example in Docker Compose:**
+**Docker volumes required:**
 ```yaml
 services:
+  homestoq:
+    volumes:
+      - ./config.ini:/app/config.ini:ro  # Read-only config
+      - ./data:/app/data                  # Database
+  
+  scraper:
+    volumes:
+      - ./config.ini:/app/config.ini:ro   # Read-only config
+      - ./chrome-profile:/app/browser-profile  # Browser session
+```
+
+**Why this approach:**
+- No configuration drift between local and Docker
+- Single file to edit for all settings
+- Dockerfiles don't hardcode ports or modes
+- Easy to version control and backup
+
+---
+
+## Environment Variable Overrides
+
+**For secrets only** — Use `.env` file for sensitive data:
+
+| Environment Variable | Purpose |
+|----------------------|---------|
+| `GEMINI_API_KEY` | Google AI API key (required) |
+| `GOOGLE_USERNAME` | Google Keep auto-login email |
+| `GOOGLE_PASSWORD` | Google Keep auto-login password |
+
+**Note:** Application settings like `BrowserMode`, `HostUrl`, `Headless`, etc. should be configured in `config.ini`, not via environment variables. The Dockerfiles no longer include hardcoded ENV overrides for these settings.
+
+**Example `.env` file:**
+```bash
+# .env
+GEMINI_API_KEY=AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GOOGLE_USERNAME=homestoq.pantry@gmail.com
+GOOGLE_PASSWORD=my-secure-password
+```
+
+**Docker Compose example:**
+```yaml
+services:
+  homestoq:
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+  
   scraper:
     environment:
-      - POLL_INTERVAL_SECONDS=60
-      - KEEP_LIST_NAME=Shopping,Groceries
+      - GOOGLE_USERNAME=${GOOGLE_USERNAME}
+      - GOOGLE_PASSWORD=${GOOGLE_PASSWORD}
 ```
 
 ---

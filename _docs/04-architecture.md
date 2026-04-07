@@ -333,8 +333,10 @@ Edit files in `src/HomeStoq.App/wwwroot/`:
 ### Add a New Config Option
 
 1. Add to `config.ini`
-2. Read in `Program.cs` via `builder.Configuration`
+2. Read in `Program.cs` via `builder.Configuration.AddIniFile()`
 3. Pass to services via DI
+
+**Docker compatibility:** The `config.ini` file is automatically mounted as read-only in Docker containers. No Dockerfile changes needed.
 
 ### Modify AI Behavior
 

@@ -45,6 +45,15 @@ Connects to your **real Chrome browser** via Chrome DevTools Protocol (CDP).
 - Uses real browser fingerprints.
 - Avoids Google's "automated software" detection by running in full **Headed mode** (even in Docker).
 
+**Configuration:**
+```ini
+[GoogleKeepScraper]
+BrowserMode=RemoteDebugging
+Headless=false
+```
+
+> Set these in `config.ini` — they apply to both Docker and local runs.
+
 ---
 
 ## Dockerized Scraping with Xvfb
@@ -52,7 +61,7 @@ Connects to your **real Chrome browser** via Chrome DevTools Protocol (CDP).
 When running in Docker, HomeStoq uses a specialized setup to avoid bot detection while remaining headless on your server:
 
 1.  **Xvfb (X Virtual Framebuffer):** Creates a "virtual monitor" in the container's memory.
-2.  **Headed Chrome:** Chrome runs in its normal, visible mode (`Headless=false`) inside this virtual monitor.
+2.  **Headed Chrome:** Chrome runs in its normal, visible mode inside this virtual monitor.
 3.  **Automatic Login:** If `GOOGLE_USERNAME` and `GOOGLE_PASSWORD` are in your `.env`, the scraper will automatically type them into the login form.
 4.  **noVNC (Remote View):** A web-based VNC client is provided on port **6080**.
 
@@ -66,11 +75,14 @@ If your Google account requires 2FA or shows a CAPTCHA:
 4. Use your mouse and keyboard to complete the 2FA process.
 5. Once logged in, the session is saved to the `chrome-profile` volume.
 
-**Configuration:**
+**Configuration (in config.ini):**
 ```ini
 [GoogleKeepScraper]
 BrowserMode=RemoteDebugging
+Headless=false
 ```
+
+> **Note:** The scraper reads `Headless` and `BrowserMode` from `config.ini`. Do not set these via Docker environment variables.
 
 ---
 
@@ -101,7 +113,10 @@ Launches an **isolated browser** controlled by Playwright.
 ```ini
 [GoogleKeepScraper]
 BrowserMode=Playwright
+Headless=true  # Optional: set to false for visible browser
 ```
+
+> Set these in `config.ini` — they apply to both Docker and local runs.
 
 ---
 
@@ -185,9 +200,12 @@ It's essentially indistinguishable from you using Chrome yourself.
 
 ## Configuration Reference
 
+All scraper settings are in `config.ini`. This file is mounted as a read-only volume in Docker, ensuring the same configuration across all environments.
+
 ```ini
 [GoogleKeepScraper]
 BrowserMode=RemoteDebugging
+Headless=false
 ActiveHours=07-23
 PollIntervalSeconds=45
 PollIntervalJitterSeconds=15
@@ -198,6 +216,8 @@ ChromeRelaunchAttempts=5
 
 - `RemoteDebugging` — Your real Chrome (recommended)
 - `Playwright` — Isolated browser (fallback)
+
+> **Docker note:** The Dockerfiles no longer hardcode these values. Always set them in `config.ini`.
 
 ### ActiveHours
 
@@ -245,11 +265,13 @@ Only for CDP mode. If Chrome crashes:
 
 2. Check scraper logs for "Chrome not found"
 
-3. Try Playwright mode as fallback:
+3. Try Playwright mode as fallback (edit `config.ini`):
    ```ini
    [GoogleKeepScraper]
    BrowserMode=Playwright
    ```
+
+> Remember to restart the Docker container after changing `config.ini`.
 
 ### Chrome Opens But Scraper Can't Connect
 
@@ -319,31 +341,38 @@ Only for CDP mode. If Chrome crashes:
 **Symptoms:** "Verify it's you" prompts, CAPTCHA, account warnings.
 
 **Immediate actions:**
-1. **Switch to CDP mode** if using Playwright:
+1. **Switch to CDP mode** if using Playwright (edit `config.ini`):
    ```ini
+   [GoogleKeepScraper]
    BrowserMode=RemoteDebugging
+   Headless=false
    ```
 2. **Use a dedicated account** — Never your main Google account
 3. **Reduce activity window:**
    ```ini
+   [GoogleKeepScraper]
    ActiveHours=08-20
    PollIntervalSeconds=60
    PollIntervalJitterSeconds=30
    ```
 4. **Ensure residential IP** — VPNs and data centers are more likely flagged
 
+> After editing `config.ini`, restart the container: `npm run stop && npm run dev`
+
 ### Chrome Crashes / Relaunches Constantly
 
 **Symptoms:** Logs show "Chrome process not responding" repeatedly.
 
 **Solutions:**
-1. **Increase relaunch attempts:**
+1. **Increase relaunch attempts** (edit `config.ini`):
    ```ini
+   [GoogleKeepScraper]
    ChromeRelaunchAttempts=10
    ```
 
 2. **Switch to Playwright mode:**
    ```ini
+   [GoogleKeepScraper]
    BrowserMode=Playwright
    ```
 
@@ -354,6 +383,8 @@ Only for CDP mode. If Chrome crashes:
 4. **Check Chrome version:**
    - Very old Chrome may have compatibility issues
    - Update to latest version
+
+> Remember: Always edit `config.ini` and restart the container to apply changes.
 
 ### Items Not Being Deleted After Processing
 
@@ -369,6 +400,8 @@ Only for CDP mode. If Chrome crashes:
 - Swedish Keep + Swedish config works
 - English Keep + English config works
 - Mixed may cause issues
+
+> **After fixing config.ini:** Restart with `npm run stop && npm run dev`
 
 ---
 

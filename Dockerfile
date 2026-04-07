@@ -17,7 +17,6 @@ COPY --from=build /app/out .
 # Create data directory for SQLite
 RUN mkdir /app/data && chown -R 1000:1000 /app/data
 
-EXPOSE 5000
-ENV ASPNETCORE_URLS=http://+:5000
+EXPOSE 5050
 
 ENTRYPOINT ["dotnet", "HomeStoq.App.dll"]

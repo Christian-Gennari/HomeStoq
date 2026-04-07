@@ -31,7 +31,5 @@ RUN chmod +x /app/entrypoint.sh
 
 # Environment variables
 ENV DISPLAY=:99
-ENV GOOGLEKEEPSCRAPER__HEADLESS=false
-ENV GOOGLEKEEPSCRAPER__BROWSERMODE=playwright
 
 ENTRYPOINT ["/app/entrypoint.sh"]
