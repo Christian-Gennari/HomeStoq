@@ -1,4 +1,7 @@
 # Build Stage
+# Using Alpine for minimal size and attack surface.
+# This is a simple ASP.NET API with no special native dependencies,
+# so Alpine's musl libc works fine and keeps the image ~100MB.
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /app
 
@@ -10,6 +13,8 @@ RUN dotnet restore src/HomeStoq.App/HomeStoq.App.csproj
 RUN dotnet publish src/HomeStoq.App/HomeStoq.App.csproj -c Release -o out
 
 # Runtime Stage
+# Alpine ASP.NET runtime for minimal footprint (~100MB).
+# The API only needs to serve HTTP requests and access SQLite.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
 COPY --from=build /app/out .

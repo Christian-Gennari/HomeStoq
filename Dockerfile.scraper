@@ -1,4 +1,8 @@
 # Build Stage
+# Using Ubuntu Noble (24.04) instead of Alpine because:
+# 1. Playwright requires glibc (not musl libc)
+# 2. Chrome/Chromium have complex dependencies (X11, fonts, codecs)
+# 3. Xvfb, VNC tools are only available as Debian/Ubuntu packages
 FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 WORKDIR /app
 
@@ -10,6 +14,9 @@ RUN dotnet restore src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/HomeS
 RUN dotnet publish src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/HomeStoq.Plugins.GoogleKeepScraper.csproj -c Release -o out
 
 # Runtime Stage
+# Playwright's official .NET image based on Ubuntu Noble.
+# This provides pre-installed Chrome/Chromium dependencies.
+# ~800MB+ but required for browser automation and anti-detection features.
 FROM mcr.microsoft.com/playwright/dotnet:v1.50.0-noble AS runtime
 WORKDIR /app
 COPY --from=build /app/out .
