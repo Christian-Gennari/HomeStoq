@@ -6,33 +6,34 @@ const commands = [
   {
     section: "🚀 Development",
     items: [
-      { cmd: "npm run dev", desc: "Start everything locally (Fastest)" },
-      { cmd: "npm run dev:docker", desc: "API in Docker + Scraper locally" },
+      { cmd: "npm run dev", desc: "Start everything in Docker (Default)" },
+      { cmd: "npm run dev:local", desc: "Start API + Scraper locally" },
     ],
   },
   {
-    section: "📦 Services",
+    section: "📦 Docker",
     items: [
-      { cmd: "npm run api", desc: "Start only the backend locally" },
-      { cmd: "npm run api:docker", desc: "Start only the backend in Docker" },
-      { cmd: "npm run scraper", desc: "Start only the voice scraper" },
+      { cmd: "npm run docker:build", desc: "Rebuild all Docker containers" },
+      { cmd: "npm run docker:down", desc: "Stop all Docker containers" },
+      { cmd: "npm run docker:clean", desc: "Deep clean Docker & build files" },
     ],
   },
   {
-    section: "🧹 Utilities",
+    section: "🔧 Maintenance",
     items: [
       { cmd: "npm run setup", desc: "Initialize environment (.env, tools)" },
-      { cmd: "npm run clean", desc: "Remove build artifacts (bin, obj, out)" },
-      { cmd: "npm run playwright:install", desc: "Install required browsers" },
-      { cmd: "npm run stop", desc: "Stop all Docker containers" },
+      { cmd: "npm run clean", desc: "Remove build artifacts locally" },
+      { cmd: "npm run api:local", desc: "Start only backend locally" },
+      { cmd: "npm run scraper:local", desc: "Start only scraper locally" },
     ],
   },
 ];
 
 const notes = [
-  `${chalk.blue('Browser URL:')}  http://localhost:5000`,
-  `${chalk.yellow('Google Keep:')} Log in once via visible browser window.`,
-  `${chalk.magenta('Gemini Key:')} Ensure GEMINI_API_KEY is set in .env.`,
+  `${chalk.blue("Browser URL:")}  http://localhost:5050`,
+  `${chalk.cyan("noVNC Login:")}  http://localhost:6080 (if manual login needed)`,
+  `${chalk.yellow("Auto-Login:")}   Add GOOGLE_USERNAME/PASSWORD in .env.`,
+  `${chalk.magenta("Gemini Key:")}  Ensure GEMINI_API_KEY is set in .env.`,
 ];
 
 const headerText = `
