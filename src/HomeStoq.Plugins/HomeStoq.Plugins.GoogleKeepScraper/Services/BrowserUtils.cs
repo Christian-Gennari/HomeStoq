@@ -46,6 +46,15 @@ public static class BrowserUtils
         await Task.Delay(_random.Next(100, 400));
     }
 
+    public static async Task TypeSlowlyAsync(IPage page, string text, int delayBase = 100, int delayJitter = 100)
+    {
+        foreach (var c in text)
+        {
+            await page.Keyboard.TypeAsync(c.ToString());
+            await Task.Delay(delayBase + _random.Next(-delayJitter, delayJitter));
+        }
+    }
+
     public static async Task TakeScreenshotAsync(IPage page, string filename, string profileDir, ILogger logger)
     {
         try

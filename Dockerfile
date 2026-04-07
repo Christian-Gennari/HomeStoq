@@ -2,12 +2,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /app
 
-# Copy csproj and restore
-COPY src/HomeStoq.App/*.csproj ./src/HomeStoq.App/
+# Copy everything first for development watch support
+COPY . .
 RUN dotnet restore src/HomeStoq.App/HomeStoq.App.csproj
 
-# Copy everything else and build
-COPY . .
+# Build and publish for production
 RUN dotnet publish src/HomeStoq.App/HomeStoq.App.csproj -c Release -o out
 
 # Runtime Stage

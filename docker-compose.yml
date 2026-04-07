@@ -16,3 +16,21 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile.scraper
+    container_name: homestoq-scraper
+    depends_on:
+      - homestoq
+    volumes:
+      - ./config.ini:/app/config.ini:ro
+      - ./chrome-profile:/app/browser-profile
+    environment:
+      - GOOGLE_USERNAME=${GOOGLE_USERNAME}
+      - GOOGLE_PASSWORD=${GOOGLE_PASSWORD}
+      - GOOGLEKEEPSCRAPER__HOSTURL=http://homestoq:5000 # Point to the other container
+    ports:
+      - "6080:6080" # noVNC web interface
+    restart: unless-stopped

@@ -1,0 +1,34 @@
+services:
+  homestoq:
+    build:
+      context: .
+      target: build # Use the build stage for watching
+    command: dotnet watch run --project src/HomeStoq.App/HomeStoq.App.csproj --no-launch-profile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=1 # Useful for Docker desktop
+    volumes:
+      - ./src:/app/src
+      - ./config.ini:/app/config.ini:ro
+      - ./data:/app/data
+      - ./package.json:/app/package.json
+      # Prevent node_modules from being overwritten if it exists in root
+      - /app/src/HomeStoq.App/bin
+      - /app/src/HomeStoq.App/obj
+
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile.scraper
+    # Overriding the entrypoint for development
+    entrypoint: ["/app/entrypoint-dev.sh"]
+    environment:
+      - DOTNET_USE_POLLING_FILE_WATCHER=1
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ./src:/app/src
+      - ./config.ini:/app/config.ini:ro
+      - ./chrome-profile:/app/browser-profile
+      - ./scripts/scraper-entrypoint-dev.sh:/app/entrypoint-dev.sh
+      - /app/src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/bin
+      - /app/src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/obj

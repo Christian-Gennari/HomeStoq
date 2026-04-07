@@ -16,13 +16,20 @@ public class PlaywrightBrowserService : IBrowserService
     private IPage? _page;
 
     private readonly string _profileDir;
+    private readonly bool _headless;
+    private readonly string? _username;
+    private readonly string? _password;
+
     public bool IsOnKeepPage { get; set; }
     public bool IsConnected => _page != null && _browserContext != null;
 
-    public PlaywrightBrowserService(ILogger<PlaywrightBrowserService> logger)
+    public PlaywrightBrowserService(ILogger<PlaywrightBrowserService> logger, IConfiguration config)
     {
         _logger = logger;
         _profileDir = Path.GetFullPath("browser-profile");
+        _headless = bool.TryParse(config["GoogleKeepScraper:Headless"], out var h) ? h : false;
+        _username = Environment.GetEnvironmentVariable("GOOGLE_USERNAME");
+        _password = Environment.GetEnvironmentVariable("GOOGLE_PASSWORD");
     }
 
     public async Task InitBrowserAsync()
@@ -37,7 +44,7 @@ public class PlaywrightBrowserService : IBrowserService
 
         _browserContext = await _playwright!.Chromium.LaunchPersistentContextAsync(_profileDir, new()
         {
-            Headless = false,
+            Headless = _headless,
             Args = new[]
             {
                 "--disable-blink-features=AutomationControlled",
@@ -160,8 +167,55 @@ public class PlaywrightBrowserService : IBrowserService
             return true;
         }
 
+        if (!string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password))
+        {
+            try
+            {
+                _logger.LogInformation("Attempting automatic login for {User}...", _username);
+
+                // Handle Username
+                var emailInput = _page.Locator("input[type='email']");
+                if (await emailInput.IsVisibleAsync())
+                {
+                    await BrowserUtils.HumanDelayAsync(1000, 500);
+                    await BrowserUtils.TypeSlowlyAsync(_page, _username);
+                    await BrowserUtils.HumanDelayAsync(500, 200);
+                    await _page.Keyboard.PressAsync("Enter");
+                    await BrowserUtils.HumanDelayAsync(2000, 500);
+                }
+
+                // Handle Password
+                var passwordInput = _page.Locator("input[type='password']");
+                // Wait up to 5s for password field
+                for (int i = 0; i < 5 && !await passwordInput.IsVisibleAsync(); i++)
+                    await Task.Delay(1000);
+
+                if (await passwordInput.IsVisibleAsync())
+                {
+                    await BrowserUtils.HumanDelayAsync(1000, 500);
+                    await BrowserUtils.TypeSlowlyAsync(_page, _password);
+                    await BrowserUtils.HumanDelayAsync(500, 200);
+                    await _page.Keyboard.PressAsync("Enter");
+                    await BrowserUtils.HumanDelayAsync(3000, 1000);
+                }
+
+                if (IsLoggedIn())
+                {
+                    _logger.LogInformation("Automatic login successful!");
+                    return true;
+                }
+                
+                _logger.LogWarning("Automatic login did not complete (2FA or CAPTCHA might be required)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during automatic login attempt");
+            }
+        }
+
         _logger.LogInformation("No saved session found.");
-        _logger.LogInformation("Please log in to Google Keep in the browser window that just opened.");
+        _logger.LogInformation("Please log in to Google Keep in the browser window.");
+        _logger.LogInformation("If running in Docker, use the noVNC interface at http://localhost:6080 to log in.");
         _logger.LogInformation("The scraper will detect your session and start monitoring automatically.");
 
         for (var i = 0; i < 600; i++)

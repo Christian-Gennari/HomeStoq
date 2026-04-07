@@ -1,0 +1,37 @@
+# Build Stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
+WORKDIR /app
+
+# Copy everything first for development watch support
+COPY . .
+RUN dotnet restore src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/HomeStoq.Plugins.GoogleKeepScraper.csproj
+
+# Build and publish for production
+RUN dotnet publish src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/HomeStoq.Plugins.GoogleKeepScraper.csproj -c Release -o out
+
+# Runtime Stage
+FROM mcr.microsoft.com/playwright/dotnet:v1.50.0-noble AS runtime
+WORKDIR /app
+COPY --from=build /app/out .
+
+# Install Xvfb, VNC and other dependencies
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    x11vnc \
+    novnc \
+    websockify \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create profile directory
+RUN mkdir -p /app/browser-profile && chown -R 1000:1000 /app/browser-profile
+
+# Entrypoint script
+COPY scripts/scraper-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Environment variables
+ENV DISPLAY=:99
+ENV GOOGLEKEEPSCRAPER__HEADLESS=false
+ENV GOOGLEKEEPSCRAPER__BROWSERMODE=playwright
+
+ENTRYPOINT ["/app/entrypoint.sh"]

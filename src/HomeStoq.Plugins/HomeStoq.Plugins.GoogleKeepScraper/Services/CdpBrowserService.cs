@@ -17,6 +17,9 @@ public class CdpBrowserService : IBrowserService, IDisposable
     private string _cdpUrl = "http://localhost:9222";
     private int _relaunchAttempt = 0;
 
+    private readonly string? _username;
+    private readonly string? _password;
+
     public bool IsOnKeepPage { get; set; }
     public bool IsConnected => _browser?.IsConnected == true;
 
@@ -27,6 +30,8 @@ public class CdpBrowserService : IBrowserService, IDisposable
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "HomeStoq", "chrome-profile");
         _maxRelaunchAttempts = int.Parse(config["GoogleKeepScraper:ChromeRelaunchAttempts"] ?? "5");
+        _username = Environment.GetEnvironmentVariable("GOOGLE_USERNAME");
+        _password = Environment.GetEnvironmentVariable("GOOGLE_PASSWORD");
     }
 
     public async Task InitBrowserAsync()
@@ -170,8 +175,55 @@ public class CdpBrowserService : IBrowserService, IDisposable
             return true;
         }
 
+        if (!string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password))
+        {
+            try
+            {
+                _logger.LogInformation("Attempting automatic login for {User}...", _username);
+
+                // Handle Username
+                var emailInput = _page.Locator("input[type='email']");
+                if (await emailInput.IsVisibleAsync())
+                {
+                    await BrowserUtils.HumanDelayAsync(1000, 500);
+                    await BrowserUtils.TypeSlowlyAsync(_page, _username);
+                    await BrowserUtils.HumanDelayAsync(500, 200);
+                    await _page.Keyboard.PressAsync("Enter");
+                    await BrowserUtils.HumanDelayAsync(2000, 500);
+                }
+
+                // Handle Password
+                var passwordInput = _page.Locator("input[type='password']");
+                // Wait up to 5s for password field
+                for (int i = 0; i < 5 && !await passwordInput.IsVisibleAsync(); i++)
+                    await Task.Delay(1000);
+
+                if (await passwordInput.IsVisibleAsync())
+                {
+                    await BrowserUtils.HumanDelayAsync(1000, 500);
+                    await BrowserUtils.TypeSlowlyAsync(_page, _password);
+                    await BrowserUtils.HumanDelayAsync(500, 200);
+                    await _page.Keyboard.PressAsync("Enter");
+                    await BrowserUtils.HumanDelayAsync(3000, 1000);
+                }
+
+                if (IsLoggedIn())
+                {
+                    _logger.LogInformation("Automatic login successful!");
+                    return true;
+                }
+                
+                _logger.LogWarning("Automatic login did not complete (2FA or CAPTCHA might be required)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during automatic login attempt");
+            }
+        }
+
         _logger.LogInformation("No saved session found.");
-        _logger.LogInformation("Please log in to Google Keep in the Chrome window that just opened.");
+        _logger.LogInformation("Please log in to Google Keep in the Chrome window.");
+        _logger.LogInformation("If running in Docker, use the noVNC interface at http://localhost:6080 to log in.");
         _logger.LogInformation("The scraper will detect your session and start monitoring automatically.");
 
         for (var i = 0; i < 600; i++)
