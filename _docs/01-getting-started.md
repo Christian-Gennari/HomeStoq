@@ -36,18 +36,24 @@ Our setup script checks prerequisites and creates your configuration files:
 npm run setup
 ```
 
-### Step 3: Add Your Credentials
+### Step 3: Add Your Credentials (API Key Required)
 
-Open `.env` in your favorite text editor and add your Gemini API key. Optionally, add your Google credentials for automatic scraper login:
+Open `.env` and add your Gemini API key:
 
 ```bash
-# .env
+# Required
 GEMINI_API_KEY=your_key_here
 
-# Optional: Scraper auto-login
-GOOGLE_USERNAME=your_email@gmail.com
-GOOGLE_PASSWORD=your_password
+# Google Keep Login - OPTIONAL and NOT recommended with 2FA
+# If you have 2FA enabled, SKIP these and use manual login instead
+# (see Step 5 below). Adding credentials with 2FA causes constant
+# approval notifications on your phone.
+# GOOGLE_USERNAME=your_email@gmail.com
+# GOOGLE_PASSWORD=your_password
 ```
+
+**2FA Users:** Leave `GOOGLE_USERNAME` and `GOOGLE_PASSWORD` blank/commented. 
+You'll log in manually via noVNC in Step 5.
 
 ### Step 4: Start Everything
 
@@ -59,11 +65,16 @@ This will build and start the Docker containers.
 
 ### Step 5: Log into Google Keep (If needed)
 
-If you didn't provide Google credentials in Step 3, or if you have 2FA enabled:
+If you didn't provide Google credentials in Step 3 (recommended for 2FA users):
 
 1. Open `http://localhost:6080` in your browser.
-2. You will see a virtual desktop inside the scraper container.
-3. Log into Google Keep manually in the browser window shown there.
+2. It will **automatically redirect** to the noVNC interface (`vnc_auto.html`).
+3. You'll see the Chrome window running inside the container.
+4. Log into Google Keep manually in the browser.
+5. The session will be saved to the `chrome-profile` volume and persist across restarts.
+
+> **Note:** The session persists because we use a Docker volume (`chrome-profile`) 
+> to store Chrome's user data between container restarts.
 
 ### Step 6: Verify It Works
 
@@ -71,6 +82,28 @@ If you didn't provide Google credentials in Step 3, or if you have 2FA enabled:
 2. You should see the HomeStoq dashboard.
 
 🎉 **You're done!** HomeStoq is now running.
+
+---
+
+## Configuration: Single Source of Truth
+
+All application settings are now in `config.ini` (not environment variables):
+
+- **Port:** `HostUrl` in `[App]` section (default: `http://*:5050`)
+- **Browser Mode:** `BrowserMode` in `[GoogleKeepScraper]` section
+- **Headless:** `Headless` in `[GoogleKeepScraper]` section
+- **List Names:** `KeepListName` in `[GoogleKeepScraper]` section
+
+**Why this matters:**
+- One file controls all settings for both Docker and local development
+- No configuration drift between environments
+- Dockerfiles no longer hardcode ports or browser modes
+- Easy to version control and backup
+
+Changes to `config.ini` take effect after restarting the containers:
+```bash
+npm run stop && npm run dev
+```
 
 ---
 
@@ -118,6 +151,24 @@ BrowserMode=RemoteDebugging   # RemoteDebugging (default) or Playwright
 ---
 
 ## Troubleshooting
+
+### "2FA spam on my phone"
+
+**Problem:** You get constant Google 2FA approval notifications when running the scraper.
+
+**Cause:** You added `GOOGLE_USERNAME` and `GOOGLE_PASSWORD` to `.env` but your 
+account has 2FA enabled. Every container restart triggers a login attempt.
+
+**Solution:**
+1. Stop HomeStoq: `npm run stop`
+2. Edit `.env` and comment out the Google credentials:
+   ```bash
+   # GOOGLE_USERNAME=...
+   # GOOGLE_PASSWORD=...
+   ```
+3. Restart: `npm run dev`
+4. Open `http://localhost:6080` and log in **once** via noVNC
+5. The session will persist; no more 2FA spam
 
 ### "Chrome doesn't open"
 

@@ -67,6 +67,7 @@ public class CdpBrowserService : IBrowserService, IDisposable
         {
             $"--remote-debugging-port={port}",
             $"--user-data-dir={_profileDir}",
+            "--no-sandbox",  // Required when running Chrome as root in Docker
             "--no-first-run",
             "--no-default-browser-check",
             "--disable-infobars",

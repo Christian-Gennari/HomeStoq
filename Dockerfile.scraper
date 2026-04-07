@@ -14,12 +14,27 @@ RUN dotnet restore src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/HomeS
 RUN dotnet publish src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/HomeStoq.Plugins.GoogleKeepScraper.csproj -c Release -o out
 
 # Runtime Stage
-# Playwright's official .NET image based on Ubuntu Noble.
-# This provides pre-installed Chrome/Chromium dependencies.
-# ~800MB+ but required for browser automation and anti-detection features.
-FROM mcr.microsoft.com/playwright/dotnet:v1.50.0-noble AS runtime
+# Using .NET 10 SDK instead of Playwright runtime image because:
+# 1. Playwright runtime only has .NET 8, causing build failures with .NET 10 projects
+# 2. We need .NET 10 SDK for dotnet watch and consistency with the API container
+# 3. Chrome is installed manually below (Playwright image had it pre-installed)
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS runtime
 WORKDIR /app
 COPY --from=build /app/out .
+
+# Install Chrome (required for RemoteDebugging mode)
+# Playwright image had Chrome pre-installed, SDK image doesn't
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create index.html redirect for noVNC auto-connect page
+RUN echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=vnc_auto.html"></head><body>Redirecting to noVNC...</body></html>' > /usr/share/novnc/index.html
 
 # Install Xvfb, VNC and other dependencies
 RUN apt-get update && apt-get install -y \

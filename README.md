@@ -15,16 +15,10 @@ HomeStoq is a pantry management system that runs on your home network. It tracks
 # 1. Setup
 npm run setup
 # Edit .env and add your GEMINI_API_KEY
-# Optional: Add GOOGLE_USERNAME/PASSWORD for auto-login
-
-# 2. Start (Full Docker Stack)
-npm run dev
-
-# 3. Open dashboard
-http://localhost:5050
+# Optional: Add GOOGLE_USERNAME/PASSWORD for auto-login (NOT recommended with 2FA)
 ```
 
-> **First time?** If you didn't provide credentials in `.env`, open `http://localhost:6080` to log into Google Keep inside the scraper container.
+> **First time?** Open `http://localhost:6080` to log into Google Keep via noVNC (auto-redirects to vnc_auto.html). If you have 2FA enabled, do NOT add Google credentials to `.env` — use manual login instead to avoid approval spam.
 
 ---
 

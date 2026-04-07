@@ -52,8 +52,9 @@ When you finish something — milk, eggs, coffee — just tell Google.
 
 ### Setup (One-Time)
 
-1. Make sure the scraper is running: `npm run scraper`
-2. Chrome should open and you should be logged into Google Keep (see [Getting Started](01-getting-started.md))
+1. Make sure the scraper is running: `npm run dev`
+2. Verify `BrowserMode=RemoteDebugging` and `KeepListName` in `config.ini` 
+3. Chrome should open and you should be logged into Google Keep (see [Getting Started](01-getting-started.md))
 
 ### Daily Use
 
@@ -76,7 +77,10 @@ Don't worry about the magic, but if you're curious:
 4. **Inventory updates** — stock changed instantly
 5. **Cleanup** — item is checked off and deleted from your Keep list
 
-> ⚠️ **Important:** Use a dedicated Google account for HomeStoq, not your main account. This protects your primary account from any automation flags. Share the list with your main account if needed.
+> ⚠️ **Important:** Use a dedicated Google account for HomeStoq, not your main 
+> account. Configure `KeepListName` in `config.ini` (not `.env`). This protects 
+> your primary account from any automation flags. Share the list with your main 
+> account if needed.
 
 ### Timing Details
 

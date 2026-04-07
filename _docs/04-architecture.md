@@ -132,6 +132,53 @@ HomeStoq uses Google's Gemini AI for:
 
 ---
 
+## Docker Architecture
+
+HomeStoq uses a microservices approach with optimized containers for each service.
+
+### Container Base Images
+
+| Container | Base Image | Size | Reason |
+|-----------|-----------|------|--------|
+| **API** | `mcr.microsoft.com/dotnet/aspnet:10.0-alpine` | ~100MB | Minimal attack surface, simple .NET app |
+| **Scraper** | `mcr.microsoft.com/dotnet/sdk:10.0-noble` | ~1.1GB | Requires Chrome, X11, VNC, Playwright |
+
+**Why different bases?**
+
+**API uses Alpine because:**
+- Simple HTTP server, no special native dependencies
+- SQLite works fine with `musl libc`
+- Smaller attack surface (~100MB vs ~1.1GB)
+- Standard for production .NET containers
+
+**Scraper uses Ubuntu Noble (24.04) because:**
+- Chrome requires `glibc` (not available in Alpine's `musl`)
+- X11/Xvfb are Ubuntu/Debian packages
+- Playwright officially supports Ubuntu-based images
+- Browser automation needs full Linux desktop libraries
+
+### Configuration: Single Source of Truth
+
+Both containers mount `config.ini` as a read-only volume:
+
+```yaml
+services:
+  homestoq:
+    volumes:
+      - ./config.ini:/app/config.ini:ro
+  scraper:
+    volumes:
+      - ./config.ini:/app/config.ini:ro
+```
+
+This ensures:
+- No configuration drift between environments
+- One file controls all settings
+- Environment variables used **only** for secrets (API keys, credentials)
+- Dockerfiles don't hardcode ports or modes
+
+---
+
 ## Data Flow Examples
 
 ### Scanning a Receipt

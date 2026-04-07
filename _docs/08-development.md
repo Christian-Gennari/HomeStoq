@@ -85,6 +85,30 @@ npm run docker:clean
 
 **Hot Reloading:** Both the main App and the Scraper use `dotnet watch` inside their containers. Any changes to C#, CSS, or JS files will trigger an automatic reload.
 
+### Understanding Docker Base Image Choices
+
+**Why Alpine for API but Ubuntu for Scraper?**
+
+```dockerfile
+# API Dockerfile - Minimal, secure
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
+
+# Scraper Dockerfile - Full ecosystem needed
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble
+```
+
+**API uses Alpine because:**
+- Simple HTTP server, no special native dependencies
+- SQLite works fine with `musl libc`
+- Smaller attack surface (~100MB vs ~1.1GB)
+- Standard for production .NET containers
+
+**Scraper uses Ubuntu Noble (24.04) because:**
+- Chrome requires `glibc` (not available in Alpine's `musl`)
+- X11/Xvfb are Ubuntu/Debian packages
+- Playwright officially supports Ubuntu-based images
+- Browser automation needs full Linux desktop libraries
+
 ### Build & Run (Local - Not Recommended)
 
 ```bash
@@ -257,13 +281,38 @@ function pantryApp() {
    ```
 
 3. **Inject where needed:**
-   ```csharp
-   app.MapGet("/api/new-feature", (NewFeatureOptions options) =>
-   {
-       if (!options.Enabled) return Results.NotFound();
-       // ...
-   });
-   ```
+    ```csharp
+    app.MapGet("/api/new-feature", (NewFeatureOptions options) =>
+    {
+        if (!options.Enabled) return Results.NotFound();
+        // ...
+    });
+    ```
+
+### Handling Cross-Platform Paths (PathHelper)
+
+The `PathHelper` utility detects Docker containers and adjusts paths:
+
+```csharp
+private static string DetectRepoRoot()
+{
+    // Check for Docker container
+    if (File.Exists("/.dockerenv"))
+        return "/app";
+
+    // Use assembly metadata for local development
+    return typeof(PathHelper)
+        .Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+        .First(a => a.Key == "RepoRoot")
+        .Value!;
+}
+```
+
+**Why this matters:**
+- Windows builds embed Windows paths in assembly metadata
+- Docker containers run on Linux and need `/app` paths
+- The `/.dockerenv` file is a standard Docker indicator
+- This allows the same code to work locally and in containers
 
 ---
 

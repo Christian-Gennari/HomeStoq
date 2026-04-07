@@ -13,7 +13,7 @@ echo "[INFO] Starting x11vnc and noVNC (port 6080)"
 x11vnc -display :99 -forever -nopw -listen localhost -xkb &
 
 # noVNC provides a web interface for VNC
-/usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 6080 > /dev/null 2>&1 &
+/usr/share/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 6080 --web /usr/share/novnc > /dev/null 2>&1 &
 
 echo "[INFO] Launching Google Keep Scraper worker..."
 dotnet HomeStoq.Plugins.GoogleKeepScraper.dll

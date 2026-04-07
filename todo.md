@@ -35,6 +35,17 @@ Last updated: 2026-04-07
 - **#11** - UI Revamp: Restructure and Improve "Inköpslista" Tab ✅  
   [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/11)
 
+- **Configuration Cleanup & Docker Hardening** ✅  
+  Fixed configuration drift by making `config.ini` the single source of truth:
+  - Removed hardcoded ENVs from Dockerfiles (ASPNETCORE_URLS, GOOGLEKEEPSCRAPER_*)
+  - Updated PathHelper to detect Docker containers via `/.dockerenv`
+  - Fixed noVNC auto-redirect to `vnc_auto.html`
+  - Added `--no-sandbox` flag for Chrome in Docker (root user requirement)
+  - Added Chrome installation to .NET 10 SDK base image
+  - Documented Alpine vs Ubuntu Noble base image choices
+  - Updated all documentation to reflect config.ini as primary configuration
+  - Added 2FA troubleshooting section (prevents approval spam)
+
 ---
 
 ## 🚧 Active GitHub Issues

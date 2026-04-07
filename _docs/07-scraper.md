@@ -65,15 +65,21 @@ When running in Docker, HomeStoq uses a specialized setup to avoid bot detection
 3.  **Automatic Login:** If `GOOGLE_USERNAME` and `GOOGLE_PASSWORD` are in your `.env`, the scraper will automatically type them into the login form.
 4.  **noVNC (Remote View):** A web-based VNC client is provided on port **6080**.
 
-### How to use noVNC for 2FA
+### How to use noVNC for Manual Login (2FA/CAPTCHA)
 
 If your Google account requires 2FA or shows a CAPTCHA:
 
 1. Start HomeStoq: `npm run dev`
 2. Open `http://localhost:6080` in your browser.
-3. You will see the Chrome window running inside the container.
-4. Use your mouse and keyboard to complete the 2FA process.
-5. Once logged in, the session is saved to the `chrome-profile` volume.
+3. **Auto-redirect:** The URL automatically loads `vnc_auto.html` (no manual navigation needed).
+4. You'll see the Chrome window running inside the container.
+5. Use your mouse and keyboard to complete the login/2FA process.
+6. Once logged in, the session persists in the `chrome-profile` volume.
+
+**Why Manual Login for 2FA?**
+Automatic login with 2FA causes a flood of approval notifications on your phone 
+every time the container restarts. Manual login via noVNC happens once, then 
+the session is saved.
 
 **Configuration (in config.ini):**
 ```ini
@@ -82,7 +88,8 @@ BrowserMode=RemoteDebugging
 Headless=false
 ```
 
-> **Note:** The scraper reads `Headless` and `BrowserMode` from `config.ini`. Do not set these via Docker environment variables.
+> **Note:** Settings are read from `config.ini`. Dockerfiles no longer hardcode 
+> these values, making `config.ini` the single source of truth.
 
 ---
 
@@ -241,13 +248,32 @@ Actual interval = 45 ± 15 seconds
 
 This mimics human inconsistency.
 
-### ChromeRelaunchAttempts
+---
 
-Only for CDP mode. If Chrome crashes:
-1. Try to reconnect
-2. Wait progressively longer (10s, 20s, 40s...)
-3. Give up after this many attempts
-4. Log error and exit
+## Docker Implementation Details
+
+### Base Image Choice: Alpine vs Ubuntu Noble
+
+HomeStoq uses different base images for each container:
+
+| Container | Base Image | Size | Reason |
+|-----------|-----------|------|--------|
+| **API** | Alpine | ~100MB | Minimal attack surface, simple .NET app |
+| **Scraper** | Ubuntu Noble | ~1.1GB | Requires Chrome, X11, VNC, Playwright |
+
+**Why not Alpine for the scraper?**
+- Chrome requires `glibc` (Alpine uses `musl`)
+- X11/Xvfb libraries are Ubuntu/Debian packages
+- Playwright officially supports Ubuntu-based images
+
+### Chrome in Docker: --no-sandbox Required
+
+Chrome refuses to run as root without `--no-sandbox`. Since Docker containers 
+run as root by default, `CdpBrowserService` adds this flag automatically when 
+launching Chrome inside the container.
+
+**Security Note:** The container is already isolated, and Chrome still uses 
+profile isolation (`--user-data-dir`). This is safe for home server use.
 
 ---
 
@@ -358,6 +384,25 @@ Only for CDP mode. If Chrome crashes:
 4. **Ensure residential IP** — VPNs and data centers are more likely flagged
 
 > After editing `config.ini`, restart the container: `npm run stop && npm run dev`
+
+### 2FA Approval Spam on Phone
+
+**Symptoms:** Your phone gets constant Google 2FA approval notifications.
+
+**Cause:** You added `GOOGLE_USERNAME` and `GOOGLE_PASSWORD` to `.env`, 
+but your account has 2FA enabled. Every container restart triggers a 
+login attempt, which triggers a 2FA prompt.
+
+**Solution:**
+1. Stop HomeStoq: `npm run stop`
+2. Edit `.env` and comment out or remove:
+   ```bash
+   # GOOGLE_USERNAME=...
+   # GOOGLE_PASSWORD=...
+   ```
+3. Restart: `npm run dev`
+4. Open `http://localhost:6080` and log in **once** via noVNC
+5. The session will persist; no more 2FA spam
 
 ### Chrome Crashes / Relaunches Constantly
 
