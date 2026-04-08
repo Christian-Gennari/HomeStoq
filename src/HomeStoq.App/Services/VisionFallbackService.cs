@@ -1,9 +1,7 @@
-using System.ClientModel;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using OpenAI;
-using ChatClient = OpenAI.Chat.ChatClient;
 using MeaiChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using Google.GenAI;
 
 namespace HomeStoq.App.Services;
 
@@ -19,6 +17,7 @@ public class VisionServiceUnavailableException : Exception
 
 /// <summary>
 /// Vision-specific AI client with Gemini model fallback chain.
+/// Uses native Google.GenAI SDK for proper multimodal/vision support.
 /// Always uses Gemini regardless of general provider configuration.
 /// Implements smart retry with exponential backoff across model chain.
 /// </summary>
@@ -141,12 +140,15 @@ public class VisionFallbackService : IChatClient
 
     private bool IsProviderError(Exception ex) => ex switch
     {
-        ClientResultException => true,           // OpenAI/MEAI API errors (400, 429, 500, etc.)
         HttpRequestException => true,            // Network errors
         TimeoutException => true,                // Timeouts
-        TaskCanceledException => true,          // Cancellation (often timeout-related)
+        TaskCanceledException => true,            // Cancellation (often timeout-related)
         IOException => true,                     // I/O errors
-        _ => false
+        _ => ex.Message?.Contains("API") == true ||  // API-related errors
+             ex.Message?.Contains("request") == true ||
+             ex.Message?.Contains("500") == true ||
+             ex.Message?.Contains("429") == true ||
+             ex.Message?.Contains("503") == true
     };
 
     private int CalculateDelay(int modelIndex, int attempt)
@@ -158,14 +160,15 @@ public class VisionFallbackService : IChatClient
         return (int)cappedDelay + jitter;
     }
 
+    /// <summary>
+    /// Creates a native Google.GenAI client for proper multimodal/vision support.
+    /// This uses the native SDK instead of OpenAI-compatible endpoint which doesn't
+    /// support vision properly.
+    /// </summary>
     private IChatClient CreateClient(string model)
     {
-        var credential = new ApiKeyCredential(_apiKey);
-        var options = new OpenAIClientOptions
-        {
-            Endpoint = new Uri("https://generativelanguage.googleapis.com/v1beta/openai/")
-        };
-        
-        return new ChatClient(model, credential, options).AsIChatClient();
+        // Use native Google.GenAI SDK for proper vision/multimodal support
+        var googleClient = new Google.GenAI.Client(apiKey: _apiKey);
+        return googleClient.AsIChatClient(model);
     }
 }
