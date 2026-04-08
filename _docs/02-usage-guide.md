@@ -239,7 +239,7 @@ This makes historical tracking accurate across different stores and brands.
 **Symptom:** You say "slut på mjölk" but inventory doesn't update.
 
 **Check:**
-1. Is the scraper running? Check logs: `docker logs homestoq-scraper-1` (Docker) or `npm run scraper:local` (local)
+1. Is the scraper running? Check logs: `docker logs homestoq-scraper-1`
 2. Is Chrome open and logged into Keep? Check via `http://localhost:6080` (noVNC)
 3. Is the item appearing in your Google Keep list?
 4. Are you within ActiveHours? (Default: 07:00-23:00)
@@ -269,7 +269,7 @@ This makes historical tracking accurate across different stores and brands.
 **Symptom:** Messages don't get replies.
 
 **Check:**
-1. Is the API running? Check with `docker logs homestoq-app-1` (Docker) or `npm run api:local` (local)
+1. Is the API running? Check with `docker logs homestoq-app-1`
 2. Is your Gemini API key valid? Check `.env` file
 3. Check browser console for JavaScript errors (F12 → Console)
 

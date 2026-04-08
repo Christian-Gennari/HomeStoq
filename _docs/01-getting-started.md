@@ -213,9 +213,7 @@ BrowserMode=RemoteDebugging   # RemoteDebugging (default) or Playwright
 | Command | What It Does |
 |---------|--------------|
 | `npm run dev` | Start API + Scraper in Docker (recommended) |
-| `npm run dev:local` | Start API + Scraper locally (requires .NET installed) |
-| `npm run api:local` | Start just the API locally |
-| `npm run scraper:local` | Start just the scraper locally |
+| `npm run app` | Start just the API in Docker (no scraper) |
 | `npm run docker:build` | Rebuild Docker containers after code changes |
 | `npm run docker:down` | Stop Docker containers |
 | `npm run docker:clean` | Full reset (removes volumes and rebuilds) |
