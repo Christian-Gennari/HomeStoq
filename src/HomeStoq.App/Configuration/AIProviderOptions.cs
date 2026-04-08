@@ -38,6 +38,30 @@ public class AIProviderOptions
     public string? OpenRouterBaseUrl { get; set; }
     
     #endregion
+
+    #region Vision Settings (Receipt Scanning)
+    
+    /// <summary>
+    /// Vision/OCR always uses Gemini. This specifies the primary model.
+    /// </summary>
+    public string VisionPrimaryModel { get; set; } = "gemini-2.5-flash-lite";
+    
+    /// <summary>
+    /// Fallback models for vision (comma-separated). Tried in order if primary fails.
+    /// </summary>
+    public string[] VisionFallbackModels { get; set; } = new[] 
+    { 
+        "gemini-2.5-flash-lite", 
+        "gemini-2.5-flash", 
+        "gemini-2.5-pro" 
+    };
+    
+    /// <summary>
+    /// Maximum attempts per vision model before moving to next fallback
+    /// </summary>
+    public int VisionMaxAttemptsPerModel { get; set; } = 2;
+    
+    #endregion
 }
 
 /// <summary>

@@ -38,10 +38,24 @@ builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: 
 builder.Services.AddDbContext<HomeStoq.App.Data.PantryDbContext>(options =>
     options.UseSqlite($"Data Source={PathHelper.ResolveDatabasePath()}"));
 
-// Register AI Provider and Client
+// =============================================================================
+// AI Provider Configuration - Hybrid Architecture
+// =============================================================================
+// Vision (OCR/Receipt scanning): Always uses Gemini model chain
+// General (Chat/Voice/Shopping): Uses configured provider (Gemini or OpenRouter)
+
 // Read API keys from environment (not config.ini - security best practice)
 var geminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 var openRouterApiKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+
+// Validate required keys
+if (string.IsNullOrEmpty(geminiApiKey))
+{
+    throw new InvalidOperationException(
+        "GEMINI_API_KEY environment variable is required. " +
+        "This is mandatory for receipt scanning (OCR) functionality. " +
+        "Get your key at: https://aistudio.google.com/app/apikey");
+}
 
 // Read provider configuration from config.ini
 var aiProvider = builder.Configuration["AI:Provider"] ?? "Gemini";
@@ -50,44 +64,67 @@ var geminiBaseUrl = builder.Configuration["AI:GeminiBaseUrl"];
 var openRouterModel = builder.Configuration["AI:OpenRouterModel"] ?? "openrouter/free";
 var openRouterBaseUrl = builder.Configuration["AI:OpenRouterBaseUrl"];
 
-// Create appropriate provider factory
-IAIProviderFactory providerFactory;
+// Read vision configuration
+var visionModels = builder.Configuration.GetSection("AI:Vision:FallbackModels")
+    .Get<string[]>() ?? new[] { "gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro" };
+
+// Create logger factory for provider initialization
+var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+
+// =============================================================================
+// Create Vision Client (Always Gemini - for receipt scanning)
+// =============================================================================
+var visionClient = new VisionFallbackService(
+    geminiApiKey,
+    visionModels,
+    loggerFactory.CreateLogger<VisionFallbackService>());
+
+// =============================================================================
+// Create General Client (Configurable - for chat/voice/shopping)
+// =============================================================================
+IChatClient generalClient;
 if (aiProvider.Equals("OpenRouter", StringComparison.OrdinalIgnoreCase))
 {
     if (string.IsNullOrEmpty(openRouterApiKey))
     {
-        throw new InvalidOperationException("OPENROUTER_API_KEY environment variable is required when Provider=OpenRouter");
+        throw new InvalidOperationException(
+            "OPENROUTER_API_KEY environment variable is required when Provider=OpenRouter. " +
+            "Both GEMINI_API_KEY and OPENROUTER_API_KEY are required when using OpenRouter. " +
+            "Get your OpenRouter key at: https://openrouter.ai/keys");
     }
     
-    providerFactory = new OpenRouterProviderFactory(
+    generalClient = new OpenRouterProviderFactory(
         openRouterApiKey,
         openRouterModel,
         openRouterBaseUrl,
-        logger: null); // Logger will be created internally
+        loggerFactory.CreateLogger<OpenRouterProviderFactory>()).CreateClient();
+    
+    loggerFactory.CreateLogger<Program>().LogInformation(
+        "General AI provider: OpenRouter (Model: {Model})", openRouterModel);
 }
 else
 {
-    // Default to Gemini
-    if (string.IsNullOrEmpty(geminiApiKey))
-    {
-        throw new InvalidOperationException("GEMINI_API_KEY environment variable is required when Provider=Gemini (or by default)");
-    }
-    
-    providerFactory = new GeminiProviderFactory(
+    // Default to Gemini for general operations too
+    generalClient = new GeminiProviderFactory(
         geminiApiKey,
         geminiModel,
         geminiBaseUrl,
-        logger: null); // Logger will be created internally
+        loggerFactory.CreateLogger<GeminiProviderFactory>()).CreateClient();
+    
+    loggerFactory.CreateLogger<Program>().LogInformation(
+        "General AI provider: Gemini (Model: {Model})", geminiModel);
 }
 
-// Register the provider factory as singleton
-builder.Services.AddSingleton(providerFactory);
-
-// Register IChatClient using the factory
+// =============================================================================
+// Register Hybrid AI Client
+// =============================================================================
+// Vision requests (images/PDFs) -> VisionFallbackService (Gemini model chain)
+// General requests (text) -> Configured provider (Gemini or OpenRouter)
 builder.Services.AddSingleton<IChatClient>(sp =>
 {
-    var factory = sp.GetRequiredService<IAIProviderFactory>();
-    return factory.CreateClient()
+    var hybridLogger = sp.GetRequiredService<ILogger<HybridAIClient>>();
+    
+    return new HybridAIClient(visionClient, generalClient, hybridLogger)
         .AsBuilder()
         .UseFunctionInvocation()
         .Build();
@@ -105,10 +142,15 @@ builder.Services.Configure<AIProviderOptions>(options =>
 
 builder.Services.Configure<AIResilienceOptions>(builder.Configuration.GetSection("AI:Resilience"));
 
+// =============================================================================
+// Exception Handler for Vision Service
+// =============================================================================
+builder.Services.AddProblemDetails();
+
 builder.Services.AddScoped<HomeStoq.App.Data.DbInitializer>();
 builder.Services.AddSingleton<PromptProvider>();
 builder.Services.AddScoped<InventoryRepository>();
-builder.Services.AddScoped<AIService>(); // Renamed from GeminiService
+builder.Services.AddScoped<AIService>();
 builder.Services.AddHttpClient();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -117,6 +159,33 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 var app = builder.Build();
+
+// Custom exception handler for vision service
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (VisionServiceUnavailableException ex)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Vision service unavailable - returning user-friendly error");
+        
+        context.Response.StatusCode = 503;
+        context.Response.ContentType = "application/json";
+        
+        var errorResponse = new
+        {
+            error = "Receipt scanning temporarily unavailable",
+            message = ex.Message,
+            retryAfter = 60,
+            timestamp = DateTime.UtcNow
+        };
+        
+        await context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse));
+    }
+});
 
 // Eagerly initialize the database on startup
 using (var scope = app.Services.CreateScope())
