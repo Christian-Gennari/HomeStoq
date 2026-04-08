@@ -32,4 +32,10 @@ services:
       - GOOGLE_PASSWORD=${GOOGLE_PASSWORD}
     ports:
       - "6080:6080" # noVNC web interface
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'HomeStoq.Plugins.GoogleKeepScraper' > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped

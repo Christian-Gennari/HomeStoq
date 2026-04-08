@@ -70,10 +70,10 @@ HomeStoq is designed to be developed entirely within Docker. This ensures a cons
 ### Build & Run (Docker — Recommended)
 
 ```bash
-# Start the full stack with hot-reloading
+# Start the full stack
 npm run dev
 
-# Rebuild all containers from scratch (after .cs changes)
+# Rebuild all containers from scratch (after code changes)
 npm run docker:build
 
 # Stop all containers
@@ -83,9 +83,7 @@ npm run docker:down
 npm run docker:clean
 ```
 
-> **Ports during development:** HomeStoq runs on port 5050 (default), noVNC on 6080. Check `config.ini` if you changed the API port.
-
-**Hot Reloading:** Both the main App and the Scraper use `dotnet watch` inside their containers. Any changes to C#, CSS, or JS files will trigger an automatic reload.
+> **Ports:** HomeStoq runs on port 5050 (default), noVNC on 6080. Check `config.ini` if you changed the API port.
 
 ### Understanding Docker Base Image Choices
 
@@ -110,19 +108,6 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-noble
 - X11/Xvfb are Ubuntu/Debian packages
 - Playwright officially supports Ubuntu-based images
 - Browser automation needs full Linux desktop libraries
-
-### Build & Run (Local - Not Recommended)
-
-```bash
-# Start API + Scraper locally
-npm run dev:local
-
-# Start just the API
-npm run api:local
-
-# Start just the scraper
-npm run scraper:local
-```
 
 ---
 

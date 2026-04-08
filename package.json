@@ -3,9 +3,6 @@
   "private": true,
   "scripts": {
     "dev": "docker compose up",
-    "dev:local": "dotnet build src/HomeStoq.Shared && concurrently --names \"API,SCRAPER\" --prefix-colors \"blue,green\" \"npm run api:local\" \"npm run scraper:local\"",
-    "api:local": "dotnet build && dotnet run --project src/HomeStoq.App",
-    "scraper:local": "dotnet run --project src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper",
     "docker:build": "docker compose build",
     "docker:down": "docker compose down",
     "docker:clean": "docker compose down -v && npm run clean",
@@ -17,7 +14,6 @@
   "devDependencies": {
     "boxen": "^5.1.2",
     "chalk": "^4.1.2",
-    "concurrently": "^9.2.0",
     "cross-env": "^7.0.3",
     "dotenv-cli": "^7.4.2",
     "gradient-string": "^2.0.2"
