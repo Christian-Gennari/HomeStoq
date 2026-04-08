@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Clean up stale X lock files from previous runs (fixes "Server is already active" error)
+rm -f /tmp/.X*-lock /tmp/.X11-unix/X*
+
 echo "[INFO] Starting Xvfb on display :99 (1280x720x24)"
 Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
 XVFB_PID=$!
