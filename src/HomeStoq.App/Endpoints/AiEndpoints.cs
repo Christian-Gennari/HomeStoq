@@ -17,15 +17,15 @@ public static class AiEndpoints
 {
     public static IEndpointRouteBuilder MapAiEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/chat", async (ChatRequestDto request, GeminiService gemini) => 
+        app.MapPost("/api/chat", async (ChatRequestDto request, AIService aiService) => 
         {
-            var response = await gemini.ChatAsync(request.Message, request.History);
+            var response = await aiService.ChatAsync(request.Message, request.History);
             return Results.Ok(response);
         });
 
         app.MapGet(
             "/api/insights/shopping-list",
-            async (InventoryRepository repository, GeminiService gemini, ILogger<GeminiService> logger) =>
+            async (InventoryRepository repository, AIService aiService, ILogger<AIService> logger) =>
             {
                 logger.LogInformation("GET /api/insights/shopping-list requested.");
                 var history = await repository.GetHistoryAsync(30);
@@ -43,16 +43,16 @@ public static class AiEndpoints
                     return Results.Ok(JsonSerializer.Deserialize<JsonElement>(cachedResponse));
                 }
 
-                logger.LogInformation("Generating new shopping list suggestions via Gemini...");
-                var result = await gemini.GenerateShoppingListAsync(historyJson, inventoryJson);
+                logger.LogInformation("Generating new shopping list suggestions via AI...");
+                var result = await aiService.GenerateShoppingListAsync(historyJson, inventoryJson);
                 if (result != null)
                 {
                     await repository.SetAiCacheAsync(cacheKey, result, TimeSpan.FromHours(12));
                     return Results.Ok(JsonSerializer.Deserialize<JsonElement>(result));
                 }
 
-                logger.LogWarning("Gemini failed to generate shopping list suggestions.");
-                return Results.Problem("Gemini failed to generate shopping list.");
+                logger.LogWarning("AI service failed to generate shopping list suggestions.");
+                return Results.Problem("AI service failed to generate shopping list.");
             }
         );
 
@@ -60,9 +60,9 @@ public static class AiEndpoints
             "/api/voice/command",
             async (
                 [FromBody] VoiceCommandRequestDto? request,
-                GeminiService gemini,
+                AIService aiService,
                 InventoryRepository repository,
-                ILogger<GeminiService> logger
+                ILogger<AIService> logger
             ) =>
             {
                 if (request == null || string.IsNullOrWhiteSpace(request.Text))
@@ -76,7 +76,7 @@ public static class AiEndpoints
                 var inventory = await repository.GetInventoryAsync();
                 var itemNames = inventory.Select(i => i.ItemName).ToList();
 
-                var parsedList = await gemini.ParseVoiceCommandAsync(request.Text, itemNames);
+                var parsedList = await aiService.ParseVoiceCommandAsync(request.Text, itemNames);
 
                 if (parsedList == null || !parsedList.Any())
                 {

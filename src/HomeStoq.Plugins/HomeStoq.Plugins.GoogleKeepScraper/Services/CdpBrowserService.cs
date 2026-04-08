@@ -68,10 +68,15 @@ public class CdpBrowserService : IBrowserService, IDisposable
             $"--remote-debugging-port={port}",
             $"--user-data-dir={_profileDir}",
             "--no-sandbox",  // Required when running Chrome as root in Docker
+            "--disable-setuid-sandbox",  // Additional sandbox disable for containers
+            "--disable-gpu",  // Disable GPU acceleration (fixes WebGL blocklist errors)
+            "--disable-software-rasterizer",  // Disable software rendering fallback
+            "--disable-dev-shm-usage",  // Use /tmp instead of /dev/shm in containers
             "--no-first-run",
             "--no-default-browser-check",
             "--disable-infobars",
             "--window-size=1280,720",
+            "--disable-features=VizDisplayCompositor,SiteIsolationForPasswordSites",  // Additional stability flags
             "https://keep.google.com"
         };
 

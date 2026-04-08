@@ -18,12 +18,14 @@ Google Assistant adds to Keep list
         ↓
 [SCRAPER] Watches list every ~45 seconds
         ↓
-Detects new item, sends to HomeStoq API
+Detects new item, sends to HomeStoq API (port 5050 by default)
         ↓
 Inventory updated, item cleaned up
 ```
 
 Without the scraper, you'd have to manually check Google Keep and type updates into HomeStoq.
+
+> **Port Note:** The scraper communicates with the HomeStoq API on the port configured in `config.ini` `[App]` → `HostUrl` (default 5050). The noVNC remote desktop (for manual Google login) is on a separate port (6080).
 
 ---
 
@@ -338,7 +340,11 @@ profile isolation (`--user-data-dir`). This is safe for home server use.
 
 1. **Check scraper is running:**
    ```bash
-   npm run scraper
+   # If running in Docker:
+   docker logs homestoq-scraper-1
+   
+   # If running locally:
+   npm run scraper:local
    ```
    Look for: `[INFO] Connected to Chrome via CDP`
 
@@ -394,14 +400,14 @@ but your account has 2FA enabled. Every container restart triggers a
 login attempt, which triggers a 2FA prompt.
 
 **Solution:**
-1. Stop HomeStoq: `npm run stop`
+1. Stop HomeStoq: `npm run docker:down`
 2. Edit `.env` and comment out or remove:
    ```bash
    # GOOGLE_USERNAME=...
    # GOOGLE_PASSWORD=...
    ```
 3. Restart: `npm run dev`
-4. Open `http://localhost:6080` and log in **once** via noVNC
+4. Open `http://localhost:6080` (noVNC — **port 6080**, not HomeStoq's 5050) and log in **once** via the Chrome window
 5. The session will persist; no more 2FA spam
 
 ### Chrome Crashes / Relaunches Constantly

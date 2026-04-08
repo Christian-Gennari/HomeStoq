@@ -9,13 +9,78 @@ HomeStoq is configured through two files:
 
 ---
 
+## Accessing HomeStoq
+
+Before diving into configuration files, here's how to determine the URL you'll use to access HomeStoq from different devices.
+
+### Default Ports
+
+| Service | Default | Configured In | Purpose |
+|---------|---------|---------------|---------|
+| HomeStoq Web App | 5050 | `[App]` → `HostUrl` | Main web interface (inventory, scanning, chat) |
+| noVNC (Remote Desktop) | 6080 | `docker-compose.yml` | Viewing Chrome for Google Keep login |
+
+### Finding Your Server's IP Address
+
+To access HomeStoq from your phone or other devices, you need your server's local IP:
+
+**Windows:**
+```powershell
+ipconfig
+# Look for "IPv4 Address" under your active network adapter (e.g., 192.168.1.50)
+```
+
+**Mac:**
+```bash
+ipconfig getifaddr en0
+# Alternative: ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+
+**Linux:**
+```bash
+hostname -I
+# Alternative: ip addr show | grep "inet " | grep -v 127.0.0.1
+```
+
+### Constructing Your HomeStoq URL
+
+Once you have your IP and port:
+
+```
+http://192.168.1.50:5050
+```
+
+**Examples:**
+- Local access: `http://localhost:5050`
+- From phone on same network: `http://192.168.1.50:5050` (use your actual IP)
+
+### Troubleshooting Access
+
+**"Can't connect from my phone":**
+1. Verify both devices are on the same WiFi network
+2. Check `config.ini` has `HostUrl=http://*:5050` (the `*` is essential for external access)
+3. Try disabling mobile data on your phone (force WiFi only)
+4. Some routers block inter-device communication — check router "AP isolation" settings
+
+**"Connection refused":**
+- HomeStoq not running: `npm run dev`
+- Wrong port: Check `config.ini` `[App]` → `HostUrl`
+- Port already in use: Change to another port (e.g., `http://*:8080`)
+
+---
+
 ## The `.env` File
 
 This file contains sensitive information. Never commit it to git.
 
 ```bash
 # .env
+
+# REQUIRED: Gemini API key (always needed for receipt scanning)
 GEMINI_API_KEY=your_api_key_here
+
+# OPTIONAL: OpenRouter API key (only needed when Provider=OpenRouter in config.ini)
+# OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Google Keep Credentials (Optional)
 GOOGLE_USERNAME=your_email@gmail.com
@@ -26,14 +91,23 @@ GOOGLE_PASSWORD=your_password
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GEMINI_API_KEY` | **Yes** | Your Google AI Studio API key. |
-| `GOOGLE_USERNAME` | No | Your Google account email for the scraper. |
-| `GOOGLE_PASSWORD` | No | Your Google account password (or App Password). |
+| `GEMINI_API_KEY` | **Always** | Google AI Studio API key. Required for receipt scanning (vision) and when `Provider=Gemini`. |
+| `OPENROUTER_API_KEY` | When `Provider=OpenRouter` | OpenRouter API key. Required for chat/voice when using OpenRouter as provider. |
+| `GOOGLE_USERNAME` | No | Google account email for the scraper. |
+| `GOOGLE_PASSWORD` | No | Google account password (or App Password). |
 
 ### Example
 
 ```bash
+# .env
+
+# Required for ALL setups
 GEMINI_API_KEY=AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Required only when Provider=OpenRouter in config.ini
+# OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Optional: Google Keep auto-login (not recommended with 2FA)
 GOOGLE_USERNAME=homestoq.pantry@gmail.com
 GOOGLE_PASSWORD=my-secure-password
 ```
@@ -52,7 +126,21 @@ Language=Swedish
 HostUrl=http://*:5050    # Server binding URL (used by API and scraper)
 
 [AI]
-Model=gemini-3.1-flash-lite-preview
+# AI Provider Selection
+Provider=Gemini                    # Gemini | OpenRouter
+GeminiModel=gemini-2.5-flash-lite  # When Provider=Gemini
+# OpenRouterModel=openrouter/free  # When Provider=OpenRouter
+
+[AI.Vision]
+# Receipt scanning always uses Gemini with fallback chain
+PrimaryModel=gemini-2.5-flash-lite
+FallbackModels=gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.5-pro
+
+[AI.Resilience]
+# Retry and fallback behavior
+EnableRetry=true
+RetryAttempts=3
+RetryBaseDelayMs=1000
 
 [API]
 # Optional: Override auto-derived API URL
@@ -265,32 +353,127 @@ Port 80 requires administrator/root privileges on most systems. Port 5050 is use
 
 ---
 
-### [AI] — AI Model Settings
+### [AI] — AI Provider Selection
+
+HomeStoq uses a **hybrid AI architecture**:
+- **Vision (receipt scanning):** Always uses Gemini (for reliable OCR)
+- **General (chat/voice/shopping):** Configurable (Gemini or OpenRouter)
 
 | Setting | Default | Options | Description |
 |---------|---------|---------|-------------|
-| `Model` | `gemini-3.1-flash-lite-preview` | See below | Which Gemini model to use |
+| `Provider` | `Gemini` | `Gemini`, `OpenRouter` | Which AI provider for general operations |
+| `GeminiModel` | `gemini-2.5-flash-lite` | See below | Model when Provider=Gemini |
+| `OpenRouterModel` | `openrouter/free` | See OpenRouter docs | Model when Provider=OpenRouter |
+| `GeminiApiKey` | `${GEMINI_API_KEY}` | Any valid key | API key for Gemini (env var reference) |
+| `OpenRouterApiKey` | `${OPENROUTER_API_KEY}` | Any valid key | API key for OpenRouter (required when Provider=OpenRouter) |
 
-**Available Models:**
+**⚠️ Important:** Receipt scanning (vision/OCR) **always** uses Gemini regardless of `Provider` setting. This is because OpenRouter's free tier has inconsistent vision support. Therefore, `GEMINI_API_KEY` is **always required** in `.env`, even when using OpenRouter.
+
+**Available Gemini Models:**
 
 | Model | Speed | Quality | Best For |
 |-------|-------|---------|----------|
-| `gemini-3.1-flash-lite-preview` | Fast | Good | **Default** — General use, balanced |
+| `gemini-2.5-flash-lite` | Fastest | Good | **Default** — Quick tasks, generous limits |
 | `gemini-2.5-flash` | Fast | Better | Fallback if rate limited |
 | `gemini-2.5-pro` | Slower | Best | Complex reasoning, meal planning |
-| `gemini-2.5-flash-lite` | Fastest | Good | Quick tasks, generous limits |
-| `gemini-embedding-001` | Varies | N/A | Semantic search (advanced) |
+| `gemini-3.1-flash-lite-preview` | Fast | Good | Preview features |
+
+**OpenRouter Models:**
+- `openrouter/free` — Router picks free models automatically (may vary)
+- `google/gemini-2.5-flash-lite:free` — Specific Gemini model via OpenRouter
+- See [OpenRouter models](https://openrouter.ai/models) for full list
+
+**Examples:**
+
+```ini
+# Default: Use Gemini for everything
+[AI]
+Provider=Gemini
+GeminiModel=gemini-2.5-flash-lite
+
+# Use OpenRouter for chat/voice (vision still uses Gemini)
+[AI]
+Provider=OpenRouter
+OpenRouterModel=openrouter/free
+# GEMINI_API_KEY still required in .env for receipt scanning!
+```
+
+**When to Use OpenRouter:**
+- Want to experiment with different models
+- Cost optimization (free tier has different limits)
+- Redundancy/fallback options
+
+**When to Stick with Gemini:**
+- Simplicity (single key)
+- Guaranteed vision support
+- Consistent behavior
+
+---
+
+### [AI.Vision] — Vision/OCR Settings
+
+Receipt scanning uses Gemini with automatic model fallback for reliability.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `PrimaryModel` | `gemini-2.5-flash-lite` | First model to try for OCR |
+| `FallbackModels` | `gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.5-pro` | Comma-separated list of models to try if primary fails |
+| `MaxAttemptsPerModel` | `2` | How many times to retry each model before moving to next |
+
+**How Fallback Works:**
+1. Try `PrimaryModel` (up to `MaxAttemptsPerModel` times)
+2. If fails, try next model in `FallbackModels` list
+3. Continue until one succeeds or all fail
+4. If all fail, return "Receipt scanning temporarily unavailable"
 
 **Example:**
 ```ini
-[AI]
-Model=gemini-2.5-pro
+[AI.Vision]
+PrimaryModel=gemini-2.5-flash-lite
+FallbackModels=gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.5-pro
+MaxAttemptsPerModel=2
 ```
 
-**When to Change:**
-- Getting rate limited? Try `gemini-2.5-flash`
-- Need better reasoning? Try `gemini-2.5-pro`
-- Normal use? Keep the default
+**When to Adjust:**
+- Getting frequent "temporarily unavailable" errors? Add more models to fallback list
+- Want faster retries? Reduce `MaxAttemptsPerModel` to 1
+- Want more retry attempts? Increase `MaxAttemptsPerModel` to 3
+
+---
+
+### [AI.Resilience] — Retry and Fallback Settings
+
+Controls retry behavior for AI requests.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `EnableRetry` | `true` | Enable automatic retry on transient failures |
+| `RetryAttempts` | `3` | Maximum retry attempts per operation |
+| `RetryBaseDelayMs` | `1000` | Initial delay between retries (milliseconds) |
+| `RetryMaxDelayMs` | `10000` | Maximum delay cap (milliseconds) |
+| `RetryBackoffMultiplier` | `2` | Exponential backoff multiplier |
+| `EnableCrossProviderFallback` | `true` | Fallback to alternate provider on failure |
+
+**Retry Logic:**
+- Programming errors (JSON parsing, validation) → **No retry** (fail immediately)
+- Network/transient errors (timeouts, 5xx) → **Retry with exponential backoff**
+- Rate limits (429) → **Retry after delay**
+
+**Exponential Backoff Example:**
+- Retry 1: Wait 1s + jitter
+- Retry 2: Wait 2s + jitter  
+- Retry 3: Wait 4s + jitter (capped at 10s)
+
+**Example:**
+```ini
+[AI.Resilience]
+EnableRetry=true
+RetryAttempts=3
+RetryBaseDelayMs=1000
+RetryMaxDelayMs=10000
+RetryBackoffMultiplier=2
+EnableCrossProviderFallback=true
+```
 
 ---
 
@@ -330,18 +513,33 @@ services:
 
 **For secrets only** — Use `.env` file for sensitive data:
 
-| Environment Variable | Purpose |
-|----------------------|---------|
-| `GEMINI_API_KEY` | Google AI API key (required) |
-| `GOOGLE_USERNAME` | Google Keep auto-login email |
-| `GOOGLE_PASSWORD` | Google Keep auto-login password |
+| Environment Variable | Required | Purpose |
+|----------------------|----------|---------|
+| `GEMINI_API_KEY` | **Always** | Google AI API key for vision/receipt scanning and Gemini provider |
+| `OPENROUTER_API_KEY` | When `Provider=OpenRouter` | OpenRouter API key for chat/voice when using OpenRouter provider |
+| `GOOGLE_USERNAME` | No | Google Keep auto-login email |
+| `GOOGLE_PASSWORD` | No | Google Keep auto-login password |
+
+**Important API Key Rules:**
+- **GEMINI_API_KEY is ALWAYS required** — Even when using `Provider=OpenRouter`, receipt scanning uses Gemini
+- **OPENROUTER_API_KEY only when needed** — Required only when `Provider=OpenRouter` in config.ini
+- Both keys can coexist in `.env` — The active provider determines which is used for general operations
 
 **Note:** Application settings like `BrowserMode`, `HostUrl`, `Headless`, etc. should be configured in `config.ini`, not via environment variables. The Dockerfiles no longer include hardcoded ENV overrides for these settings.
 
 **Example `.env` file:**
 ```bash
 # .env
+
+# Required for ALL setups (receipt scanning always uses Gemini)
 GEMINI_API_KEY=AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Required ONLY when Provider=OpenRouter in config.ini
+# Optional when Provider=Gemini (can be omitted or commented)
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Optional: Google Keep auto-login (NOT recommended with 2FA)
+# If you have 2FA enabled, skip these and use manual login via noVNC
 GOOGLE_USERNAME=homestoq.pantry@gmail.com
 GOOGLE_PASSWORD=my-secure-password
 ```
@@ -352,6 +550,7 @@ services:
   homestoq:
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}  # Only needed when Provider=OpenRouter
   
   scraper:
     environment:
@@ -411,3 +610,67 @@ ActiveHours=08-20             # Limited window
 - Ensure `config.ini` is in the project root
 - Check file encoding (UTF-8)
 - Verify file is readable
+
+### "AI provider errors" or "Receipt scanning fails"
+
+**Problem:** Receipt scanning or chat returns API errors.
+
+**Common Causes & Solutions:**
+
+**1. Missing GEMINI_API_KEY**
+- **Error:** "Vision service unavailable" or 400 Bad Request
+- **Solution:** `GEMINI_API_KEY` is **always required** in `.env`, even when `Provider=OpenRouter`. Add your Gemini key.
+
+**2. Missing OPENROUTER_API_KEY when Provider=OpenRouter**
+- **Error:** "OPENROUTER_API_KEY environment variable is required"
+- **Solution:** Add `OPENROUTER_API_KEY=sk-or-v1-...` to `.env`
+
+**3. Rate limits (Gemini)**
+- **Error:** 429 errors, "temporarily unavailable" messages
+- **Solution:** Try a different model in `config.ini`:
+  ```ini
+  [AI]
+  GeminiModel=gemini-2.5-flash  # Faster, higher limits
+  ```
+  Or adjust resilience settings:
+  ```ini
+  [AI.Resilience]
+  RetryAttempts=5
+  RetryBaseDelayMs=2000
+  ```
+
+**4. Rate limits (OpenRouter)**
+- **Error:** 429 errors with OpenRouter free tier (20 RPM / 200 requests/day limit)
+- **Solution:** Switch back to Gemini or upgrade to paid tier
+  ```ini
+  [AI]
+  Provider=Gemini
+  ```
+
+**5. Vision model chain exhaustion**
+- **Error:** "All vision models failed"
+- **Solution:** Add more fallback models in `config.ini`:
+  ```ini
+  [AI.Vision]
+  FallbackModels=gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.5-pro,gemini-2.0-flash
+  ```
+
+### "Provider switching not working"
+
+**Problem:** Changed `Provider=OpenRouter` but getting errors.
+
+**Checklist:**
+1. ✅ Added `OPENROUTER_API_KEY` to `.env`
+2. ✅ Kept `GEMINI_API_KEY` in `.env` (required for vision)
+3. ✅ Restarted containers (`npm run stop && npm run dev`)
+4. ✅ Check logs: Look for "General AI provider: OpenRouter" at startup
+
+### "Non-recoverable error not failing fast"
+
+**Problem:** Programming errors (JSON parsing) trigger retries instead of failing immediately.
+
+**Solution:** This is by design. The system distinguishes between:
+- **Provider errors** (network, rate limits) → Retry with backoff
+- **Non-recoverable errors** (parsing, validation) → Fail immediately
+
+If you see retries for parsing errors, check the logs — the error should be classified correctly.

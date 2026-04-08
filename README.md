@@ -35,8 +35,9 @@ npm run setup
          ▼                 ▼                     ▼
     ┌──────────────────────────┐      ┌──────────────────────────┐
     │   HomeStoq App (Docker)  │◄─────┤  Keep Scraper (Docker)   │
-    │  - AI Receipt Processing │      │  - Xvfb Virtual Display  │
-    │  - Chat & Shopping Lists │      │  - Anti-detection Headed │
+    │  - AI Vision (Gemini)    │      │  - Xvfb Virtual Display  │
+    │  - Chat & Shopping       │      │  - Anti-detection Headed │
+    │    (Gemini/OpenRouter)   │      │                          │
     └────────────┬─────────────┘      └─────────────┬────────────┘
                  │                                  │
                  ▼                                  ▼
@@ -45,6 +46,11 @@ npm run setup
     │    (Persistent Vol)      │      │    (Persistent Vol)      │
     └──────────────────────────┘      └──────────────────────────┘
 ```
+
+**Hybrid AI Architecture:** 
+- **Vision (Receipt OCR):** Always uses Google Gemini for reliable multimodal support
+- **Chat/Voice/Shopping:** Configurable provider — Gemini (default) or OpenRouter for cost optimization
+- **Automatic Fallback:** Vision uses model fallback chain; general operations can cross-provider fallback
 
 **Anti-Detection Engine:** The scraper runs a real, "Headed" Chrome instance inside a virtual desktop (Xvfb). This makes the automation indistinguishable from a human user. It supports **Automatic Login** via environment variables and provides a **noVNC web interface** (port 6080) for manual 2FA verification.
 
@@ -83,7 +89,7 @@ npm run setup
 - **Backend:** ASP.NET Core 10 (Minimal APIs)
 - **Frontend:** Vanilla HTML/CSS/JS + Alpine.js
 - **Database:** SQLite + Entity Framework
-- **AI:** Google Gemini (vision + chat)
+- **AI:** Google Gemini (vision + configurable provider for chat)
 - **Browser Automation:** Chrome DevTools Protocol
 - **Deployment:** Docker or bare metal
 

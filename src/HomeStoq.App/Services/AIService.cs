@@ -8,19 +8,19 @@ using Microsoft.Extensions.AI;
 
 namespace HomeStoq.App.Services;
 
-public class GeminiService
+public class AIService
 {
     private readonly IChatClient _chatClient;
     private readonly string _language;
-    private readonly ILogger<GeminiService> _logger;
+    private readonly ILogger<AIService> _logger;
     private readonly InventoryRepository _repository;
     private readonly PromptProvider _promptProvider;
     private readonly ChatOptions _chatOptions;
 
-    public GeminiService(
+    public AIService(
         IChatClient chatClient,
         IConfiguration configuration,
-        ILogger<GeminiService> logger,
+        ILogger<AIService> logger,
         InventoryRepository repository,
         PromptProvider promptProvider
     )
