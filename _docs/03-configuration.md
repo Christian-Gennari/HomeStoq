@@ -15,7 +15,12 @@ This file contains sensitive information. Never commit it to git.
 
 ```bash
 # .env
+
+# REQUIRED: Gemini API key (always needed for receipt scanning)
 GEMINI_API_KEY=your_api_key_here
+
+# OPTIONAL: OpenRouter API key (only needed when Provider=OpenRouter in config.ini)
+# OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Google Keep Credentials (Optional)
 GOOGLE_USERNAME=your_email@gmail.com
@@ -26,14 +31,23 @@ GOOGLE_PASSWORD=your_password
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GEMINI_API_KEY` | **Yes** | Your Google AI Studio API key. |
-| `GOOGLE_USERNAME` | No | Your Google account email for the scraper. |
-| `GOOGLE_PASSWORD` | No | Your Google account password (or App Password). |
+| `GEMINI_API_KEY` | **Always** | Google AI Studio API key. Required for receipt scanning (vision) and when `Provider=Gemini`. |
+| `OPENROUTER_API_KEY` | When `Provider=OpenRouter` | OpenRouter API key. Required for chat/voice when using OpenRouter as provider. |
+| `GOOGLE_USERNAME` | No | Google account email for the scraper. |
+| `GOOGLE_PASSWORD` | No | Google account password (or App Password). |
 
 ### Example
 
 ```bash
+# .env
+
+# Required for ALL setups
 GEMINI_API_KEY=AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Required only when Provider=OpenRouter in config.ini
+# OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Optional: Google Keep auto-login (not recommended with 2FA)
 GOOGLE_USERNAME=homestoq.pantry@gmail.com
 GOOGLE_PASSWORD=my-secure-password
 ```
@@ -52,7 +66,21 @@ Language=Swedish
 HostUrl=http://*:5050    # Server binding URL (used by API and scraper)
 
 [AI]
-Model=gemini-3.1-flash-lite-preview
+# AI Provider Selection
+Provider=Gemini                    # Gemini | OpenRouter
+GeminiModel=gemini-2.5-flash-lite  # When Provider=Gemini
+# OpenRouterModel=openrouter/free  # When Provider=OpenRouter
+
+[AI.Vision]
+# Receipt scanning always uses Gemini with fallback chain
+PrimaryModel=gemini-2.5-flash-lite
+FallbackModels=gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.5-pro
+
+[AI.Resilience]
+# Retry and fallback behavior
+EnableRetry=true
+RetryAttempts=3
+RetryBaseDelayMs=1000
 
 [API]
 # Optional: Override auto-derived API URL
