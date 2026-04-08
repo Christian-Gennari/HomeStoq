@@ -1,6 +1,6 @@
 # HomeStoq Development Todo
 
-Last updated: 2026-04-07
+Last updated: 2026-04-08
 
 ## ✅ Recently Completed
 
@@ -52,9 +52,18 @@ Last updated: 2026-04-07
 
 ### 🔴 High Priority
 
-_None remaining - all complete! 🎉_
+- **#20** - Settings editor: Text invisible in "Anpassningar" panel  
+  Editable override panel appears blank — highlight-behind-textarea technique failing.  
+  Files: `features/settings/settings.js`, `features/settings/settings.css`  
+  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/20)
 
 ### 🟡 Medium Priority
+
+- **#21** - Clean up npm command orchestration  
+  Reorganize, rename, and add missing local development commands.  
+  `dev:local`, `api:local`, `scraper:local` documented in AGENTS.md but don't exist.  
+  Labels: `documentation`, `enhancement`, `developer-experience`  
+  [View Issue](https://github.com/Christian-Gennari/HomeStoq/issues/21)
 
 - **#15** - AI Resilience: Retry Logic and Model Fallback Chain  
   Implement automatic retry with intelligent fallback when primary AI model fails.  
@@ -119,8 +128,8 @@ _None remaining - all complete! 🎉_
 
 ## 📊 Quick Reference
 
-**Total Open Issues:** 11  
-**Priority Distribution:** 0 High | 8 Medium | 3 Low  
+**Total Open Issues:** 13  
+**Priority Distribution:** 1 High | 9 Medium | 3 Low  
 **Recently Completed:** 4 High Priority Issues ✅
 
 ### New Frontend Structure
