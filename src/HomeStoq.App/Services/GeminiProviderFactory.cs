@@ -2,6 +2,8 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
+using OpenAI.Chat;
+using System.ClientModel;
 
 namespace HomeStoq.App.Services;
 
@@ -37,13 +39,15 @@ public class GeminiProviderFactory : IAIProviderFactory
     {
         _logger.LogInformation("Creating Gemini chat client for model: {Model}", _model);
         
+        // Microsoft.Extensions.AI.OpenAI 10.3.0 API
+        // Use ChatClient directly with ApiKeyCredential
+        var credential = new ApiKeyCredential(_apiKey);
         var options = new OpenAIClientOptions
         {
             Endpoint = new Uri(_baseUrl)
         };
         
-        var openAIClient = new OpenAIClient(_apiKey, options);
-        
-        return openAIClient.AsChatClient(_model);
+        var chatClient = new ChatClient(_model, credential, options);
+        return chatClient.AsIChatClient();
     }
 }
