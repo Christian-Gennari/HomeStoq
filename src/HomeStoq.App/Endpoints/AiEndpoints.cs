@@ -43,7 +43,7 @@ public static class AiEndpoints
                     return Results.Ok(JsonSerializer.Deserialize<JsonElement>(cachedResponse));
                 }
 
-                logger.LogInformation("Generating new shopping list suggestions via Gemini...");
+                logger.LogInformation("Generating new shopping list suggestions via AI...");
                 var result = await aiService.GenerateShoppingListAsync(historyJson, inventoryJson);
                 if (result != null)
                 {
@@ -51,8 +51,8 @@ public static class AiEndpoints
                     return Results.Ok(JsonSerializer.Deserialize<JsonElement>(result));
                 }
 
-                logger.LogWarning("Gemini failed to generate shopping list suggestions.");
-                return Results.Problem("Gemini failed to generate shopping list.");
+                logger.LogWarning("AI service failed to generate shopping list suggestions.");
+                return Results.Problem("AI service failed to generate shopping list.");
             }
         );
 

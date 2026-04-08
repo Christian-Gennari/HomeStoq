@@ -8,6 +8,7 @@ using HomeStoq.App.Services;
 using HomeStoq.App.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 using HomeStoq.App.Endpoints;
 using Microsoft.EntityFrameworkCore;
 
@@ -68,15 +69,37 @@ var openRouterBaseUrl = builder.Configuration["AI:OpenRouterBaseUrl"];
 var visionModels = builder.Configuration.GetSection("AI:Vision:FallbackModels")
     .Get<string[]>() ?? new[] { "gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro" };
 
+// Bind configuration options early (needed for VisionFallbackService)
+builder.Services.Configure<AIProviderOptions>(options =>
+{
+    options.Provider = aiProvider;
+    options.GeminiModel = geminiModel;
+    options.GeminiBaseUrl = geminiBaseUrl;
+    options.OpenRouterModel = openRouterModel;
+    options.OpenRouterBaseUrl = openRouterBaseUrl;
+});
+
+builder.Services.Configure<AIResilienceOptions>(builder.Configuration.GetSection("AI:Resilience"));
+
 // Create logger factory for provider initialization
 var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
 
 // =============================================================================
 // Create Vision Client (Always Gemini - for receipt scanning)
 // =============================================================================
+// Read resilience options directly from configuration
+var resilienceSection = builder.Configuration.GetSection("AI:Resilience");
+var resilienceOptions = new AIResilienceOptions
+{
+    RetryAttempts = resilienceSection.GetValue<int?>(nameof(AIResilienceOptions.RetryAttempts)) ?? 3,
+    RetryBaseDelayMs = resilienceSection.GetValue<int?>(nameof(AIResilienceOptions.RetryBaseDelayMs)) ?? 1000,
+    RetryMaxDelayMs = resilienceSection.GetValue<int?>(nameof(AIResilienceOptions.RetryMaxDelayMs)) ?? 10000
+};
+
 var visionClient = new VisionFallbackService(
     geminiApiKey,
     visionModels,
+    Options.Create(resilienceOptions),
     loggerFactory.CreateLogger<VisionFallbackService>());
 
 // =============================================================================
@@ -129,18 +152,6 @@ builder.Services.AddSingleton<IChatClient>(sp =>
         .UseFunctionInvocation()
         .Build();
 });
-
-// Bind configuration options
-builder.Services.Configure<AIProviderOptions>(options =>
-{
-    options.Provider = aiProvider;
-    options.GeminiModel = geminiModel;
-    options.GeminiBaseUrl = geminiBaseUrl;
-    options.OpenRouterModel = openRouterModel;
-    options.OpenRouterBaseUrl = openRouterBaseUrl;
-});
-
-builder.Services.Configure<AIResilienceOptions>(builder.Configuration.GetSection("AI:Resilience"));
 
 // =============================================================================
 // Exception Handler for Vision Service

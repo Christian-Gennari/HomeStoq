@@ -1,7 +1,9 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MeaiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using Google.GenAI;
+using HomeStoq.App.Configuration;
 
 namespace HomeStoq.App.Services;
 
@@ -25,11 +27,15 @@ public class VisionFallbackService : IChatClient
 {
     private readonly string _apiKey;
     private readonly List<string> _modelChain;
+    private readonly int _maxAttemptsPerModel;
+    private readonly int _baseDelayMs;
+    private readonly int _maxDelayMs;
     private readonly ILogger<VisionFallbackService> _logger;
 
     public VisionFallbackService(
         string apiKey,
         IEnumerable<string> models,
+        IOptions<AIResilienceOptions> resilienceOptions,
         ILogger<VisionFallbackService> logger)
     {
         _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
@@ -38,6 +44,12 @@ public class VisionFallbackService : IChatClient
 
         if (_modelChain.Count == 0)
             throw new ArgumentException("At least one vision model must be specified", nameof(models));
+
+        // Use configuration values with sensible defaults
+        var options = resilienceOptions?.Value ?? new AIResilienceOptions();
+        _maxAttemptsPerModel = Math.Max(1, options.RetryAttempts);
+        _baseDelayMs = Math.Max(100, options.RetryBaseDelayMs);
+        _maxDelayMs = Math.Max(_baseDelayMs, options.RetryMaxDelayMs);
     }
 
     public async Task<ChatResponse> GetResponseAsync(
@@ -49,14 +61,14 @@ public class VisionFallbackService : IChatClient
 
         foreach (var (model, modelIndex) in _modelChain.Select((m, i) => (m, i)))
         {
-            // Try each model up to 2 times
-            for (int attempt = 1; attempt <= 2; attempt++)
+            // Try each model up to configured attempts
+            for (int attempt = 1; attempt <= _maxAttemptsPerModel; attempt++)
             {
                 try
                 {
                     _logger.LogInformation(
-                        "Vision request: Trying model {Model} (attempt {Attempt}/2, model {ModelNum}/{TotalModels})",
-                        model, attempt, modelIndex + 1, _modelChain.Count);
+                        "Vision request: Trying model {Model} (attempt {Attempt}/{MaxAttempts}, model {ModelNum}/{TotalModels})",
+                        model, attempt, _maxAttemptsPerModel, modelIndex + 1, _modelChain.Count);
 
                     var client = CreateClient(model);
                     var response = await client.GetResponseAsync(messages, options, cancellationToken);
@@ -67,9 +79,17 @@ public class VisionFallbackService : IChatClient
                     
                     return response;
                 }
+                catch (Exception ex) when (IsNonRecoverableError(ex))
+                {
+                    // Non-recoverable errors should not be retried
+                    _logger.LogError(ex, 
+                        "Vision model {Model} encountered non-recoverable error (attempt {Attempt}). Aborting retries.",
+                        model, attempt);
+                    throw;
+                }
                 catch (Exception ex) when (IsProviderError(ex))
                 {
-                    var isLastAttempt = (attempt == 2) && (modelIndex == _modelChain.Count - 1);
+                    var isLastAttempt = (attempt == _maxAttemptsPerModel) && (modelIndex == _modelChain.Count - 1);
                     
                     if (isLastAttempt)
                     {
@@ -138,24 +158,79 @@ public class VisionFallbackService : IChatClient
         GC.SuppressFinalize(this);
     }
 
-    private bool IsProviderError(Exception ex) => ex switch
+    /// <summary>
+    /// Determines if an error is non-recoverable and should not be retried.
+    /// These are programming errors, validation failures, or malformed responses.
+    /// </summary>
+    private bool IsNonRecoverableError(Exception ex)
     {
-        HttpRequestException => true,            // Network errors
-        TimeoutException => true,                // Timeouts
-        TaskCanceledException => true,            // Cancellation (often timeout-related)
-        IOException => true,                     // I/O errors
-        _ => ex.Message?.Contains("API") == true ||  // API-related errors
-             ex.Message?.Contains("request") == true ||
-             ex.Message?.Contains("500") == true ||
-             ex.Message?.Contains("429") == true ||
-             ex.Message?.Contains("503") == true
-    };
+        // Programming errors - retrying won't help
+        if (ex is NullReferenceException ||
+            ex is ArgumentException ||
+            ex is ArgumentNullException ||
+            ex is InvalidOperationException ||
+            ex is NotSupportedException)
+        {
+            return true;
+        }
+
+        // JSON parsing errors indicate malformed response - retrying same request won't help
+        if (ex is System.Text.Json.JsonException)
+        {
+            return true;
+        }
+
+        // Check for specific error messages that indicate non-recoverable errors
+        var message = ex.Message?.ToLowerInvariant() ?? "";
+        if (message.Contains("invalid") ||
+            message.Contains("malformed") ||
+            message.Contains("parse error") ||
+            message.Contains("serialization"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines if an error is a provider/transient error that should be retried.
+    /// </summary>
+    private bool IsProviderError(Exception ex)
+    {
+        // Network and timeout errors are recoverable
+        if (ex is HttpRequestException ||
+            ex is TimeoutException ||
+            ex is TaskCanceledException ||
+            ex is IOException)
+        {
+            return true;
+        }
+
+        // Check for API-specific error indicators
+        var message = ex.Message ?? "";
+        if (message.Contains("API") ||
+            message.Contains("request") ||
+            message.Contains("500") ||
+            message.Contains("429") ||
+            message.Contains("503") ||
+            message.Contains("502") ||
+            message.Contains("504") ||
+            message.Contains("Bad Request") ||
+            message.Contains("rate limit") ||
+            message.Contains("quota"))
+        {
+            return true;
+        }
+
+        return false;
+    }
 
     private int CalculateDelay(int modelIndex, int attempt)
     {
-        // Exponential backoff: base 1s, doubles per attempt, with jitter
-        var baseDelay = 1000 * Math.Pow(2, modelIndex * 2 + attempt - 1);
-        var cappedDelay = Math.Min(baseDelay, 10000);  // Cap at 10s
+        // Exponential backoff using configured base delay
+        var baseDelay = _baseDelayMs * Math.Pow(2, modelIndex * 2 + attempt - 1);
+        var cappedDelay = Math.Min(baseDelay, _maxDelayMs);
         var jitter = Random.Shared.Next(100, 500);
         return (int)cappedDelay + jitter;
     }

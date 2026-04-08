@@ -93,12 +93,12 @@ public static class ShoppingListEndpoints
             var historyJson = JsonSerializer.Serialize(history);
             var inventoryJson = JsonSerializer.Serialize(inventory);
 
-            logger.LogInformation("Generating shopping buddy suggestions via Gemini...");
+            logger.LogInformation("Generating shopping buddy suggestions via AI...");
             var aiResponse = await aiService.GenerateShoppingBuddyListAsync(historyJson, inventoryJson);
 
             if (aiResponse == null)
             {
-                logger.LogWarning("Gemini failed to generate shopping buddy suggestions.");
+                logger.LogWarning("AI service failed to generate shopping buddy suggestions.");
                 return Results.Problem("AI failed to generate suggestions.");
             }
 
@@ -189,7 +189,7 @@ public static class ShoppingListEndpoints
             var historyJson = JsonSerializer.Serialize(history);
             var inventoryJson = JsonSerializer.Serialize(inventory);
 
-            logger.LogInformation("Generating follow-up shopping suggestions via Gemini...");
+            logger.LogInformation("Generating follow-up shopping suggestions via AI...");
             var aiResponse = await aiService.GenerateShoppingBuddyListWithContextAsync(
                 historyJson, 
                 inventoryJson, 
@@ -199,7 +199,7 @@ public static class ShoppingListEndpoints
 
             if (aiResponse == null)
             {
-                logger.LogWarning("Gemini failed to generate follow-up suggestions.");
+                logger.LogWarning("AI service failed to generate follow-up suggestions.");
                 return Results.Problem("AI failed to generate follow-up suggestions.");
             }
 

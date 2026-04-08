@@ -44,8 +44,8 @@ public static class ReceiptEndpoints
 
                     if (items == null || !items.Any())
                     {
-                        logger.LogWarning("Gemini failed to process the receipt image.");
-                        return Results.Problem("Gemini failed to process the image.");
+                        logger.LogWarning("AI service failed to process the receipt image.");
+                        return Results.Problem("AI service failed to process the image.");
                     }
 
                     var storeName = StoreHelper.ResolveStoreName(
@@ -56,7 +56,7 @@ public static class ReceiptEndpoints
                     var receiptId = await repository.CreateReceiptAsync(storeName, totalAmount);
 
                     logger.LogInformation(
-                        "Gemini identified {Count} items from receipt. Saved as Receipt #{Id}",
+                        "AI service identified {Count} items from receipt. Saved as Receipt #{Id}",
                         items.Count,
                         receiptId
                     );

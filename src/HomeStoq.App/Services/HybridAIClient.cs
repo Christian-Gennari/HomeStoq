@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using MeaiChatMessage = Microsoft.Extensions.AI.ChatMessage;
@@ -15,6 +14,7 @@ public class HybridAIClient : IChatClient
     private readonly IChatClient _visionClient;      // Always Gemini model chain
     private readonly IChatClient _generalClient;     // Configurable provider
     private readonly ILogger<HybridAIClient> _logger;
+    private bool _disposed;
 
     public HybridAIClient(
         IChatClient visionClient,
@@ -92,9 +92,15 @@ public class HybridAIClient : IChatClient
 
     public void Dispose()
     {
-        // Dispose both clients
-        _visionClient.Dispose();
-        _generalClient.Dispose();
+        if (_disposed) return;
+        
+        _disposed = true;
+        
+        // Dispose both clients - use try/catch to prevent one disposal failure
+        // from preventing the other from being disposed
+        try { _visionClient.Dispose(); } catch { /* ignored */ }
+        try { _generalClient.Dispose(); } catch { /* ignored */ }
+        
         GC.SuppressFinalize(this);
     }
 }

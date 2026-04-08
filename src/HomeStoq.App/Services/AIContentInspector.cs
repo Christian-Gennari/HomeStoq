@@ -37,7 +37,27 @@ public static class AIContentInspector
         mediaType == "application/pdf" ||
         mediaType == "application/x-pdf";
 
-    private static bool IsPdfReference(string? text) =>
-        text?.Contains(".pdf", StringComparison.OrdinalIgnoreCase) == true ||
-        text?.Contains("application/pdf", StringComparison.OrdinalIgnoreCase) == true;
+    /// <summary>
+    /// Checks if text content contains a PDF file reference.
+    /// Uses word boundary detection to avoid false positives like "myfile.pdf.txt"
+    /// or text that happens to contain ".pdf" as a substring.
+    /// </summary>
+    private static bool IsPdfReference(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        // Check for explicit MIME type reference
+        if (text.Contains("application/pdf", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        // Use regex to find .pdf at word boundaries (end of filename)
+        // This matches: "file.pdf", "file.PDF", "path/to/file.pdf"
+        // This avoids: "myfile.pdf.txt", "nota.pdfextension"
+        var pdfPattern = @"\.pdf\b";
+        return System.Text.RegularExpressions.Regex.IsMatch(
+            text, 
+            pdfPattern, 
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
 }
