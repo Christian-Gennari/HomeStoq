@@ -1,0 +1,324 @@
+/**
+ * HomeStoq Settings Feature Styles
+ */
+
+.settings-view {
+    max-width: 900px;
+}
+
+/* Pending changes banner */
+.settings-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: var(--oat-dark);
+    border: 1px solid var(--oat-dark);
+    border-left: 3px solid var(--zest);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--charcoal-light);
+}
+
+.settings-banner svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    stroke: var(--zest);
+}
+
+.settings-banner-time {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--warm-gray);
+}
+
+/* Loading */
+.settings-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 0;
+    gap: 1rem;
+    color: var(--warm-gray);
+    font-size: 0.9rem;
+}
+
+.settings-spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--oat-dark);
+    border-top-color: var(--sage);
+    border-radius: var(--radius-full);
+    animation: settings-spin 0.7s linear infinite;
+}
+
+@keyframes settings-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Panels stack vertically */
+.config-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+/* Panel shell */
+.config-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    border: 1px solid var(--oat-dark);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.config-panel--editable {
+    border-color: var(--sage-light);
+}
+
+/* Panel header — shared base */
+.config-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--oat-dark);
+    background: var(--oat);
+    flex-shrink: 0;
+}
+
+.config-panel--editable .config-panel-header {
+    background: #f7faf7;
+    border-bottom-color: var(--sage-light);
+}
+
+/* Collapsible toggle variant */
+.config-panel-header--toggle {
+    width: 100%;
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+    text-align: left;
+    /* Remove default button border-bottom so the panel border shows properly when closed */
+    border-bottom: none;
+}
+
+.config-panel-header--toggle:hover {
+    background: var(--oat-dark);
+}
+
+/* When panel is expanded, restore the border below the header */
+.config-panel-header--toggle + * {
+    border-top: 1px solid var(--oat-dark);
+}
+
+.config-panel-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.config-panel-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--charcoal);
+}
+
+/* Chevron */
+.config-chevron {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    stroke: var(--warm-gray);
+    transition: transform 0.2s ease;
+}
+
+.config-chevron--open {
+    transform: rotate(180deg);
+}
+
+/* Badges */
+.config-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-full);
+}
+
+.config-badge--readonly {
+    background: var(--oat-dark);
+    color: var(--warm-gray);
+}
+
+.config-badge--editable {
+    background: rgba(125, 144, 120, 0.15);
+    color: var(--sage-dark);
+}
+
+/* Copy action button (inline, not a real <button> inside the toggle button) */
+.config-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: none;
+    border: 1px solid var(--oat-dark);
+    border-radius: var(--radius);
+    color: var(--warm-gray);
+    cursor: pointer;
+    padding: 0.25rem 0.6rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+    user-select: none;
+}
+
+.config-action-btn svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+.config-action-btn:hover {
+    background: var(--oat-dark);
+    color: var(--charcoal);
+    border-color: transparent;
+}
+
+/* Modified time label */
+.config-modified-time {
+    font-size: 0.78rem;
+    color: var(--warm-gray);
+}
+
+/* Shared monospace metrics — applied to both the read-only pre and the highlight layer */
+.config-body--readonly,
+.config-highlight,
+.config-body--editor {
+    font-family: 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    tab-size: 4;
+    padding: 1rem;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+/* Read-only pre (collapsible panel) */
+.config-body--readonly {
+    background: #fafaf8;
+    color: var(--charcoal-light);
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 400px;
+    user-select: text;
+    cursor: default;
+}
+
+/* Highlight-behind-textarea wrapper */
+.config-editor-wrap {
+    position: relative;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+}
+
+/* The highlight layer sits behind the textarea */
+.config-highlight {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    white-space: pre;       /* must match textarea — no wrapping */
+    overflow: hidden;       /* scroll is driven by the textarea */
+    color: var(--charcoal); /* FIX: Base text must be visible */
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    z-index: 0;
+}
+
+/* The editable textarea — transparent text, caret visible */
+.config-body--editor {
+    position: relative;
+    z-index: 1;
+    resize: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    flex: 1;
+    min-height: 320px;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--charcoal);
+    white-space: pre;
+    overflow: auto;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.config-body--editor::placeholder {
+    color: var(--warm-gray);
+    opacity: 0.55;
+}
+
+/* Actions row */
+.settings-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--oat-dark);
+}
+
+/* ─── INI Syntax Colors ────────────────────────────────────────────────────── */
+
+/* Comments: # and ; lines, and inline trailing comments */
+.ini-comment {
+    color: var(--warm-gray);
+    opacity: 0.65;
+}
+
+/* [SectionName] — the section name text only (brackets are plain) */
+.ini-section {
+    color: var(--sage-dark);
+    font-weight: 700;
+}
+
+/* The key part of key=value */
+.ini-key {
+    color: var(--charcoal);
+}
+
+/* The = separator */
+.ini-eq {
+    color: var(--warm-gray);
+}
+
+/* The value part of key=value */
+.ini-value {
+    color: var(--zest);
+}
+
+/* ─── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+    .settings-actions {
+        flex-direction: column;
+    }
+
+    .settings-actions button {
+        width: 100%;
+    }
+}

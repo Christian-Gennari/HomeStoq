@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="features/receipts/receipts.css">
     <link rel="stylesheet" href="features/chat/chat.css">
     <link rel="stylesheet" href="features/shopping/shopping.css">
+    <link rel="stylesheet" href="features/settings/settings.css">
 </head>
 <body x-data="pantryApp()">
     
@@ -38,6 +39,7 @@
                 <button class="nav-link" :class="view === 'receipts_history' && 'active'" @click="view = 'receipts_history'" x-text="t('nav.receipts')"></button>
                 <button class="nav-link" :class="view === 'shopping' && 'active'" @click="view = 'shopping'" x-text="t('nav.list')"></button>
                 <button class="nav-link chat-nav" @click="toggleChat()" x-text="t('nav.chat')"></button>
+                <button class="nav-link settings-nav" :class="view === 'settings' && 'active'" @click="view = 'settings'" title="Settings">⚙️</button>
             </nav>
         </header>
 
@@ -518,7 +520,100 @@
                             </button>
                         </div>
                     </div>
-                    
+                     
+                </section>
+            </template>
+
+            <!-- View: Settings (Configuration Editor) -->
+            <template x-if="view === 'settings'">
+                <section class="settings-view" x-init="initSettings()">
+
+                    <div class="view-header">
+                        <h2 x-text="t('settings.title')"></h2>
+                        <p class="view-description" x-text="t('settings.info')"></p>
+                    </div>
+
+                    <!-- Pending Changes Banner -->
+                    <div x-show="hasFutureConfig && !isLoading" class="settings-banner">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span x-text="t('settings.pending')"></span>
+                        <span class="settings-banner-time" x-show="lastModified" x-text="formatModifiedDate()"></span>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div x-show="isLoading" class="settings-loading">
+                        <div class="settings-spinner"></div>
+                        <p x-text="t('settings.loading')"></p>
+                    </div>
+
+                    <!-- Panels -->
+                    <div x-show="!isLoading" class="config-editor">
+
+                        <!-- Current Config (collapsible, read-only) -->
+                        <div class="config-panel">
+                            <button class="config-panel-header config-panel-header--toggle" @click="toggleCurrentConfig()">
+                                <div class="config-panel-label">
+                                    <span x-text="t('settings.current')"></span>
+                                    <span class="config-badge config-badge--readonly" x-text="t('settings.readonly')"></span>
+                                </div>
+                                <div class="config-panel-header-right">
+                                    <span @click.stop="copyCurrentConfig()" class="config-action-btn" role="button" tabindex="0" @keydown.enter.stop="copyCurrentConfig()">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                        <span x-text="t('settings.copy')"></span>
+                                    </span>
+                                    <svg class="config-chevron" :class="currentConfigExpanded && 'config-chevron--open'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                </div>
+                            </button>
+                            <pre class="config-body config-body--readonly"
+                                 x-show="currentConfigExpanded"
+                                 x-collapse
+                                 x-html="highlightIni(currentConfig)"></pre>
+                        </div>
+
+                        <!-- Future Config (always open, editable with syntax highlight) -->
+                        <div class="config-panel config-panel--editable">
+                            <div class="config-panel-header">
+                                <div class="config-panel-label">
+                                    <span x-text="t('settings.future')"></span>
+                                    <span class="config-badge config-badge--editable" x-text="t('settings.editable')"></span>
+                                </div>
+                                <span x-show="lastModified" class="config-modified-time" x-text="formatModifiedDate()"></span>
+                            </div>
+                            <div class="config-editor-wrap">
+                                <pre class="config-highlight"
+                                     aria-hidden="true"
+                                     x-ref="highlight"
+                                     x-html="highlightIni(futureConfig) + '&#10;'"></pre>
+                                <textarea
+                                    class="config-body--editor"
+                                    x-model="futureConfig"
+                                    :placeholder="t('settings.placeholder')"
+                                    spellcheck="false"
+                                    autocorrect="off"
+                                    autocapitalize="off"
+                                    @scroll="$refs.highlight.scrollTop = $el.scrollTop; $refs.highlight.scrollLeft = $el.scrollLeft"
+                                ></textarea>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Actions -->
+                    <div x-show="!isLoading" class="settings-actions">
+                        <button
+                            @click="saveFutureConfig()"
+                            class="btn-primary"
+                            :disabled="isSaving"
+                            x-text="isSaving ? t('settings.saving') : t('settings.save')"
+                        ></button>
+                        <button
+                            @click="resetToDefaults()"
+                            class="btn-secondary"
+                            :disabled="isSaving || !hasFutureConfig"
+                            x-text="t('settings.reset')"
+                        ></button>
+                    </div>
+
                 </section>
             </template>
         </main>
@@ -545,6 +640,10 @@
         <button class="nav-link" :class="showChat && 'active'" @click="toggleChat()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span x-text="t('nav.chat')"></span>
+        </button>
+        <button class="nav-link" :class="view === 'settings' && 'active'" @click="view = 'settings'" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span x-text="t('nav.settings')"></span>
         </button>
     </nav>
 
@@ -598,6 +697,7 @@
     <script src="features/receipts/receipts.js"></script>
     <script src="features/chat/chat.js"></script>
     <script src="features/shopping/shopping.js"></script>
+    <script src="features/settings/settings.js"></script>
     
     <!-- Main App Orchestrator -->
     <script src="js/main.js"></script>

@@ -26,6 +26,7 @@ services:
       - homestoq
     volumes:
       - ./config.ini:/app/config.ini:ro
+      - ./data:/app/data:ro
       - ./chrome-profile:/app/browser-profile
     environment:
       - GOOGLE_USERNAME=${GOOGLE_USERNAME}

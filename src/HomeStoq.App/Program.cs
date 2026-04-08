@@ -35,6 +35,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add config.ini as a configuration source
 builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: true);
 
+// Add future config if exists (user overrides that apply on next restart)
+var futureConfigPath = PathHelper.ResolveFutureConfigPath();
+if (File.Exists(futureConfigPath))
+{
+    builder.Configuration.AddIniFile(futureConfigPath, optional: true, reloadOnChange: false);
+}
+
 // Register DbContext
 builder.Services.AddDbContext<HomeStoq.App.Data.PantryDbContext>(options =>
     options.UseSqlite($"Data Source={PathHelper.ResolveDatabasePath()}"));
@@ -213,5 +220,6 @@ app.MapInventoryEndpoints();
 app.MapReceiptEndpoints();
 app.MapAiEndpoints();
 app.MapShoppingListEndpoints();
+app.MapSettingsEndpoints();
 
 app.Run();

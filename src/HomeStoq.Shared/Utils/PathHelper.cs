@@ -26,4 +26,6 @@ public static class PathHelper
     public static string ResolveEnvFile() => Path.Combine(_repoRoot, ".env");
 
     public static string ResolveDatabasePath() => Path.Combine(_repoRoot, "data", "homestoq.db");
+
+    public static string ResolveFutureConfigPath() => Path.Combine(_repoRoot, "data", "config.ini.future");
 }

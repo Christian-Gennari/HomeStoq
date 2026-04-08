@@ -16,6 +16,7 @@ function pantryApp() {
         ...createReceiptsFeature(),
         ...createShoppingFeature(),
         ...createChatFeature(),
+        ...createSettingsFeature(),
         
         // Computed: Group items by category (must be in main object for Alpine reactivity)
         get categorizedItems() {
@@ -64,6 +65,9 @@ function pantryApp() {
                 if (value === "receipts_history" && this.loadReceipts) this.loadReceipts();
                 if (value === "shopping" && this.initShoppingFeature) {
                     this.initShoppingFeature();
+                }
+                if (value === "settings" && this.initSettings) {
+                    this.initSettings();
                 }
             });
             
