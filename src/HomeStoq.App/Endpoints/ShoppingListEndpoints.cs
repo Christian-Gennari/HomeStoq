@@ -73,7 +73,7 @@ public static class ShoppingListEndpoints
         // POST /api/shopping-list/generate - Generate new AI suggestions
         app.MapPost("/api/shopping-list/generate", async (
             InventoryRepository repository,
-            AIService gemini,
+            AIService aiService,
             ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/generate requested.");
@@ -94,7 +94,7 @@ public static class ShoppingListEndpoints
             var inventoryJson = JsonSerializer.Serialize(inventory);
 
             logger.LogInformation("Generating shopping buddy suggestions via Gemini...");
-            var aiResponse = await gemini.GenerateShoppingBuddyListAsync(historyJson, inventoryJson);
+            var aiResponse = await aiService.GenerateShoppingBuddyListAsync(historyJson, inventoryJson);
 
             if (aiResponse == null)
             {
@@ -162,7 +162,7 @@ public static class ShoppingListEndpoints
             long id,
             [FromBody] FollowUpRequest request,
             InventoryRepository repository,
-            AIService gemini,
+            AIService aiService,
             ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/follow-up requested.", id);
@@ -190,7 +190,7 @@ public static class ShoppingListEndpoints
             var inventoryJson = JsonSerializer.Serialize(inventory);
 
             logger.LogInformation("Generating follow-up shopping suggestions via Gemini...");
-            var aiResponse = await gemini.GenerateShoppingBuddyListWithContextAsync(
+            var aiResponse = await aiService.GenerateShoppingBuddyListWithContextAsync(
                 historyJson, 
                 inventoryJson, 
                 request.UserReply,
@@ -352,7 +352,7 @@ public static class ShoppingListEndpoints
             long id,
             [FromBody] ChatRequest request,
             InventoryRepository repository,
-            AIService gemini,
+            AIService aiService,
             ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/chat requested.", id);
@@ -395,7 +395,7 @@ public static class ShoppingListEndpoints
                 .ToList();
 
             // Call AI with full context
-            var chatResponse = await gemini.ChatWithShoppingListAsync(
+            var chatResponse = await aiService.ChatWithShoppingListAsync(
                 request.Message,
                 messageDtos,
                 itemDtos,

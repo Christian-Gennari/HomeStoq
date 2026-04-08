@@ -19,7 +19,7 @@ public static class ReceiptEndpoints
                 "/api/receipts/scan",
                 async (
                     IFormFile receiptImage,
-                    AIService gemini,
+                    AIService aiService,
                     InventoryRepository repository,
                     ILogger<AIService> logger,
                     IConfiguration config
@@ -36,7 +36,7 @@ public static class ReceiptEndpoints
                     var inventory = await repository.GetInventoryAsync();
                     var itemNames = inventory.Select(i => i.ItemName).ToList();
 
-                    var items = await gemini.ProcessReceiptImageAsync(
+                    var items = await aiService.ProcessReceiptImageAsync(
                         stream.ToArray(),
                         receiptImage.ContentType,
                         itemNames

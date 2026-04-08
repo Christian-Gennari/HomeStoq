@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
 
 namespace HomeStoq.App.Services;
@@ -29,7 +30,7 @@ public class GeminiProviderFactory : IAIProviderFactory
         _model = model ?? "gemini-2.5-flash-lite";
         // Gemini OpenAI-compatible endpoint
         _baseUrl = baseUrl ?? "https://generativelanguage.googleapis.com/v1beta/openai/";
-        _logger = logger ?? LoggerFactory.Create(b => b.AddConsole()).CreateLogger<GeminiProviderFactory>();
+        _logger = logger ?? NullLogger<GeminiProviderFactory>.Instance;
     }
 
     public IChatClient CreateClient()

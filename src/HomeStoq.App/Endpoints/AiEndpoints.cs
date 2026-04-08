@@ -17,15 +17,15 @@ public static class AiEndpoints
 {
     public static IEndpointRouteBuilder MapAiEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/chat", async (ChatRequestDto request, AIService gemini) => 
+        app.MapPost("/api/chat", async (ChatRequestDto request, AIService aiService) => 
         {
-            var response = await gemini.ChatAsync(request.Message, request.History);
+            var response = await aiService.ChatAsync(request.Message, request.History);
             return Results.Ok(response);
         });
 
         app.MapGet(
             "/api/insights/shopping-list",
-            async (InventoryRepository repository, AIService gemini, ILogger<AIService> logger) =>
+            async (InventoryRepository repository, AIService aiService, ILogger<AIService> logger) =>
             {
                 logger.LogInformation("GET /api/insights/shopping-list requested.");
                 var history = await repository.GetHistoryAsync(30);
@@ -44,7 +44,7 @@ public static class AiEndpoints
                 }
 
                 logger.LogInformation("Generating new shopping list suggestions via Gemini...");
-                var result = await gemini.GenerateShoppingListAsync(historyJson, inventoryJson);
+                var result = await aiService.GenerateShoppingListAsync(historyJson, inventoryJson);
                 if (result != null)
                 {
                     await repository.SetAiCacheAsync(cacheKey, result, TimeSpan.FromHours(12));
@@ -60,7 +60,7 @@ public static class AiEndpoints
             "/api/voice/command",
             async (
                 [FromBody] VoiceCommandRequestDto? request,
-                AIService gemini,
+                AIService aiService,
                 InventoryRepository repository,
                 ILogger<AIService> logger
             ) =>
@@ -76,7 +76,7 @@ public static class AiEndpoints
                 var inventory = await repository.GetInventoryAsync();
                 var itemNames = inventory.Select(i => i.ItemName).ToList();
 
-                var parsedList = await gemini.ParseVoiceCommandAsync(request.Text, itemNames);
+                var parsedList = await aiService.ParseVoiceCommandAsync(request.Text, itemNames);
 
                 if (parsedList == null || !parsedList.Any())
                 {

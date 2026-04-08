@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenAI;
 
 namespace HomeStoq.App.Services;
@@ -28,7 +29,7 @@ public class OpenRouterProviderFactory : IAIProviderFactory
         _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
         _model = model ?? "openrouter/free";
         _baseUrl = baseUrl ?? "https://openrouter.ai/api/v1";
-        _logger = logger ?? LoggerFactory.Create(b => b.AddConsole()).CreateLogger<OpenRouterProviderFactory>();
+        _logger = logger ?? NullLogger<OpenRouterProviderFactory>.Instance;
     }
 
     public IChatClient CreateClient()
