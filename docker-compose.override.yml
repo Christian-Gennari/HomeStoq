@@ -20,8 +20,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.scraper
-    # Overriding the entrypoint for development
-    entrypoint: ["/app/entrypoint-dev.sh"]
+    # Use development entrypoint with hot reload from scripts directory
+    entrypoint: ["/app/scripts/scraper-entrypoint-dev.sh"]
     environment:
       - DOTNET_USE_POLLING_FILE_WATCHER=1
       - ASPNETCORE_ENVIRONMENT=Development
@@ -29,7 +29,6 @@ services:
       - .:/app                    # Mount entire project root for Directory.Build.props
       - ./config.ini:/app/config.ini:ro
       - ./chrome-profile:/app/browser-profile
-      - ./scripts/scraper-entrypoint-dev.sh:/app/entrypoint-dev.sh
       # Prevent build artifacts and node_modules from being overwritten
       - /app/src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/bin
       - /app/src/HomeStoq.Plugins/HomeStoq.Plugins.GoogleKeepScraper/obj
