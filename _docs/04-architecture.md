@@ -112,23 +112,96 @@ Uses an isolated browser controlled by Playwright.
 
 ---
 
-### 4. The AI Integration (Google Gemini)
+### 4. The AI Integration (Hybrid Provider Architecture)
 
-HomeStoq uses Google's Gemini AI for:
+HomeStoq uses a **hybrid AI architecture** that optimizes for both reliability and flexibility:
 
-| Task | What Gemini Does |
-|------|-----------------|
-| **Receipt OCR** | Reads receipt images, extracts items, prices, stores |
-| **Voice Parsing** | Understands "slut på mjölk" → decrease milk by 1 |
-| **Shopping Buddy** | Conversational assistant that builds and manages your shopping list |
-| **Shopping Suggestions** | Analyzes 30 days of history, predicts needs |
-| **Pantry Chat** | Answers questions about inventory |
+#### Vision (Receipt Scanning) — Always Gemini
+
+Receipt OCR requires reliable multimodal support (image + text). OpenRouter's free tier has inconsistent vision capabilities, so **vision always uses Gemini** regardless of provider setting.
+
+| Vision Feature | Model Chain |
+|----------------|-------------|
+| **Receipt OCR** | Primary: `gemini-2.5-flash-lite` → Fallback: `gemini-2.5-flash` → `gemini-2.5-pro` |
+| **Format Support** | JPEG, PNG, PDF (converted to image) |
+| **Fallback Logic** | If primary model fails, automatically tries next in chain |
+
+#### General Operations (Chat/Voice/Shopping) — Configurable Provider
+
+For text-based operations, you can choose between:
+
+| Provider | Best For | Cost |
+|----------|----------|------|
+| **Gemini** (default) | Simplicity, guaranteed availability | Free tier |
+| **OpenRouter** | Cost optimization, model variety | Free tier (with limits) |
+
+**AI Tasks:**
+
+| Task | Provider Used | What It Does |
+|------|---------------|--------------|
+| **Receipt OCR** | Gemini (always) | Reads receipt images, extracts items, prices, stores |
+| **Voice Parsing** | Configurable | Understands "slut på mjölk" → decrease milk by 1 |
+| **Shopping Buddy** | Configurable | Conversational assistant that builds shopping lists |
+| **Shopping Suggestions** | Configurable | Analyzes history, predicts needs |
+| **Pantry Chat** | Configurable | Answers questions about inventory |
 
 **How it's integrated:**
-- Uses `Google.GenAI` SDK
-- Wrapped with `Microsoft.Extensions.AI` for flexibility
+- **Vision:** Native `Google.GenAI` SDK for reliable multimodal support
+- **General:** `Microsoft.Extensions.AI` with provider factory pattern
 - Supports both Swedish and English
 - Function calling enables chat to query your actual database
+
+#### Provider Factory Pattern
+
+```csharp
+// Factory creates appropriate client based on config
+public interface IAIProviderFactory
+{
+    IChatClient CreateClient();
+}
+
+// Gemini provider (native SDK for vision, OpenAI-compatible for text)
+public class GeminiProviderFactory : IAIProviderFactory { ... }
+
+// OpenRouter provider (OpenAI-compatible endpoint)
+public class OpenRouterProviderFactory : IAIProviderFactory { ... }
+```
+
+#### Resilience & Fallback
+
+**Vision Model Chain (receipt scanning):**
+```
+User uploads receipt
+    ↓
+Try gemini-2.5-flash-lite (2 attempts)
+    ↓
+If fails → Try gemini-2.5-flash (2 attempts)
+    ↓
+If fails → Try gemini-2.5-pro (2 attempts)
+    ↓
+If all fail → Return "Receipt scanning temporarily unavailable"
+```
+
+**Configuration (`config.ini`):**
+```ini
+[AI]
+Provider=Gemini                          ; Gemini | OpenRouter
+GeminiModel=gemini-2.5-flash-lite
+OpenRouterModel=openrouter/free
+
+[AI.Vision]
+FallbackModels=gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.5-pro
+MaxAttemptsPerModel=2
+
+[AI.Resilience]
+EnableRetry=true
+RetryAttempts=3
+RetryBaseDelayMs=1000
+```
+
+**API Keys Required:**
+- `GEMINI_API_KEY` — **Always required** (receipt scanning)
+- `OPENROUTER_API_KEY` — Required only when `Provider=OpenRouter`
 
 ---
 
@@ -299,10 +372,10 @@ Plus a **Chat slide-over** accessible from any tab for general pantry queries.
 
 ### What Goes to External Services
 
-⚠️ **Gemini API:**
-- Receipt images (for OCR)
-- Voice command text (for parsing)
-- Chat messages (for responses)
+⚠️ **AI Providers:**
+- **Receipt images** → Always sent to Gemini (for OCR)
+- **Voice command text** → Sent to configured provider (Gemini or OpenRouter) for parsing
+- **Chat messages** → Sent to configured provider (Gemini or OpenRouter) for responses
 
 ⚠️ **Google Keep:**
 - Voice commands you add (temporarily, until processed)
@@ -310,7 +383,8 @@ Plus a **Chat slide-over** accessible from any tab for general pantry queries.
 **Mitigations:**
 - Use a dedicated Google account (not your main)
 - No personal data in voice commands (just "slut på mjölk")
-- Gemini API can be monitored and rate-limited
+- API keys can be monitored and rate-limited
+- Receipt images sent to Gemini are processed and discarded (not stored by Google)
 
 ---
 

@@ -38,11 +38,15 @@ npm run setup
 
 ### Step 3: Add Your Credentials (API Key Required)
 
-Open `.env` and add your Gemini API key:
+Open `.env` and add your API keys:
 
 ```bash
-# Required
-GEMINI_API_KEY=your_key_here
+# REQUIRED for ALL setups (receipt scanning always uses Gemini)
+GEMINI_API_KEY=your_gemini_key_here
+
+# REQUIRED only when Provider=OpenRouter in config.ini
+# Get key at: https://openrouter.ai/keys
+# OPENROUTER_API_KEY=sk-or-v1-your_openrouter_key_here
 
 # Google Keep Login - OPTIONAL and NOT recommended with 2FA
 # If you have 2FA enabled, SKIP these and use manual login instead
@@ -52,8 +56,21 @@ GEMINI_API_KEY=your_key_here
 # GOOGLE_PASSWORD=your_password
 ```
 
+**Important API Key Rules:**
+- **GEMINI_API_KEY is ALWAYS required** — Receipt scanning uses Gemini regardless of provider setting
+- **OPENROUTER_API_KEY only when `Provider=OpenRouter`** — Required for chat/voice when using OpenRouter
+- Both keys can coexist — The active provider determines which is used for general AI
+
 **2FA Users:** Leave `GOOGLE_USERNAME` and `GOOGLE_PASSWORD` blank/commented. 
 You'll log in manually via noVNC in Step 5.
+
+**Want to try OpenRouter?** After setup, edit `config.ini`:
+```ini
+[AI]
+Provider=OpenRouter
+# Make sure OPENROUTER_API_KEY is set in .env!
+```
+Then restart: `npm run stop && npm run dev`
 
 ### Step 4: Start Everything
 
@@ -209,14 +226,43 @@ account has 2FA enabled. Every container restart triggers a login attempt.
 4. Look at scraper logs — is it finding your list? Processing items?
 5. Try a manual test: add text directly to the Keep list, see if scraper picks it up
 
-### "Gemini API errors"
+### "AI API errors"
 
 **Problem:** Receipt scanning or chat returns API errors.
 
 **Solutions:**
-1. Verify your `GEMINI_API_KEY` is correct in `.env`
-2. Check you haven't hit rate limits (free tier has limits)
-3. Try a different model in `config.ini`: `Model=gemini-2.5-flash`
+
+**For ALL providers (Gemini AND OpenRouter):**
+1. ✅ Verify `GEMINI_API_KEY` is correct in `.env` — **This is ALWAYS required for receipt scanning**
+2. Check logs for specific error messages
+3. Restart containers: `npm run stop && npm run dev`
+
+**For Gemini provider (default):**
+- Rate limits? Try a different model in `config.ini`:
+  ```ini
+  [AI]
+  GeminiModel=gemini-2.5-flash  # Higher rate limits than flash-lite
+  ```
+- Vision errors? Check `AI.Vision` fallback models in `config.ini`
+
+**For OpenRouter provider (if configured):**
+- Ensure `OPENROUTER_API_KEY` is set in `.env`
+- Check if you're hitting free tier limits (20 RPM / 200 requests/day)
+- Switch back to Gemini if needed:
+  ```ini
+  [AI]
+  Provider=Gemini
+  ```
+
+**Receipt scanning specifically not working?**
+- This **always** uses Gemini, even when `Provider=OpenRouter`
+- Check `GEMINI_API_KEY` is set correctly
+- Vision uses a model fallback chain — check logs for which models were tried
+- Add more fallback models in `config.ini` if needed:
+  ```ini
+  [AI.Vision]
+  FallbackModels=gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.5-pro
+  ```
 
 ### "Permission denied" or "port already in use"
 
