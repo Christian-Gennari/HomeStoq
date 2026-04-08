@@ -340,11 +340,7 @@ profile isolation (`--user-data-dir`). This is safe for home server use.
 
 1. **Check scraper is running:**
    ```bash
-   # If running in Docker:
    docker logs homestoq-scraper-1
-   
-   # If running locally:
-   npm run scraper:local
    ```
    Look for: `[INFO] Connected to Chrome via CDP`
 
