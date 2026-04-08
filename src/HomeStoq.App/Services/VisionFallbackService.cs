@@ -1,9 +1,9 @@
 using System.ClientModel;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using OpenAI;
-using OpenAI.Chat;
+using ChatClient = OpenAI.Chat.ChatClient;
+using MeaiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace HomeStoq.App.Services;
 
@@ -42,7 +42,7 @@ public class VisionFallbackService : IChatClient
     }
 
     public async Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages,
+        IEnumerable<MeaiChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
@@ -108,14 +108,35 @@ public class VisionFallbackService : IChatClient
     }
 
     public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages,
+        IEnumerable<MeaiChatMessage> messages,
         ChatOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
-        // Vision OCR typically doesn't need streaming, but implement for completeness
-        return GetResponseAsync(messages, options, cancellationToken)
-            .ToAsyncEnumerable()
-            .SelectMany(r => r.ToChatResponseUpdates());
+        // Vision OCR doesn't support streaming - return non-streaming response wrapped
+        _logger.LogDebug("Streaming not supported for vision requests, using standard response");
+        
+        async IAsyncEnumerable<ChatResponseUpdate> StreamResponse()
+        {
+            var response = await GetResponseAsync(messages, options, cancellationToken);
+            if (!string.IsNullOrEmpty(response.Text))
+            {
+                yield return new ChatResponseUpdate(ChatRole.Assistant, response.Text);
+            }
+        }
+        
+        return StreamResponse();
+    }
+
+    public object? GetService(Type serviceType, object? key = null)
+    {
+        // No additional services provided by this client
+        return null;
+    }
+
+    public void Dispose()
+    {
+        // No disposable resources held by this service
+        GC.SuppressFinalize(this);
     }
 
     private bool IsProviderError(Exception ex) => ex switch
@@ -131,11 +152,6 @@ public class VisionFallbackService : IChatClient
     private int CalculateDelay(int modelIndex, int attempt)
     {
         // Exponential backoff: base 1s, doubles per attempt, with jitter
-        // Model 0, Attempt 1: ~1.1s
-        // Model 0, Attempt 2: ~2.3s
-        // Model 1, Attempt 1: ~4.1s
-        // Model 1, Attempt 2: ~8.2s
-        // etc.
         var baseDelay = 1000 * Math.Pow(2, modelIndex * 2 + attempt - 1);
         var cappedDelay = Math.Min(baseDelay, 10000);  // Cap at 10s
         var jitter = Random.Shared.Next(100, 500);
@@ -151,19 +167,5 @@ public class VisionFallbackService : IChatClient
         };
         
         return new ChatClient(model, credential, options).AsIChatClient();
-    }
-}
-
-// Extension method for IAsyncEnumerable
-file static class AsyncEnumerableExtensions
-{
-    public static IAsyncEnumerable<T> SelectMany<T>(this IAsyncEnumerable<IEnumerable<T>> source)
-    {
-        return source.SelectMany(x => x.ToAsyncEnumerable());
-    }
-
-    private static IAsyncEnumerable<T> SelectMany<T>(this IAsyncEnumerable<IEnumerable<T>> source, Func<IEnumerable<T>, IAsyncEnumerable<T>> selector)
-    {
-        return source.SelectMany(selector);
     }
 }

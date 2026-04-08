@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using MeaiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace HomeStoq.App.Services;
 
@@ -26,7 +27,7 @@ public class HybridAIClient : IChatClient
     }
 
     public async Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages,
+        IEnumerable<MeaiChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
@@ -64,9 +65,9 @@ public class HybridAIClient : IChatClient
     }
 
     public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages,
+        IEnumerable<MeaiChatMessage> messages,
         ChatOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         bool isVisionRequest = AIContentInspector.ContainsVisionContent(messages);
         var client = isVisionRequest ? _visionClient : _generalClient;
@@ -81,5 +82,19 @@ public class HybridAIClient : IChatClient
         }
 
         return client.GetStreamingResponseAsync(messages, options, cancellationToken);
+    }
+
+    public object? GetService(Type serviceType, object? key = null)
+    {
+        // Delegate to general client for service resolution
+        return _generalClient.GetService(serviceType, key);
+    }
+
+    public void Dispose()
+    {
+        // Dispose both clients
+        _visionClient.Dispose();
+        _generalClient.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
