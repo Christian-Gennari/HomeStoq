@@ -5,7 +5,9 @@
 
 This document describes all API endpoints available in HomeStoq. It's intended for developers integrating with or extending the system.
 
-**Base URL:** `http://localhost:5050/api` (or your configured `HostUrl`)
+**Base URL:** `http://localhost:5050/api` (or your configured `HostUrl` — check `config.ini` for the port)
+
+> **Note:** The default port is 5050, but you may have changed it in `config.ini`. All examples below use `:5050` — replace with your actual port.
 
 ---
 
@@ -477,27 +479,29 @@ If implementing real-time updates:
 
 ### cURL Examples
 
+> **Replace 5050** with your configured port from `config.ini` if different.
+
 **Get inventory:**
 ```bash
-curl http://localhost:5000/api/inventory
+curl http://localhost:5050/api/inventory
 ```
 
 **Update quantity:**
 ```bash
-curl -X POST http://localhost:5000/api/inventory/update \
+curl -X POST http://localhost:5050/api/inventory/update \
   -H "Content-Type: application/json" \
   -d '{"itemName":"Mjölk","quantityChange":-1}'
 ```
 
 **Scan receipt:**
 ```bash
-curl -X POST http://localhost:5000/api/receipts/scan \
+curl -X POST http://localhost:5050/api/receipts/scan \
   -F "receiptImage=@receipt.jpg"
 ```
 
 **Chat:**
 ```bash
-curl -X POST http://localhost:5000/api/chat \
+curl -X POST http://localhost:5050/api/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"How much milk?"}'
 ```

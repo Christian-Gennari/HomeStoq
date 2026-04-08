@@ -9,6 +9,66 @@ HomeStoq is configured through two files:
 
 ---
 
+## Accessing HomeStoq
+
+Before diving into configuration files, here's how to determine the URL you'll use to access HomeStoq from different devices.
+
+### Default Ports
+
+| Service | Default | Configured In | Purpose |
+|---------|---------|---------------|---------|
+| HomeStoq Web App | 5050 | `[App]` → `HostUrl` | Main web interface (inventory, scanning, chat) |
+| noVNC (Remote Desktop) | 6080 | `docker-compose.yml` | Viewing Chrome for Google Keep login |
+
+### Finding Your Server's IP Address
+
+To access HomeStoq from your phone or other devices, you need your server's local IP:
+
+**Windows:**
+```powershell
+ipconfig
+# Look for "IPv4 Address" under your active network adapter (e.g., 192.168.1.50)
+```
+
+**Mac:**
+```bash
+ipconfig getifaddr en0
+# Alternative: ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+
+**Linux:**
+```bash
+hostname -I
+# Alternative: ip addr show | grep "inet " | grep -v 127.0.0.1
+```
+
+### Constructing Your HomeStoq URL
+
+Once you have your IP and port:
+
+```
+http://192.168.1.50:5050
+```
+
+**Examples:**
+- Local access: `http://localhost:5050`
+- From phone on same network: `http://192.168.1.50:5050` (use your actual IP)
+
+### Troubleshooting Access
+
+**"Can't connect from my phone":**
+1. Verify both devices are on the same WiFi network
+2. Check `config.ini` has `HostUrl=http://*:5050` (the `*` is essential for external access)
+3. Try disabling mobile data on your phone (force WiFi only)
+4. Some routers block inter-device communication — check router "AP isolation" settings
+
+**"Connection refused":**
+- HomeStoq not running: `npm run dev`
+- Wrong port: Check `config.ini` `[App]` → `HostUrl`
+- Port already in use: Change to another port (e.g., `http://*:8080`)
+
+---
+
 ## The `.env` File
 
 This file contains sensitive information. Never commit it to git.

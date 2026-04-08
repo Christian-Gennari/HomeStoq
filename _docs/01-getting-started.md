@@ -84,21 +84,25 @@ This will build and start the Docker containers.
 
 If you didn't provide Google credentials in Step 3 (recommended for 2FA users):
 
-1. Open `http://localhost:6080` in your browser.
+1. Open `http://localhost:6080` in your browser (the noVNC interface — separate from HomeStoq's API port).
 2. It will **automatically redirect** to the noVNC interface (`vnc_auto.html`).
 3. You'll see the Chrome window running inside the container.
 4. Log into Google Keep manually in the browser.
 5. The session will be saved to the `chrome-profile` volume and persist across restarts.
+
+> **Port clarification:** Port 6080 is the noVNC remote desktop (for viewing Chrome). HomeStoq's web interface is on a different port (default 5050 — see below).
 
 > **Note:** The session persists because we use a Docker volume (`chrome-profile`) 
 > to store Chrome's user data between container restarts.
 
 ### Step 6: Verify It Works
 
-1. Open `http://localhost:5050` in your browser.
+1. Open HomeStoq in your browser at `http://localhost:5050` (or whatever port you configured in `config.ini`).
 2. You should see the HomeStoq dashboard.
 
 🎉 **You're done!** HomeStoq is now running.
+
+> **Can't access from other devices?** See [Accessing HomeStoq](#accessing-homestoq-from-other-devices) below for finding your server's IP address.
 
 ---
 
@@ -121,6 +125,56 @@ Changes to `config.ini` take effect after restarting the containers:
 ```bash
 npm run stop && npm run dev
 ```
+
+---
+
+## Accessing HomeStoq From Other Devices
+
+By default, HomeStoq runs on **port 5050** (configurable in `config.ini`). To access it from your phone or other devices on your network:
+
+### 1. Find Your Server's IP Address
+
+**Windows:**
+```powershell
+ipconfig
+# Look for "IPv4 Address" under your active network adapter
+```
+
+**Mac:**
+```bash
+ipconfig getifaddr en0
+# Or: ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+
+**Linux:**
+```bash
+hostname -I
+# Or: ip addr show | grep "inet " | grep -v 127.0.0.1
+```
+
+### 2. Construct Your HomeStoq URL
+
+Once you know your IP (e.g., `192.168.1.50`) and port (check `config.ini`):
+
+```
+http://192.168.1.50:5050
+```
+
+| Service | Default Port | Purpose |
+|---------|--------------|---------|
+| HomeStoq App | 5050 (configurable) | Main web interface |
+| noVNC (remote desktop) | 6080 | View/controlling Chrome for Keep login |
+
+### 3. Common Issues
+
+**"Can't connect" from phone:**
+- Verify both devices are on the same WiFi network
+- Check `config.ini` has `HostUrl=http://*:5050` (the `*` allows external connections)
+- Some routers block inter-device communication — check router settings
+
+**"Connection refused":**
+- HomeStoq is not running: `npm run dev`
+- Wrong port: Check `config.ini` `[App]` section for `HostUrl`
 
 ---
 
@@ -158,11 +212,15 @@ BrowserMode=RemoteDebugging   # RemoteDebugging (default) or Playwright
 
 | Command | What It Does |
 |---------|--------------|
-| `npm run dev` | Start API + Scraper locally |
-| `npm run api` | Start just the API |
-| `npm run scraper` | Start just the scraper |
-| `npm run stop` | Stop Docker containers |
+| `npm run dev` | Start API + Scraper in Docker (recommended) |
+| `npm run dev:local` | Start API + Scraper locally (requires .NET installed) |
+| `npm run api:local` | Start just the API locally |
+| `npm run scraper:local` | Start just the scraper locally |
+| `npm run docker:build` | Rebuild Docker containers after code changes |
+| `npm run docker:down` | Stop Docker containers |
+| `npm run docker:clean` | Full reset (removes volumes and rebuilds) |
 | `npm run clean` | Remove build artifacts |
+| `npm run setup` | Run initial setup wizard |
 | `npm run help` | Show all available commands |
 
 ---
@@ -177,14 +235,14 @@ BrowserMode=RemoteDebugging   # RemoteDebugging (default) or Playwright
 account has 2FA enabled. Every container restart triggers a login attempt.
 
 **Solution:**
-1. Stop HomeStoq: `npm run stop`
+1. Stop HomeStoq: `npm run docker:down`
 2. Edit `.env` and comment out the Google credentials:
    ```bash
    # GOOGLE_USERNAME=...
    # GOOGLE_PASSWORD=...
    ```
 3. Restart: `npm run dev`
-4. Open `http://localhost:6080` and log in **once** via noVNC
+4. Open `http://localhost:6080` (noVNC remote desktop) and log in **once** via the Chrome window
 5. The session will persist; no more 2FA spam
 
 ### "Chrome doesn't open"
@@ -266,12 +324,13 @@ account has 2FA enabled. Every container restart triggers a login attempt.
 
 ### "Permission denied" or "port already in use"
 
-**Problem:** HomeStoq can't bind to port (default is 5050).
+**Problem:** HomeStoq can't bind to the configured port (default is 5050).
 
 **Solutions:**
-1. Change `HostUrl` in `config.ini`: `HostUrl=http://*:8080` (or any available port)
-2. On Linux/Mac: run with `sudo` for ports below 1024
-3. Check what's using the port: `lsof -i :5050`
+1. Change `HostUrl` in `config.ini`: `HostUrl=http://*:8080` (or any available port above 1024)
+2. On Linux/Mac: Only use `sudo` for ports below 1024 (not recommended — use a higher port instead)
+3. Check what's using the port: `lsof -i :5050` (adjust port number as needed)
+4. After changing `config.ini`, restart: `npm run docker:down && npm run dev`
 
 ---
 
@@ -290,9 +349,10 @@ Now that you're set up:
 
 If you've tried the above and still have issues:
 
-1. Check the logs: `npm run scraper` shows detailed output
-2. Enable debug logging: set `LOG_LEVEL=Debug` in `.env`
-3. [Open a GitHub Issue](https://github.com/Christian-Gennari/HomeStoq/issues) with:
+1. Check the logs: `npm run dev` and watch the output, or `docker logs homestoq-scraper-1`
+2. Enable debug logging: set `LOG_LEVEL=Debug` in `.env` and restart
+3. Verify your URL and port: Check `config.ini` `[App]` section for `HostUrl`
+4. [Open a GitHub Issue](https://github.com/Christian-Gennari/HomeStoq/issues) with:
    - What you tried
    - Relevant log snippets
-   - Your OS and HomeStoq version
+   - Your OS, HomeStoq version, and `HostUrl` from `config.ini`

@@ -67,13 +67,13 @@ HomeStoq/
 
 HomeStoq is designed to be developed entirely within Docker. This ensures a consistent environment and removes the need for local .NET installations.
 
-### Build & Run (Docker)
+### Build & Run (Docker — Recommended)
 
 ```bash
 # Start the full stack with hot-reloading
 npm run dev
 
-# Rebuild all containers from scratch
+# Rebuild all containers from scratch (after .cs changes)
 npm run docker:build
 
 # Stop all containers
@@ -82,6 +82,8 @@ npm run docker:down
 # Clean the environment (removes volumes and builds)
 npm run docker:clean
 ```
+
+> **Ports during development:** HomeStoq runs on port 5050 (default), noVNC on 6080. Check `config.ini` if you changed the API port.
 
 **Hot Reloading:** Both the main App and the Scraper use `dotnet watch` inside their containers. Any changes to C#, CSS, or JS files will trigger an automatic reload.
 
@@ -474,8 +476,10 @@ Use browser DevTools Network tab to inspect:
 
 Or use curl:
 ```bash
-curl -v http://localhost:5000/api/inventory
+curl -v http://localhost:5050/api/inventory
 ```
+
+> Replace 5050 with your configured port from `config.ini`.
 
 ---
 
@@ -534,10 +538,12 @@ sqlite3 data/homestoq.db "SELECT * FROM Inventory;"
 ### Simulate Voice Command (Testing)
 
 ```bash
-curl -X POST http://localhost:5000/api/voice/command \
+curl -X POST http://localhost:5050/api/voice/command \
   -H "Content-Type: application/json" \
   -d '{"text":"slut på mjölk"}'
 ```
+
+> Replace 5050 with your configured port from `config.ini`.
 
 ---
 
