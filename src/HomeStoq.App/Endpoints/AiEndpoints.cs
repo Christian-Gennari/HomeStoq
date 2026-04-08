@@ -17,7 +17,7 @@ public static class AiEndpoints
 {
     public static IEndpointRouteBuilder MapAiEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/chat", async (ChatRequestDto request, GeminiService gemini) => 
+        app.MapPost("/api/chat", async (ChatRequestDto request, AIService gemini) => 
         {
             var response = await gemini.ChatAsync(request.Message, request.History);
             return Results.Ok(response);
@@ -25,7 +25,7 @@ public static class AiEndpoints
 
         app.MapGet(
             "/api/insights/shopping-list",
-            async (InventoryRepository repository, GeminiService gemini, ILogger<GeminiService> logger) =>
+            async (InventoryRepository repository, AIService gemini, ILogger<AIService> logger) =>
             {
                 logger.LogInformation("GET /api/insights/shopping-list requested.");
                 var history = await repository.GetHistoryAsync(30);
@@ -60,9 +60,9 @@ public static class AiEndpoints
             "/api/voice/command",
             async (
                 [FromBody] VoiceCommandRequestDto? request,
-                GeminiService gemini,
+                AIService gemini,
                 InventoryRepository repository,
-                ILogger<GeminiService> logger
+                ILogger<AIService> logger
             ) =>
             {
                 if (request == null || string.IsNullOrWhiteSpace(request.Text))

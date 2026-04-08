@@ -19,9 +19,9 @@ public static class ReceiptEndpoints
                 "/api/receipts/scan",
                 async (
                     IFormFile receiptImage,
-                    GeminiService gemini,
+                    AIService gemini,
                     InventoryRepository repository,
-                    ILogger<GeminiService> logger,
+                    ILogger<AIService> logger,
                     IConfiguration config
                 ) =>
                 {

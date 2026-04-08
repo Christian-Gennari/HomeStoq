@@ -5,9 +5,9 @@ using HomeStoq.Shared.DTOs;
 using HomeStoq.Shared.Utils;
 using HomeStoq.App.Repositories;
 using HomeStoq.App.Services;
+using HomeStoq.App.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
-using Google.GenAI;
 using HomeStoq.App.Endpoints;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,20 +38,77 @@ builder.Configuration.AddIniFile(configIniPath, optional: true, reloadOnChange: 
 builder.Services.AddDbContext<HomeStoq.App.Data.PantryDbContext>(options =>
     options.UseSqlite($"Data Source={PathHelper.ResolveDatabasePath()}"));
 
-// Register AI Client
-var apiKey = builder.Configuration["GEMINI_API_KEY"] ?? throw new InvalidOperationException("GEMINI_API_KEY not configured");
-var modelId = builder.Configuration["AI:Model"] ?? "gemini-3.1-flash-lite-preview";
-var googleClient = new Client(apiKey: apiKey);
+// Register AI Provider and Client
+// Read API keys from environment (not config.ini - security best practice)
+var geminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+var openRouterApiKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+
+// Read provider configuration from config.ini
+var aiProvider = builder.Configuration["AI:Provider"] ?? "Gemini";
+var geminiModel = builder.Configuration["AI:GeminiModel"] ?? "gemini-2.5-flash-lite";
+var geminiBaseUrl = builder.Configuration["AI:GeminiBaseUrl"];
+var openRouterModel = builder.Configuration["AI:OpenRouterModel"] ?? "openrouter/free";
+var openRouterBaseUrl = builder.Configuration["AI:OpenRouterBaseUrl"];
+
+// Create appropriate provider factory
+IAIProviderFactory providerFactory;
+if (aiProvider.Equals("OpenRouter", StringComparison.OrdinalIgnoreCase))
+{
+    if (string.IsNullOrEmpty(openRouterApiKey))
+    {
+        throw new InvalidOperationException("OPENROUTER_API_KEY environment variable is required when Provider=OpenRouter");
+    }
+    
+    providerFactory = new OpenRouterProviderFactory(
+        openRouterApiKey,
+        openRouterModel,
+        openRouterBaseUrl,
+        logger: null); // Logger will be created internally
+}
+else
+{
+    // Default to Gemini
+    if (string.IsNullOrEmpty(geminiApiKey))
+    {
+        throw new InvalidOperationException("GEMINI_API_KEY environment variable is required when Provider=Gemini (or by default)");
+    }
+    
+    providerFactory = new GeminiProviderFactory(
+        geminiApiKey,
+        geminiModel,
+        geminiBaseUrl,
+        logger: null); // Logger will be created internally
+}
+
+// Register the provider factory as singleton
+builder.Services.AddSingleton(providerFactory);
+
+// Register IChatClient using the factory
 builder.Services.AddSingleton<IChatClient>(sp =>
-    googleClient.AsIChatClient(modelId)
+{
+    var factory = sp.GetRequiredService<IAIProviderFactory>();
+    return factory.CreateClient()
         .AsBuilder()
         .UseFunctionInvocation()
-        .Build());
+        .Build();
+});
+
+// Bind configuration options
+builder.Services.Configure<AIProviderOptions>(options =>
+{
+    options.Provider = aiProvider;
+    options.GeminiModel = geminiModel;
+    options.GeminiBaseUrl = geminiBaseUrl;
+    options.OpenRouterModel = openRouterModel;
+    options.OpenRouterBaseUrl = openRouterBaseUrl;
+});
+
+builder.Services.Configure<AIResilienceOptions>(builder.Configuration.GetSection("AI:Resilience"));
 
 builder.Services.AddScoped<HomeStoq.App.Data.DbInitializer>();
 builder.Services.AddSingleton<PromptProvider>();
 builder.Services.AddScoped<InventoryRepository>();
-builder.Services.AddScoped<GeminiService>();
+builder.Services.AddScoped<AIService>(); // Renamed from GeminiService
 builder.Services.AddHttpClient();
 
 builder.Services.ConfigureHttpJsonOptions(options =>

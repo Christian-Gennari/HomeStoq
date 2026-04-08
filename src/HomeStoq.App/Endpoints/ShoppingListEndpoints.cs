@@ -16,7 +16,7 @@ public static class ShoppingListEndpoints
         // GET /api/shopping-list/current - Get current Draft/Active list
         app.MapGet("/api/shopping-list/current", async (
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("GET /api/shopping-list/current requested.");
             
@@ -54,7 +54,7 @@ public static class ShoppingListEndpoints
         // POST /api/shopping-list/create - Create a blank list session (no AI, no pre-populated items)
         app.MapPost("/api/shopping-list/create", async (
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/create requested.");
 
@@ -73,8 +73,8 @@ public static class ShoppingListEndpoints
         // POST /api/shopping-list/generate - Generate new AI suggestions
         app.MapPost("/api/shopping-list/generate", async (
             InventoryRepository repository,
-            GeminiService gemini,
-            ILogger<GeminiService> logger) =>
+            AIService gemini,
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/generate requested.");
 
@@ -162,8 +162,8 @@ public static class ShoppingListEndpoints
             long id,
             [FromBody] FollowUpRequest request,
             InventoryRepository repository,
-            GeminiService gemini,
-            ILogger<GeminiService> logger) =>
+            AIService gemini,
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/follow-up requested.", id);
 
@@ -250,7 +250,7 @@ public static class ShoppingListEndpoints
             long itemId,
             [FromBody] UpdateItemRequest request,
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("PUT /api/shopping-list/{Id}/items/{ItemId} requested.", id, itemId);
 
@@ -270,7 +270,7 @@ public static class ShoppingListEndpoints
             long id,
             [FromBody] AddItemRequest request,
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/items requested.", id);
 
@@ -298,7 +298,7 @@ public static class ShoppingListEndpoints
         app.MapPost("/api/shopping-list/{id}/commit", async (
             long id,
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/commit requested.", id);
 
@@ -311,7 +311,7 @@ public static class ShoppingListEndpoints
         app.MapPost("/api/shopping-list/{id}/complete", async (
             long id,
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/complete requested.", id);
 
@@ -323,7 +323,7 @@ public static class ShoppingListEndpoints
         // GET /api/shopping-list/history - Past lists
         app.MapGet("/api/shopping-list/history", async (
             InventoryRepository repository,
-            ILogger<GeminiService> logger,
+            ILogger<AIService> logger,
             int limit = 20) =>
         {
             logger.LogInformation("GET /api/shopping-list/history requested.");
@@ -352,8 +352,8 @@ public static class ShoppingListEndpoints
             long id,
             [FromBody] ChatRequest request,
             InventoryRepository repository,
-            GeminiService gemini,
-            ILogger<GeminiService> logger) =>
+            AIService gemini,
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/chat requested.", id);
 
@@ -459,7 +459,7 @@ public static class ShoppingListEndpoints
             long id,
             [FromBody] ConfirmRequest request,
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/confirm requested.", id);
 
@@ -521,7 +521,7 @@ public static class ShoppingListEndpoints
             long id,
             [FromBody] SaveRequest request,
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/save requested.", id);
 
@@ -568,7 +568,7 @@ public static class ShoppingListEndpoints
         // GET /api/shopping-list/saved - Get saved list for sidebar
         app.MapGet("/api/shopping-list/saved", async (
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("GET /api/shopping-list/saved requested.");
 
@@ -597,7 +597,7 @@ public static class ShoppingListEndpoints
         // GET /api/shopping-list/saved/all - Get all saved lists for browsing
         app.MapGet("/api/shopping-list/saved/all", async (
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("GET /api/shopping-list/saved/all requested.");
 
@@ -624,7 +624,7 @@ public static class ShoppingListEndpoints
         app.MapDelete("/api/shopping-list/{id}", async (
             long id,
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("DELETE /api/shopping-list/{Id} requested.", id);
 
@@ -643,7 +643,7 @@ public static class ShoppingListEndpoints
         app.MapPost("/api/shopping-list/{id}/items/clear", async (
             long id,
             InventoryRepository repository,
-            ILogger<GeminiService> logger) =>
+            ILogger<AIService> logger) =>
         {
             logger.LogInformation("POST /api/shopping-list/{Id}/items/clear requested.", id);
 
