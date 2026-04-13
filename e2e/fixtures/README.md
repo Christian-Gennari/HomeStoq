@@ -1,37 +1,59 @@
 # E2E Test Fixtures
 
-## Google Keep DOM Snapshot
+## Google Keep DOM Harness
 
-The file `keep-list-snapshot.html` should be placed here.
+`keep-list-snapshot.html` is a self-contained, deterministic harness page that mirrors the Google Keep DOM structure the scraper relies on.
 
-### Required DOM Elements
+### Two-List Structure
 
-The snapshot must mirror the Google Keep DOM structure that the scraper relies on
-(see `KeepListProcessor.cs` for the selectors used):
+The harness includes both lists matching the real Google Keep setup:
 
-| Element | Selector | Notes |
-|---------|----------|-------|
-| List title | `GetByText(listName, { Exact: true })` | Click to open/expand the list |
-| Sidebar list labels | `GetByText(listName)` | Fallback when list not in main view |
-| Checkboxes (unchecked) | `AriaRole.Checkbox` | `aria-checked="false"` — the main interaction target |
-| Checkboxes (checked) | `AriaRole.Checkbox` | `aria-checked="true"` — already-processed items |
-| List item text | Parent→parent of checkbox | The grocery item name (e.g. "Milk", "Bread") |
-| "More" / "Mer" button | `AriaRole.Button` | Opens the note menu |
-| "Delete ticked items" menu | `AriaRole.Menuitem` | Text: "Delete ticked items" or "Ta bort markerade objekt" |
-| "Done" / "Stäng" button | `AriaRole.Button` | Closes the expanded note |
+| List Name | Unchecked Items | Checked Items |
+|-----------|----------------|---------------|
+| `inköpslista` | Milk, Bread, Eggs, Coffee | Rice |
+| `inköpslistan` | Potatoes, Feta cheese | Butter |
 
-### Inline JS Handlers
+### DOM Selectors (Matching KeepListProcessor.cs)
 
-Add minimal event handlers so the harness page is interactive:
+| Element | Selector | Harness Implementation |
+|---------|----------|----------------------|
+| List title (card) | `GetByText(listName, { Exact: true })` | `div.IZ65Hb-YPqjbf` with exact text |
+| List title (sidebar) | `GetByText(listName)` fallback | `div[role="tab"][data-list-name]` |
+| Checkboxes | `AriaRole.Checkbox` | `div.Q0hgme-MPu53c[role="checkbox"][aria-checked]` |
+| Item text | Parent→parent→of checkbox → `span` | `span.vIzZGf-fmcmS` (same class as real Keep) |
+| "More" button | `AriaRole.Button`, `aria-label="More"` | `button[aria-label="More"]` |
+| "Delete ticked items" | `AriaRole.Menuitem` | `div[role="menuitem"]` — EN + SV variants |
+| "Close" button | `AriaRole.Button`, text "Close" | `button.close-btn[aria-label="Close"]` |
 
-- **Checkboxes:** Toggle `aria-checked` on click
-- **"More" button:** Show/hide the context menu
-- **"Delete ticked items":** Remove checked checkboxes from the DOM
-- **"Done" button:** Close/hide the expanded note
+### Interactive JS Handlers
 
-### Sanitization
+- **Checkbox click**: Toggles `aria-checked` between `"true"`/`"false"`, applies strikethrough + gray styling on checked items
+- **List title click** (card or sidebar): Opens expanded dialog view with checklist
+- **"More" button click**: Toggles context menu visibility
+- **"Delete ticked items" click**: Removes all `aria-checked="true"` items from DOM, hides menu, syncs back to card view
+- **"Close" button click**: Closes expanded dialog, syncs changes back to card view
+- **Backdrop click**: Closes expanded dialog
 
-Remove all personal data from the snapshot before committing:
-- Replace real email addresses with `test@example.com`
-- Replace real item names with generics like "Milk", "Bread", "Eggs"
-- Remove any Google session tokens or auth cookies
+### Session Expiration Simulation
+
+Call `window.simulateSessionExpiry()` from a test to redirect to `accounts.google.com` — this simulates the expired session scenario described in issue #8.
+
+### Serving the Harness
+
+```bash
+# Python
+python3 -m http.server 8080 --directory e2e/fixtures
+
+# Node
+npx serve e2e/fixtures -l 8080
+```
+
+Then navigate to `http://localhost:8080/keep-list-snapshot.html`.
+
+### Sanitization Note
+
+All personal data has been replaced:
+- Email: `test@example.com`
+- Real item names replaced with generic English items
+- No Google session tokens, auth cookies, or profile image URLs
+- All Google JS framework code replaced with minimal inline handlers

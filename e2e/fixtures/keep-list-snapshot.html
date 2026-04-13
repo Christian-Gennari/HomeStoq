@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Keep - E2E Test Harness</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Google Sans Text', Roboto, Arial, sans-serif; background: #f0f4f9; color: #202124; }
+
+.notes-container { display: flex; height: 100vh; }
+
+.sidebar { width: 250px; background: #fff; padding: 8px 0; overflow-y: auto; flex-shrink: 0; }
+.sidebar-label { role: tab; padding: 0 24px; height: 32px; line-height: 32px; cursor: pointer; font-size: 14px; border-radius: 0 16px 16px 0; display: flex; align-items: center; gap: 16px; }
+.sidebar-label:hover { background: #e8eaed; }
+.sidebar-label svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.main-view { flex: 1; padding: 24px; overflow-y: auto; }
+
+.cards-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+
+.note-card {
+  width: 240px; background: #fff; border-radius: 8px; border: 1px solid #dadce0;
+  padding: 12px; cursor: pointer; transition: box-shadow .2s;
+}
+.note-card:hover { box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.note-card.selected { border: 2px solid #1a73e8; }
+
+.note-title { font-size: 14px; font-weight: 500; margin-bottom: 8px; color: #202124; }
+
+.checkbox-item { display: flex; align-items: flex-start; margin-bottom: 4px; }
+.checkbox-item-content { display: flex; align-items: flex-start; flex: 1; }
+.checkbox-item-text { margin-left: 12px; font-size: 13px; line-height: 1.38; }
+
+.bVEB4e-MPu53c-haAclf { flex-shrink: 0; padding-top: 2px; }
+.Q0hgme-MPu53c {
+  width: 18px; height: 18px; border: 2px solid #5f6368; border-radius: 2px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  position: relative; background: #fff; user-select: none;
+}
+.Q0hgme-MPu53c[aria-checked="true"] {
+  background: #1a73e8; border-color: #1a73e8;
+}
+.Q0hgme-MPu53c[aria-checked="true"]::after {
+  content: ''; display: block; width: 5px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+  margin-top: -2px;
+}
+.checkbox-item--checked .vIzZGf-fmcmS {
+  text-decoration: line-through; color: #5f6368;
+}
+
+.bVEB4e-rymPhb-ibnC6b { margin-bottom: 2px; }
+.rymPhb-ibnC6b-bVEB4e-sM5MNb { display: flex; align-items: flex-start; }
+.rymPhb-ibnC6b-bVEB4e-ij8cu { margin-left: 6px; flex: 1; }
+.rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf { }
+
+.note-meta { font-size: 11px; color: #5f6368; margin-top: 12px; padding-top: 8px; border-top: 1px solid #e8eaed; }
+
+.expanded-note {
+  display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 600px; max-height: 80vh; background: #fff; border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2); padding: 16px; z-index: 100;
+  overflow-y: auto;
+}
+.expanded-note.visible { display: block; }
+.expanded-note-backdrop {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 99;
+}
+.expanded-note-backdrop.visible { display: block; }
+
+.expanded-title { font-size: 16px; font-weight: 500; margin-bottom: 16px; color: #202124; }
+
+.expanded-toolbar { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid #e8eaed; margin-top: 12px; }
+
+.toolbar-btn {
+  width: 34px; height: 34px; border: none; background: none; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: #5f6368; font-size: 14px;
+}
+.toolbar-btn:hover { background: #e8eaed; }
+.toolbar-btn[aria-label="More"] { position: relative; }
+.toolbar-btn.close-btn { width: auto; padding: 0 12px; font-size: 12px; border-radius: 4px; }
+
+.context-menu {
+  display: none; position: absolute; background: #fff; border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2); padding: 8px 0; z-index: 200;
+  min-width: 200px; right: 0; bottom: 40px;
+}
+.context-menu.visible { display: block; }
+.context-menu-item {
+  padding: 8px 16px; cursor: pointer; font-size: 13px; color: #202124;
+}
+.context-menu-item:hover { background: #e8eaed; }
+
+.checklist-container { }
+
+.header-bar {
+  background: #fff; padding: 8px 16px; display: flex; align-items: center;
+  justify-content: space-between; border-bottom: 1px solid #e8eaed; height: 64px;
+}
+.header-logo { font-size: 22px; font-weight: 400; color: #5f6368; }
+.header-search { margin-left: 24px; }
+.header-search input {
+  background: #f0f4f9; border: none; border-radius: 8px; padding: 8px 16px;
+  font-size: 14px; width: 400px; outline: none;
+}
+.header-search input::placeholder { color: #5f6368; }
+
+.login-redirect { display: none; text-align: center; padding: 100px; font-size: 18px; }
+</style>
+</head>
+<body jsaction="u0pjoe:.CLIENT">
+
+<div class="header-bar">
+  <span class="header-logo">Keep</span>
+  <div class="header-search">
+    <input type="text" placeholder="Search" aria-label="Search" role="combobox" autocomplete="off">
+  </div>
+</div>
+
+<div class="notes-container">
+
+  <div class="sidebar">
+    <div class="sidebar-label" role="tab" data-list-name="inköpslista" tabindex="0" aria-label="inköpslista">
+      <svg viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z"/></svg>
+      <span>inköpslista</span>
+    </div>
+    <div class="sidebar-label" role="tab" data-list-name="inköpslistan" tabindex="0" aria-label="inköpslistan">
+      <svg viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z"/></svg>
+      <span>inköpslistan</span>
+    </div>
+    <div class="sidebar-label" role="tab" data-list-name="Arbete" tabindex="0" aria-label="Arbete">
+      <svg viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z"/></svg>
+      <span>Arbete</span>
+    </div>
+    <div class="sidebar-label" role="tab" data-list-name="Inspiration" tabindex="0" aria-label="Inspiration">
+      <svg viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z"/></svg>
+      <span>Inspiration</span>
+    </div>
+    <div class="sidebar-label" role="tab" data-list-name="Personligt" tabindex="0" aria-label="Personligt">
+      <svg viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16zM16 17H5V7h11l3.55 5L16 17z"/></svg>
+      <span>Personligt</span>
+    </div>
+  </div>
+
+  <div class="main-view">
+    <div class="cards-grid">
+
+      <div class="note-card IZ65Hb-n0tgWb" id="card-inköpslista" data-list-name="inköpslista" tabindex="0">
+        <div class="IZ65Hb-r4nke-haAclf">
+          <div contenteditable="false" aria-multiline="true" role="textbox" class="notranslate IZ65Hb-YPqjbf fmcmS-x3Eknd vIzZGf-r4nke-YPqjbf" dir="ltr">inköpslista</div>
+        </div>
+        <div class="IZ65Hb-qJTHM-haAclf">
+          <div class="IZ65Hb-vIzZGf-bVEB4e-qJTHM">
+            <div class="checklist-container" id="checklist-inköpslista">
+              <div class="bVEB4e-rymPhb-ibnC6b">
+                <div class="rymPhb-ibnC6b-bVEB4e-sM5MNb">
+                  <div class="bVEB4e-MPu53c-haAclf">
+                    <div class="Q0hgme-MPu53c bVEB4e-MPu53c VIpgJd-MPu53c" aria-checked="false" role="checkbox" aria-disabled="false" tabindex="0"></div>
+                  </div>
+                  <div class="rymPhb-ibnC6b-bVEB4e-ij8cu">
+                    <div class="rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf">
+                      <p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">
+                        <span class="vIzZGf-fmcmS">Milk</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="bVEB4e-rymPhb-ibnC6b">
+                <div class="rymPhb-ibnC6b-bVEB4e-sM5MNb">
+                  <div class="bVEB4e-MPu53c-haAclf">
+                    <div class="Q0hgme-MPu53c bVEB4e-MPu53c VIpgJd-MPu53c" aria-checked="false" role="checkbox" aria-disabled="false" tabindex="0"></div>
+                  </div>
+                  <div class="rymPhb-ibnC6b-bVEB4e-ij8cu">
+                    <div class="rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf">
+                      <p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">
+                        <span class="vIzZGf-fmcmS">Bread</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="bVEB4e-rymPhb-ibnC6b">
+                <div class="rymPhb-ibnC6b-bVEB4e-sM5MNb">
+                  <div class="bVEB4e-MPu53c-haAclf">
+                    <div class="Q0hgme-MPu53c bVEB4e-MPu53c VIpgJd-MPu53c" aria-checked="false" role="checkbox" aria-disabled="false" tabindex="0"></div>
+                  </div>
+                  <div class="rymPhb-ibnC6b-bVEB4e-ij8cu">
+                    <div class="rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf">
+                      <p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">
+                        <span class="vIzZGf-fmcmS">Eggs</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="bVEB4e-rymPhb-ibnC6b">
+                <div class="rymPhb-ibnC6b-bVEB4e-sM5MNb">
+                  <div class="bVEB4e-MPu53c-haAclf">
+                    <div class="Q0hgme-MPu53c bVEB4e-MPu53c VIpgJd-MPu53c" aria-checked="false" role="checkbox" aria-disabled="false" tabindex="0"></div>
+                  </div>
+                  <div class="rymPhb-ibnC6b-bVEB4e-ij8cu">
+                    <div class="rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf">
+                      <p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">
+                        <span class="vIzZGf-fmcmS">Coffee</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="bVEB4e-rymPhb-ibnC6b">
+                <div class="rymPhb-ibnC6b-bVEB4e-sM5MNb">
+                  <div class="bVEB4e-MPu53c-haAclf">
+                    <div class="Q0hgme-MPu53c bVEB4e-MPu53c VIpgJd-MPu53c" aria-checked="true" role="checkbox" aria-disabled="false" tabindex="0"></div>
+                  </div>
+                  <div class="rymPhb-ibnC6b-bVEB4e-ij8cu checkbox-item--checked">
+                    <div class="rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf">
+                      <p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">
+                        <span class="vIzZGf-fmcmS">Rice</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="note-meta">Edited at yesterday, 11:41</div>
+      </div>
+
+      <div class="note-card IZ65Hb-n0tgWb" id="card-inköpslistan" data-list-name="inköpslistan" tabindex="0">
+        <div class="IZ65Hb-r4nke-haAclf">
+          <div contenteditable="false" aria-multiline="true" role="textbox" class="notranslate IZ65Hb-YPqjbf fmcmS-x3Eknd vIzZGf-r4nke-YPqjbf" dir="ltr">inköpslistan</div>
+        </div>
+        <div class="IZ65Hb-qJTHM-haAclf">
+          <div class="IZ65Hb-vIzZGf-bVEB4e-qJTHM">
+            <div class="checklist-container" id="checklist-inköpslistan">
+              <div class="bVEB4e-rymPhb-ibnC6b">
+                <div class="rymPhb-ibnC6b-bVEB4e-sM5MNb">
+                  <div class="bVEB4e-MPu53c-haAclf">
+                    <div class="Q0hgme-MPu53c bVEB4e-MPu53c VIpgJd-MPu53c" aria-checked="false" role="checkbox" aria-disabled="false" tabindex="0"></div>
+                  </div>
+                  <div class="rymPhb-ibnC6b-bVEB4e-ij8cu">
+                    <div class="rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf">
+                      <p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">
+                        <span class="vIzZGf-fmcmS">Potatoes</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="bVEB4e-rymPhb-ibnC6b">
+                <div class="rymPhb-ibnC6b-bVEB4e-sM5MNb">
+                  <div class="bVEB4e-MPu53c-haAclf">
+                    <div class="Q0hgme-MPu53c bVEB4e-MPu53c VIpgJd-MPu53c" aria-checked="false" role="checkbox" aria-disabled="false" tabindex="0"></div>
+                  </div>
+                  <div class="rymPhb-ibnC6b-bVEB4e-ij8cu">
+                    <div class="rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf">
+                      <p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">
+                        <span class="vIzZGf-fmcmS">Feta cheese</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="bVEB4e-rymPhb-ibnC6b">
+                <div class="rymPhb-ibnC6b-bVEB4e-sM5MNb">
+                  <div class="bVEB4e-MPu53c-haAclf">
+                    <div class="Q0hgme-MPu53c bVEB4e-MPu53c VIpgJd-MPu53c" aria-checked="true" role="checkbox" aria-disabled="false" tabindex="0"></div>
+                  </div>
+                  <div class="rymPhb-ibnC6b-bVEB4e-ij8cu checkbox-item--checked">
+                    <div class="rymPhb-ibnC6b-bVEB4e-fmcmS-haAclf">
+                      <p dir="ltr" style="line-height:1.38;margin-top:0pt;margin-bottom:0pt;" role="presentation">
+                        <span class="vIzZGf-fmcmS">Butter</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="note-meta">Edited at yesterday, 11:42</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="expanded-note-backdrop" id="backdrop"></div>
+<div class="expanded-note" id="expanded-note">
+  <div class="expanded-title" id="expanded-title"></div>
+  <div class="checklist-container" id="expanded-checklist"></div>
+  <div class="expanded-toolbar">
+    <button class="toolbar-btn close-btn" id="btn-close" role="button" aria-label="Close" tabindex="0">Close</button>
+    <button class="toolbar-btn" id="btn-pin" role="button" aria-label="Pin" aria-pressed="false" tabindex="0">📌</button>
+    <button class="toolbar-btn" id="btn-more" role="button" aria-label="More" tabindex="0">⋯</button>
+    <div class="context-menu" id="context-menu">
+      <div class="context-menu-item" role="menuitem" id="menu-delete-ticked" tabindex="0">Delete ticked items</div>
+      <div class="context-menu-item" role="menuitem" id="menu-delete-ticked-sv" tabindex="0">Ta bort markerade objekt</div>
+    </div>
+  </div>
+</div>
+
+<div class="login-redirect" id="login-redirect">
+  <p>Redirecting to accounts.google.com...</p>
+  <p>This simulates session expiration for E2E testing.</p>
+</div>
+
+<script>
+(function() {
+  var backdrop = document.getElementById('backdrop');
+  var expandedNote = document.getElementById('expanded-note');
+  var expandedTitle = document.getElementById('expanded-title');
+  var expandedChecklist = document.getElementById('expanded-checklist');
+  var btnClose = document.getElementById('btn-close');
+  var btnMore = document.getElementById('btn-more');
+  var contextMenu = document.getElementById('context-menu');
+  var menuDeleteTicked = document.getElementById('menu-delete-ticked');
+  var menuDeleteTickedSv = document.getElementById('menu-delete-ticked-sv');
+
+  document.querySelectorAll('.note-card').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('.Q0hgme-MPu53c')) return;
+      openNote(card);
+    });
+  });
+
+  document.querySelectorAll('.note-title, .IZ65Hb-YPqjbf').forEach(function(title) {
+    title.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var card = title.closest('.note-card');
+      if (card) openNote(card);
+    });
+  });
+
+  document.querySelectorAll('.sidebar-label').forEach(function(label) {
+    label.addEventListener('click', function() {
+      var listName = label.getAttribute('data-list-name');
+      var card = document.querySelector('.note-card[data-list-name="' + listName + '"]');
+      if (card) openNote(card);
+    });
+  });
+
+  function openNote(card) {
+    var listName = card.getAttribute('data-list-name');
+    var checklist = card.querySelector('.checklist-container');
+    expandedTitle.textContent = listName;
+    expandedChecklist.innerHTML = checklist.innerHTML;
+    expandedNote.classList.add('visible');
+    backdrop.classList.add('visible');
+  }
+
+  btnClose.addEventListener('click', closeNote);
+  backdrop.addEventListener('click', closeNote);
+
+  function closeNote() {
+    expandedNote.classList.remove('visible');
+    backdrop.classList.remove('visible');
+    contextMenu.classList.remove('visible');
+    syncBackToCards();
+  }
+
+  document.querySelectorAll('.Q0hgme-MPu53c').forEach(function(checkbox) {
+    checkbox.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleCheckbox(checkbox);
+    });
+  });
+
+  function toggleCheckbox(checkbox) {
+    var isChecked = checkbox.getAttribute('aria-checked') === 'true';
+    checkbox.setAttribute('aria-checked', isChecked ? 'false' : 'true');
+    var itemContainer = checkbox.closest('.rymPhb-ibnC6b-bVEB4e-sM5MNb');
+    var ij8cu = itemContainer.querySelector('.rymPhb-ibnC6b-bVEB4e-ij8cu');
+    if (ij8cu) {
+      if (!isChecked) {
+        ij8cu.classList.add('checkbox-item--checked');
+      } else {
+        ij8cu.classList.remove('checkbox-item--checked');
+      }
+    }
+  }
+
+  expandedChecklist.addEventListener('click', function(e) {
+    var checkbox = e.target.closest('.Q0hgme-MPu53c');
+    if (checkbox) {
+      e.stopPropagation();
+      toggleCheckbox(checkbox);
+    }
+  });
+
+  btnMore.addEventListener('click', function(e) {
+    e.stopPropagation();
+    contextMenu.classList.toggle('visible');
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#btn-more') && !e.target.closest('#context-menu')) {
+      contextMenu.classList.remove('visible');
+    }
+  });
+
+  menuDeleteTicked.addEventListener('click', deleteTickedItems);
+  menuDeleteTickedSv.addEventListener('click', deleteTickedItems);
+
+  function deleteTickedItems() {
+    var items = expandedChecklist.querySelectorAll('.bVEB4e-rymPhb-ibnC6b');
+    items.forEach(function(item) {
+      var checkbox = item.querySelector('.Q0hgme-MPu53c');
+      if (checkbox && checkbox.getAttribute('aria-checked') === 'true') {
+        item.remove();
+      }
+    });
+    contextMenu.classList.remove('visible');
+    syncBackToCards();
+  }
+
+  function syncBackToCards() {
+    var listName = expandedTitle.textContent;
+    var card = document.querySelector('.note-card[data-list-name="' + listName + '"]');
+    if (card) {
+      var cardChecklist = card.querySelector('.checklist-container');
+      if (cardChecklist && expandedChecklist.innerHTML) {
+        cardChecklist.innerHTML = expandedChecklist.innerHTML;
+        rebindCardCheckboxes(card);
+      }
+    }
+  }
+
+  function rebindCardCheckboxes(card) {
+    card.querySelectorAll('.Q0hgme-MPu53c').forEach(function(checkbox) {
+      checkbox.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleCheckbox(checkbox);
+      });
+    });
+  }
+
+  window.simulateSessionExpiry = function() {
+    window.location.href = 'https://accounts.google.com/ServiceLogin?service=memento';
+  };
+})();
+</script>
+
+</body>
+</html>
